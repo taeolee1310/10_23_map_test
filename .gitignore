@@ -1,0 +1,27 @@
+# 키 금고
+.env
+.env.*
+!.env.example
+
+# 생성 파일 (파이썬이 만든다)
+map.html
+
+# 원본 대용량 CSV (정리본 data/parking_clean.csv만 올린다)
+data/*
+!data/parking_clean.csv
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# 에디터·OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

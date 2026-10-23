@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>D8 워크북 · 파이썬으로 카카오 지도 + 판다스로 공공데이터</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+:root{--ink:#14213D;--ink2:#3D4A63;--mute:#6B7487;--line:#DCE1EA;--paper:#FFFFFF;--wash:#F2F4F8;
+--am:#2563EB;--am-bg:#EAF1FE;--pm:#0E8F6E;--pm-bg:#E5F5EF;--mark:#FFE45C;--warn:#B45309;
+--t-jo:#C2410C;--t-jigsaw:#A16207;--t-guild:#1D4ED8;--t-show:#15803D;--t-sprint:#7E22CE;}
+@media (prefers-color-scheme:dark){:root{--ink:#E8ECF4;--ink2:#C3CAD8;--mute:#98A1B3;--line:#2E3648;--paper:#11161F;--wash:#182030;
+--am-bg:#16233F;--pm-bg:#11302A;--mark:#7A6A12;}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.7 Pretendard,"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;word-break:keep-all}
+.wrap{max-width:780px;margin:0 auto;padding:0 20px}
+.hero{background:#14213D;color:#fff;padding:36px 0 22px}
+.day{display:flex;align-items:flex-end;gap:14px}
+.dn{font-size:72px;font-weight:900;line-height:.85;letter-spacing:-3px;color:var(--mark)}
+.dt{font-size:13px;line-height:1.5;opacity:.85}
+.hero h1{font-size:28px;line-height:1.35;margin:18px 0 6px;letter-spacing:-.5px;font-weight:800}
+.goal{margin:0;opacity:.85}
+.rail{display:flex;align-items:center;gap:2px;margin:22px 0 16px;flex-wrap:nowrap}
+.rail .t{flex:1;height:8px;border-radius:2px;background:rgba(255,255,255,.18)}
+.rail .t.past{background:rgba(255,255,255,.55)}
+.rail .t.now{background:var(--mark);height:18px}
+.rail .gap{width:5px}
+.me{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:14px}
+.me select{font:inherit;padding:6px 10px;border-radius:8px;border:0;background:#fff;color:#14213D}
+#meinfo{font-weight:700;color:var(--mark)}
+.toc{position:sticky;top:0;z-index:5;display:flex;gap:4px;overflow-x:auto;background:var(--paper);border-bottom:1px solid var(--line);padding-top:8px;padding-bottom:8px}
+.toc a{white-space:nowrap;color:var(--ink2);text-decoration:none;font-size:14px;padding:6px 10px;border-radius:6px}
+.toc a:hover,.toc a:focus-visible{background:var(--wash);outline:none}
+.sec{padding:34px 0 8px;border-bottom:1px solid var(--line)}
+.sec h2{font-size:22px;margin:0 0 14px;letter-spacing:-.3px}
+.sec h2 small{font-size:14px;font-weight:500;color:var(--mute);margin-left:8px}
+.sub{font-size:16px;margin:26px 0 10px}
+h4{font-size:15px;margin:22px 0 8px}
+.outs{padding-left:20px;margin:0 0 24px}.outs li{margin:4px 0}
+.tl{list-style:none;margin:0;padding:0;border-left:3px solid var(--line)}
+.tl li{display:grid;grid-template-columns:52px 92px 1fr;gap:10px;padding:8px 0 8px 14px;position:relative;font-size:15px}
+.tl li::before{content:"";position:absolute;left:-7px;top:15px;width:11px;height:11px;border-radius:50%;background:var(--am)}
+.tl li.pm::before{background:var(--pm)}
+.tl time{font-weight:700;font-variant-numeric:tabular-nums}
+.tl .k{color:var(--mute);font-size:13px;padding-top:2px}
+.concepts{display:grid;gap:14px}
+.concept{border-left:4px solid var(--am);background:var(--am-bg);padding:14px 18px;border-radius:0 10px 10px 0}
+.concept h3{margin:0 0 4px;font-size:17px}
+.concept p{margin:4px 0}.concept .ana{font-size:14px;color:var(--am);font-weight:600}
+@media (prefers-color-scheme:dark){.concept .ana{color:#8EB4FF}}
+.terms{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin:0}
+.terms div{border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.terms dt{font-weight:700}.terms dd{margin:0;color:var(--ink2);font-size:14px}
+.hint{color:var(--mute);font-size:14px;margin:-6px 0 14px}
+.steps{list-style:none;padding:0;margin:0;counter-reset:s}
+.step{display:grid;grid-template-columns:34px 1fr;gap:10px;padding:14px 0;border-top:1px dashed var(--line)}
+.step h3{margin:0 0 4px;font-size:17px}
+.step h3::before{counter-increment:s;content:counter(s)". ";color:var(--am)}
+.step p{margin:4px 0}
+.chk{position:relative;display:inline-block;width:24px;height:24px;margin-top:3px;cursor:pointer}
+.chk input{position:absolute;opacity:0;width:24px;height:24px;margin:0;cursor:pointer}
+.chk .box{display:block;width:24px;height:24px;border:2px solid var(--line);border-radius:6px;background:var(--paper)}
+.chk input:checked + .box{background:var(--pm);border-color:var(--pm)}
+.chk input:checked + .box::after{content:"";display:block;width:6px;height:12px;border:solid #fff;border-width:0 3px 3px 0;transform:translate(7px,2px) rotate(45deg)}
+.chk input:focus-visible + .box{outline:3px solid var(--am);outline-offset:2px}
+.tip{background:var(--wash);border-radius:8px;padding:8px 12px;font-size:14px}
+.tip b{color:var(--warn);margin-right:6px}
+.code{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:10px 0}
+.codebar{display:flex;justify-content:space-between;align-items:center;background:var(--wash);padding:4px 6px 4px 12px;font-size:13px;color:var(--mute)}
+.copy{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:6px;padding:3px 10px;cursor:pointer}
+.copy.ok{background:var(--pm);color:#fff;border-color:var(--pm)}
+pre{margin:0;padding:12px 14px;white-space:pre-wrap;font:15px/1.65 Pretendard,"Malgun Gothic",sans-serif;background:var(--paper)}
+pre.term{font:14px/1.6 "D2Coding",ui-monospace,Consolas,monospace}
+.mhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px}
+.badge{font-size:13px;font-weight:700;color:#fff;padding:3px 10px;border-radius:20px}
+.t-조{background:var(--t-jo)}.t-직소{background:var(--t-jigsaw)}.t-길드{background:var(--t-guild)}.t-쇼케이스{background:var(--t-show)}.t-스프린트{background:var(--t-sprint)}.t-개인{background:var(--mute)}
+.where{font-size:14px;color:var(--ink2)}
+.mygroup:empty{display:none}
+.mygroup{background:var(--pm-bg);border-radius:10px;padding:12px 16px;font-size:15px;margin:6px 0 4px}
+.mygroup b{color:var(--pm)}
+.mtitle{font-size:22px;margin:18px 0 4px;letter-spacing:-.3px}
+.brief{color:var(--ink2);margin:0 0 6px}
+.rules{padding-left:20px;margin:0}
+.sched{width:100%;border-collapse:collapse;margin:16px 0;font-size:15px}
+.sched th{width:64px;text-align:left;vertical-align:top;padding:8px 0;color:var(--pm);font-variant-numeric:tabular-nums}
+.sched td{padding:8px 0;border-bottom:1px solid var(--line)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tabs button{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:20px;padding:5px 14px;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.panel{margin-top:10px}.role{margin:0}.role b{margin-right:6px}
+.checks{list-style:none;padding:0;margin:0}
+.checks li{display:grid;grid-template-columns:34px 1fr;gap:8px;align-items:start;padding:5px 0}
+.out{background:var(--wash);border-radius:8px;padding:10px 14px}
+.dls{list-style:none;padding:0;margin:0}
+.dls li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.dls li div{display:flex;flex-direction:column}.dls span{font-size:14px;color:var(--mute)}
+.dl{font:inherit;font-size:14px;font-weight:700;white-space:nowrap;border:0;background:var(--ink);color:var(--paper);border-radius:8px;padding:8px 14px;cursor:pointer}
+.dl small{font-weight:400;opacity:.7;margin-left:4px}
+button:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--am);outline-offset:2px}
+.foot{display:flex;gap:16px;justify-content:center;padding:28px 20px 48px}
+.foot a{color:var(--ink2)}
+@media (max-width:560px){.dn{font-size:56px}.hero h1{font-size:23px}.tl li{grid-template-columns:46px 1fr}.tl .k{display:none}.dls li{flex-direction:column;align-items:flex-start}}
+@media print{.toc,.me,.dl,.copy,.foot{display:none}.hero{background:none;color:#000}.dn{color:#000}.sec{break-inside:avoid-page}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style><style>
+.lv{display:inline-block;font-size:12px;font-weight:800;padding:1px 8px;border-radius:6px;margin-right:6px;vertical-align:2px;background:var(--wash);color:var(--ink2);border:1px solid var(--line)}
+.lv.l1{background:var(--pm-bg);color:var(--pm);border-color:transparent}
+.lv.l2{background:var(--am-bg);color:var(--am);border-color:transparent}
+.lv.l3{background:#F3E8FF;color:#7E22CE;border-color:transparent}
+@media (prefers-color-scheme:dark){.lv.l3{background:#2A1A40;color:#C4A1F5}}
+.tbl{width:100%;border-collapse:collapse;font-size:15px;margin:10px 0}
+.tbl th,.tbl td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl th{background:var(--wash);font-size:14px}
+.tbl code,.step code,.concept code,.tip code,.rules code,.sched code,.outs code{font:14px "D2Coding",ui-monospace,Consolas,monospace;background:var(--wash);padding:0 4px;border-radius:4px}
+.step>div,.checks li>span{min-width:0}.tbl td code{overflow-wrap:anywhere}
+.os{display:grid;grid-template-columns:1fr 1fr;gap:8px}.os .code{margin:4px 0}
+@media (max-width:560px){.os{grid-template-columns:1fr}.tbl{font-size:14px}}
+</style></head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="day"><span class="dn">D8</span><span class="dt">10월 23일 금요일<br>[AI 활용 기초] 목적에 맞는 AI 도구 선택과 안전한 활용법</span></div>
+    <h1>파이썬으로 카카오 지도 + 판다스로 공공데이터 → 우리 조 지도 서비스</h1>
+    <p class="goal">파이썬이 장소를 찾고(REST 키), 지도는 브라우저가 그린다(JavaScript 키). 열쇠는 두 개 — 하나는 숨기고, 하나는 우리 주소에 묶는다. 오후엔 판다스로 공공데이터를 정리해 질문 하나에 답하는 지도를 만든다</p>
+    <div class="rail" aria-label="56일 중 D8"><span class="t past" title="D1"></span><span class="t past" title="D2"></span><span class="t past" title="D3"></span><span class="t past" title="D4"></span><span class="t past" title="D5"></span><span class="gap"></span><span class="t past" title="D6"></span><span class="t past" title="D7"></span><span class="t now" title="D8"></span><span class="t" title="D9"></span><span class="t" title="D10"></span><span class="gap"></span><span class="t" title="D11"></span><span class="t" title="D12"></span><span class="t" title="D13"></span><span class="t" title="D14"></span><span class="t" title="D15"></span><span class="gap"></span><span class="t" title="D16"></span><span class="t" title="D17"></span><span class="t" title="D18"></span><span class="t" title="D19"></span><span class="t" title="D20"></span><span class="gap"></span><span class="t" title="D21"></span><span class="t" title="D22"></span><span class="t" title="D23"></span><span class="t" title="D24"></span><span class="t" title="D25"></span><span class="gap"></span><span class="t" title="D26"></span><span class="t" title="D27"></span><span class="t" title="D28"></span><span class="t" title="D29"></span><span class="t" title="D30"></span><span class="gap"></span><span class="t" title="D31"></span><span class="t" title="D32"></span><span class="t" title="D33"></span><span class="t" title="D34"></span><span class="t" title="D35"></span><span class="gap"></span><span class="t" title="D36"></span><span class="t" title="D37"></span><span class="t" title="D38"></span><span class="t" title="D39"></span><span class="gap"></span><span class="t" title="D40"></span><span class="t" title="D41"></span><span class="t" title="D42"></span><span class="t" title="D43"></span><span class="t" title="D44"></span><span class="t" title="D45"></span><span class="t" title="D46"></span><span class="t" title="D47"></span><span class="gap"></span><span class="t" title="D48"></span><span class="t" title="D49"></span><span class="t" title="D50"></span><span class="t" title="D51"></span><span class="t" title="D52"></span><span class="t" title="D53"></span><span class="t" title="D54"></span><span class="t" title="D55"></span><span class="t" title="D56"></span></div>
+    <div class="me"><label for="me">내 이름</label><select id="me"><option value="">선택하면 내 조·길드가 표시돼요</option></select><span id="meinfo"></span></div>
+  </div>
+</header>
+<nav class="toc wrap"><a href="#today">오늘의 흐름</a><a href="#theory">오전 이론</a><a href="#practice">따라 하기</a><a href="#mission">오후 미션</a><a href="#data">자료</a><a href="#wrap">마무리</a></nav>
+<main class="wrap">
+<section id="today" class="sec">
+  <h2>오늘이 끝나면</h2><ul class="outs">
+  <li>카카오 로컬 API로 <b>장소 · 주소 · 좌표</b>를 파이썬에서 가져올 수 있다</li>
+  <li><b>REST API 키</b>(숨긴다)와 <b>JavaScript 키</b>(우리 주소에 묶어 둔다)를 지키는 법이 왜 다른지 말할 수 있다</li>
+  <li>카카오의 <code>x</code>·<code>y</code>를 위도·경도로 바르게 바꿔 <b>지도에 마커</b>를 찍을 수 있다</li>
+  <li>AI가 추천한 장소를 API로 확인해 <b>AI 실수율</b>을 숫자로 말할 수 있다 (★★)</li>
+  <li><b>판다스</b>로 공공데이터 CSV를 읽고 · 빈칸을 세고 · 걸러내고 · 저장할 수 있다</li>
+  <li>우리 조 지도가 <b>질문 하나</b>에 30초 안에 답한다</li></ul>
+  <h2>오늘의 흐름</h2><ol class="tl">
+  <li class="am"><time>10:00</time><span class="k">오전 이론</span><span>D7 퀴즈 · <b>두 개의 열쇠</b>(REST 키 vs JavaScript 키) · <b>x는 가로, y는 세로</b></span></li>
+  <li class="am"><time>10:25</time><span class="k">오전 실습</span><span>⓪ 카카오 앱 설정 — 카카오맵 ON · JavaScript SDK 도메인 등록 · <code>.env</code>에 JS 키 · <code>d8-map</code> + 규칙</span></li>
+  <li class="am"><time>11:00</time><span class="k">오전 실습</span><span>① 장소 검색 → ② 주소↔좌표 → ③ 파이썬이 지도 HTML 만들기 · 검사 7가지</span></li>
+  <li class="am"><time>11:50</time><span class="k">오전 실습</span><span>★★ ④ <b>AI 추천 장소 팩트체크</b> · ★★ ⑤ Streamlit 지도 · ★★★ ⑥ 지도 가운데 날씨 · 12:15 AI 실수 → 규칙</span></li>
+  <li class="am"><time>12:25</time><span class="k">점심 전</span><span>공공데이터 CSV 내려받기 안내 (점심시간에)</span></li>
+  <li class="pm"><time>14:00</time><span class="k">개인</span><span><b>판다스</b> — 읽기 → 살펴보기 → 걸러내기 → 숫자로 → 좌표 채우기 → 요약 → 저장</span></li>
+  <li class="pm"><time>15:00</time><span class="k">조</span><span><b>우리 조 지도 서비스</b> — 질문 하나 고르기 → 레포 <code>map-○조</code> → Issue → PR → 리뷰 · 16:40 지도 캡처</span></li>
+  <li class="pm"><time>17:00</time><span class="k">짝 조</span><span>짝 조 질문에 우리가 30초 안에 답해 보기</span></li>
+  <li class="pm"><time>17:30</time><span class="k">발표·피드백</span><span>조 발표 4분 + 피드백 1분</span></li>
+  <li class="pm"><time>18:20</time><span class="k">마무리</span><span>위임 로그 · 3줄 회고 · Slack 제출</span></li></ol>
+</section>
+<section id="theory" class="sec">
+  <h2>오전 이론 <small>10:10–10:25</small></h2>
+  <div class="concepts">
+  <article class="concept"><h3>검색은 파이썬, 그림은 브라우저</h3><p class="ana">비유: 주방장과 서빙</p><p>장소를 <b>찾는 일</b>(검색, 주소↔좌표)은 <b>파이썬</b>이 내 컴퓨터에서 해요. 지도를 <b>그리는 일</b>은 지도를 보는 사람의 <b>브라우저</b>가 해요. 손으로 끌고 확대할 때마다 브라우저가 카카오에 그림 조각을 받아 오거든요.</p></article>
+  <article class="concept"><h3>두 개의 열쇠</h3><p class="ana">비유: 금고 열쇠 vs 우리 집 현관 카드</p><p><b>REST API 키</b>는 파이썬이 써요 → 어제처럼 <code>.env</code> 금고에 <b>숨겨요</b>. <b>JavaScript 키</b>는 브라우저로 내려가니 <b>숨길 수 없어요</b> → 대신 카카오에 "이 키는 <b>우리 집 주소</b>에서만 켜진다"고 <b>등록해서</b> 지켜요. 남이 베껴 가도 자기 사이트에선 안 켜져요.</p></article>
+  <article class="concept"><h3>x는 가로, y는 세로</h3><p class="ana">비유: 그래프의 x축·y축</p><p>카카오는 좌표를 <b><code>x</code> = 경도(127쯤), <code>y</code> = 위도(37쯤)</b>, 그것도 <b>글자</b>로 줘요. 그런데 지도에 찍을 땐 <code>LatLng(위도, 경도)</code> 순서예요. 뒤집으면 마커가 <b>바다</b>에 찍혀요 = 오늘의 대표 AI 실수. 서울은 <b>(37, 127)</b>.</p></article>
+  <article class="concept"><h3>지도가 회색이면</h3><p class="ana">비유: 현관 카드는 등록된 문에서만</p><p>① 카카오맵 <b>사용 설정 OFF</b> ② 도메인 <b>미등록</b> — <code>http://localhost:8000</code>처럼 <b>포트까지</b> ③ <b>더블클릭</b>(file://)으로 열기 — 주소가 없어서 안 켜져요. 한 줄 정리: <b>"켜고, 등록하고, 서버로 연다"</b></p></article>
+  <article class="concept"><h3>AI 답은 다른 출처로 확인한다</h3><p class="ana">비유: 친구가 알려 준 맛집, 지도 앱에서 한 번 더</p><p>AI는 <b>없는 가게</b>를 그럴듯하게 지어내기도 하고, <b>주소를 틀리게</b> 말하기도 해요. 오늘은 카카오 API가 그 "다른 출처"예요. ✅ 있음 · 🟡 주소 다름 · ❌ 못 찾음 → <b>AI 실수율 몇 %?</b> 단, ❌가 곧 가짜는 아니에요(폐업·다른 이름). <b>사람이 한 번 더.</b></p></article>
+  <article class="concept"><h3>판다스 = 파이썬 속 엑셀</h3><p class="ana">비유: 클릭 서른 번을 기록으로</p><p>엑셀로 하면 필터·피벗 클릭 수십 번인 일을 판다스는 <b>한 줄씩 코드로 남기며</b> 해요. 내일 새 파일이 와도 <b>실행 한 번</b>이면 똑같이 정리돼요. 그리고 <b>데이터를 보기 전에 분석하지 않아요</b> — 몇 줄인지, 어디가 비었는지부터.</p></article>
+  </div>
+  <h3 class="sub">오늘 나오는 용어</h3><dl class="terms">
+  <div><dt>로컬 API</dt><dd>장소·주소·좌표를 알려 주는 카카오 API (<code>dapi.kakao.com/v2/local/…</code>)</dd></div>
+  <div><dt>지오코딩 / 역지오코딩</dt><dd>주소 → 좌표 / 좌표 → 주소</dd></div>
+  <div><dt>위도 · 경도</dt><dd>세로 위치(서울 37쯤) · 가로 위치(서울 127쯤). 카카오는 <b>x = 경도, y = 위도</b></dd></div>
+  <div><dt>SDK</dt><dd>남이 만들어 둔 도구 묶음. 카카오 지도 SDK = 지도를 그려 주는 자바스크립트</dd></div>
+  <div><dt>JavaScript 키</dt><dd>브라우저에서 지도를 그릴 때 쓰는 키. 등록한 주소에서만 켜져요</dd></div>
+  <div><dt>도메인 등록</dt><dd>"이 키는 이 주소에서만"이라고 카카오에 알려 두기. 오늘은 <code>http://localhost:8000</code>, <code>http://localhost:8501</code></dd></div>
+  <div><dt>http.server</dt><dd>지금 폴더를 <code>http://localhost:8000</code>으로 열어 주는 작은 서버. 꼭 <code>--bind 127.0.0.1</code> (내 컴퓨터에서만)</dd></div>
+  <div><dt>판다스 · DataFrame</dt><dd>파이썬 속 엑셀 · 판다스가 다루는 표 한 장</dd></div>
+  <div><dt>인코딩 (UTF-8 / CP949)</dt><dd>한글을 숫자로 바꾸는 방식. 틀리면 글자가 깨지거나 <code>UnicodeDecodeError</code></dd></div>
+  <div><dt>결측치 (NaN)</dt><dd>빈칸. <code>isna().sum()</code>으로 칸마다 몇 개인지</dd></div>
+  <div><dt>groupby</dt><dd>"유형별로 묶어서 세기·평균" (엑셀 피벗)</dd></div></dl>
+</section>
+<section id="practice" class="sec">
+  <h2>따라 하기 <small>10:25–14:50</small></h2>
+  <p class="hint">한 단계 끝날 때마다 체크하세요. 체크는 이 브라우저에 저장됩니다. 완성 파일은 없어요. 프롬프트로 만들고 검사해요. 비개발 직군은 오전 <b>⓪ ① ③</b>, 14시 판다스 <b>1~4단계 + 7단계 저장</b>까지 하면 오늘 목표 달성이에요.</p>
+  <ol class="steps">
+
+  <li class="step"><label class="chk"><input type="checkbox" data-k="s1"><span class="box"></span></label><div><h3>카카오 앱 설정 <small style='color:var(--mute);font-weight:400'>(10:25)</small></h3>
+  <p class='tip'><b>먼저!</b><b>어제 만든 앱을 그대로</b> 써요. 새 앱을 만들면 무료 쿼터 대신 결제(월렛) 연결 안내가 뜰 수 있어요. 결제·월렛이라는 말이 보이면 <b>멈추고 강사 호출</b>.</p>
+  <table class='tbl'><tr><th>할 일</th><th>어디서</th></tr>
+  <tr><td>① 카카오맵 켜기</td><td>developers.kakao.com → 내 애플리케이션 → 어제 앱 → <b>카카오맵</b> → 사용 설정 <b>ON</b> (끄면 파이썬 검색 403, 지도는 회색)</td></tr>
+  <tr><td>② 키 두 장 확인</td><td><b>[앱] &gt; [플랫폼 키]</b> — <b>REST API 키</b>(어제 그 키) + <b>JavaScript 키</b>(오늘 새로). Admin 키는 절대 복사하지 않기</td></tr>
+  <tr><td>③ 도메인 등록</td><td><b>[플랫폼 키] &gt; [JavaScript 키] &gt; JavaScript SDK 도메인</b>에 아래 두 줄</td></tr></table>
+  <div class="code"><div class="codebar"><span>JavaScript SDK 도메인 (포트까지 똑같이)</span><button class="copy" type="button">복사</button></div><pre class="term">http://localhost:8000
+http://localhost:8501</pre></div>
+  <p class='tip'><b>주의</b><code>8000</code> = 파이썬이 만든 <code>map.html</code>, <code>8501</code> = Streamlit. <code>localhost</code>만 쓰면 안 돼요. <code>127.0.0.1</code>은 <b>다른 주소</b>예요. 저장 후 반영에 몇 분 걸릴 수 있어요. 캡처할 땐 키 부분은 가리기.</p>
+  <div class="code"><div class="codebar"><span>폴더 만들기 (git-practice = 어제 d7-python이 있는 레포)</span><button class="copy" type="button">복사</button></div><pre class="term">cd git-practice
+mkdir d8-map
+cd d8-map
+conda activate camp</pre></div>
+  <p>VS Code에서 <code>d8-map/.env</code>를 <b>내 손으로</b> 새로 만들어요. 어제 <code>d7-python/.env</code>에서 두 줄을 복사해 오고 JS 키 한 줄을 새로:</p>
+  <div class="code"><div class="codebar"><span>d8-map/.env (이름만 복사하고 값은 내 키로)</span><button class="copy" type="button">복사</button></div><pre class="term">KAKAO_REST_API_KEY=
+KAKAO_JS_KEY=
+OPENWEATHER_API_KEY=</pre></div>
+  <p class='tip'><b>절대</b>띄어쓰기·따옴표 없이 <code>=</code> 뒤에 키만. <b>REST 키와 JS 키가 같은 값이면 잘못 복사한 것</b>. <code>OPENWEATHER_API_KEY</code>는 ★★★ ⑥에만 써요. 키는 Slack·카톡·<b>Claude 대화창</b>에 붙이지 않기.</p></div></li>
+
+  <li class="step"><label class="chk"><input type="checkbox" data-k="s2"><span class="box"></span></label><div><h3>폴더 CLAUDE.md에 지도 규칙 붙이기 <small style='color:var(--mute);font-weight:400'>(10:40)</small></h3>
+  <p>자료의 <b>CLAUDE_지도API규칙.md</b>를 <code>d8-map/CLAUDE.md</code>에 붙여 넣고 <b>Claude Code를 새로 시작</b>.</p>
+  <div class="code"><div class="codebar"><span>Claude Code에게 (규칙 읽었는지 확인)</span><button class="copy" type="button">복사</button></div><pre class="pr">d8-map/CLAUDE.md 를 읽고, REST API 키와 JavaScript 키를 각각 어떻게 지키는지 내 말로 3줄로 요약해 줘.</pre></div>
+  <div class="code"><div class="codebar"><span>Claude Code에게 (견본·문지기·장보기 목록)</span><button class="copy" type="button">복사</button></div><pre class="pr">d8-map 폴더에 .gitignore, .env.example, requirements.txt 를 CLAUDE.md 규칙대로 만들어 줘.
+오늘은 requests, python-dotenv, pandas, streamlit(1.66 이상), openpyxl 을 써.
+.gitignore 에는 .env, __pycache__/, map.html, data/*_raw.* 를 넣어 줘. .env 는 만들지 마. 그건 내가 직접 만들었어.</pre></div>
+  <div class="code"><div class="codebar"><span>설치 → 확인 → Slack ✅</span><button class="copy" type="button">복사</button></div><pre class="term">pip install -r requirements.txt
+streamlit --version
+git status</pre></div>
+  <p>Streamlit이 <b>1.66 이상</b>이고, <code>git status</code>에 <code>.env</code>가 <b>안 보이면</b> 성공.</p>
+  <table class='tbl'><tr><th>검사 7가지</th><th>어떻게</th></tr>
+  <tr><td>① 🔌 표시</td><td><code>Ctrl+F</code> 🔌 → API 주소가 맨 위 한 곳에</td></tr>
+  <tr><td>② 실패 안내</td><td>검색어를 <code>ㅁㄴㅇㄹ</code>로 → "찾지 못했어요" 한국어 한 줄</td></tr>
+  <tr><td>③ 출처</td><td>출력·화면 맨 아래 "카카오 로컬 API"</td></tr>
+  <tr><td>④ 금고</td><td><code>Ctrl+Shift+F</code>로 <b>REST 키 앞 6글자</b> → <code>.env</code> 말고 0건 (<code>map.html</code> 포함!)</td></tr>
+  <tr><td>⑤ 문지기</td><td><code>git status</code>에 <code>.env</code>, <code>map.html</code> 없음</td></tr>
+  <tr><td>⑥ 입 조심</td><td>REST 키 끝 한 글자 지우고 실행 → "키가 틀렸어요", <b>키·주소·헤더가 안 찍힘</b> → 되돌리기</td></tr>
+  <tr><td>⑦ 제자리</td><td>좌표가 (37.x, 127.x)처럼 <b>위도가 앞</b> / 마커가 실제 장소 위</td></tr></table>
+  <div class="code"><div class="codebar"><span>AI 실수를 고치게 할 때</span><button class="copy" type="button">복사</button></div><pre class="pr">CLAUDE.md 규칙 중 ___ 를 안 지켰어. 규칙대로 고쳐 줘. 어디를 고쳤는지 알려 줘.</pre></div></div></li>
+
+  <li class="step"><label class="chk"><input type="checkbox" data-k="s3"><span class="box"></span></label><div><h3><span class='lv l1'>★</span>미션 ① — 장소 검색 <code>place.py</code> <small style='color:var(--mute);font-weight:400'>(11:00)</small></h3>
+  <div class="code"><div class="codebar"><span>Claude Code에게</span><button class="copy" type="button">복사</button></div><pre class="pr">d8-map 폴더에 place.py 를 만들어 줘.
+.env 의 KAKAO_REST_API_KEY 로 카카오 로컬 '키워드로 장소 검색' API를 불러서,
+내가 입력한 검색어(예: 성수동 카페)의 장소 5개를 "이름 · 주소 · (위도, 경도)" 로 터미널에 보여 줘.
+다른 파일에서 다시 쓸 수 있게 search_place(검색어) 함수로 만들어 줘.</pre></div>
+  <div class="code"><div class="codebar"><span>실행</span><button class="copy" type="button">복사</button></div><pre class="term">python place.py</pre></div>
+  <p>장소가 나오면 성공. <b>403</b> → 카카오맵 사용 설정 OFF. 좌표가 <code>(127.05, 37.54)</code>처럼 나오면 x·y를 뒤집은 <b>AI 실수</b>.</p>
+  <div class="code"><div class="codebar"><span>Claude Code에게 (JSON 읽기)</span><button class="copy" type="button">복사</button></div><pre class="pr">place.py 에서 받은 JSON 중 어느 칸에서 이름·주소·좌표를 꺼냈는지 상자를 여는 순서대로 설명해 줘.
+x 와 y 가 각각 무엇이고 왜 글자("127.05")로 오는지도.</pre></div>
+  <p>검사 7가지 → 커밋 <code>"[직군] D8: 1 장소 검색"</code></p></div></li>
+
+  <li class="step"><label class="chk"><input type="checkbox" data-k="s4"><span class="box"></span></label><div><h3><span class='lv l1'>★</span>미션 ② — 주소 ↔ 좌표 <code>geo.py</code> <small style='color:var(--mute);font-weight:400'>(개발 목표 · 비개발 선택)</small></h3>
+  <div class="code"><div class="codebar"><span>Claude Code에게</span><button class="copy" type="button">복사</button></div><pre class="pr">d8-map 폴더에 geo.py 를 만들어 줘.
+1) 주소를 입력받아 카카오 '주소로 좌표 변환' API로 위도·경도를 보여 주고
+2) 그 위도·경도를 다시 '좌표로 주소 변환' API에 넣어 도로명 주소를 보여 줘. 도로명이 없으면 지번 주소로.
+address_to_xy(주소), xy_to_address(위도, 경도) 함수로 만들어 줘.</pre></div>
+  <p><code>서울 중구 세종대로 110</code> → 좌표 → 다시 주소. 같은 곳으로 돌아오나요? <code>없는주소123</code> → "찾지 못했어요"? (영어 Traceback이면 AI 실수)</p>
+  <p class='tip'><b>순서</b>요청 보낼 때 <code>x=경도, y=위도</code>, 꺼낼 때도 <code>y=위도</code>. 지도에 넣을 땐 <code>(위도, 경도)</code>. <b>방향마다 순서가 달라요</b> — 코드 주석에 적혀 있나요?</p>
+  <p>커밋 <code>"[직군] D8: 2 주소 좌표"</code></p></div></li>
+
+  <li class="step"><label class="chk"><input type="checkbox" data-k="s5"><span class="box"></span></label><div><h3><span class='lv l1'>★</span>미션 ③ — 파이썬이 지도 HTML을 만든다 <code>make_map.py</code></h3>
+  <div class="code"><div class="codebar"><span>Claude Code에게</span><button class="copy" type="button">복사</button></div><pre class="pr">d8-map 폴더에 make_map.py 를 만들어 줘.
+place.py 의 search_place 로 장소를 10개 찾고, 그 결과를 카카오 지도 위에 마커로 찍은 map.html 을 만들어 줘.
+- 지도 키는 .env 의 KAKAO_JS_KEY (JavaScript 키). REST 키는 HTML에 절대 넣지 마
+- 마커를 누르면 이름·주소가 보이게, 마커가 다 화면에 들어오게
+- 지도 아래에 "지도가 회색이면 확인할 것 3가지" 안내 한 줄
+- 다른 파일에서 다시 쓸 수 있게 kakao_map_html(js_key, markers) 함수로
+- 다 만들면 map.html 을 여는 방법을 알려 줘</pre></div>
+  <div class="code"><div class="codebar"><span>① 만들기 → ② d8-map 폴더에서 서버 켜기</span><button class="copy" type="button">복사</button></div><pre class="term">python make_map.py
+python -m http.server 8000 --bind 127.0.0.1</pre></div>
+  <p>브라우저 <code>http://localhost:8000/map.html</code> → 마커가 보이면 성공. 끄기는 <code>Ctrl+C</code>.</p>
+  <p class='tip'><b>꼭</b><code>--bind 127.0.0.1</code>을 빼면 같은 와이파이의 누구나 <code>http://내IP:8000/.env</code>로 <b>금고를 받아 갈 수 있어요.</b> 이 서버는 폴더 전체를 보여 주거든요.</p>
+  <p>이제 <code>map.html</code>을 <b>더블클릭</b>으로 열어 보세요 → 회색. 왜? JS 키는 <b>등록한 주소</b>에서만 켜지니까.</p>
+  <p>검사 ④: <code>map.html</code>을 VS Code로 열어 <b>REST 키 앞 6글자</b> 검색 → 0건. JS 키는 보여도 돼요(도메인 잠금).</p>
+  <p class='tip'><b>막히면</b>404 → 서버를 <code>d8-map</code>이 아닌 폴더에서 켬 · 서버가 터미널을 잡고 있음 → 새 터미널(+)에서 <code>conda activate camp</code> · <code>Address already in use</code> → 이전 서버 <code>Ctrl+C</code></p>
+  <p>커밋 <code>"[직군] D8: 3 지도"</code> — <code>map.html</code>은 문지기가 막아서 안 올라가는 게 정상</p></div></li>
+
+  <li class="step"><label class="chk"><input type="checkbox" data-k="s6"><span class="box"></span></label><div><h3><span class='lv l2'>★★</span>미션 ④ — AI가 추천한 장소, 진짜 있나? <code>factcheck.py</code> <small style='color:var(--mute);font-weight:400'>(11:50)</small></h3>
+  <p><b>claude.ai 웹</b>에서 새 대화를 열고:</p>
+  <div class="code"><div class="codebar"><span>claude.ai 새 대화에</span><button class="copy" type="button">복사</button></div><pre class="pr">강남역 근처 혼밥하기 좋은 식당 10곳을 "가게이름 | 도로명 주소" 형식으로 한 줄씩 알려 줘.</pre></div>
+  <p>답을 그대로 <code>d8-map/recommend.txt</code>에 붙여 넣기. 그다음 Claude Code에:</p>
+  <div class="code"><div class="codebar"><span>Claude Code에게</span><button class="copy" type="button">복사</button></div><pre class="pr">d8-map 폴더에 factcheck.py 를 만들어 줘. recommend.txt 의 각 줄(가게이름 | 주소)을
+place.py 의 search_place 로 "동네 + 가게이름" 검색해서 판정해 줘.
+✅ 이름이 같은 곳이 있고 주소의 구·동(길)이 맞음 / 🟡 있지만 주소가 다름 / ❌ 못 찾음
+줄 앞 번호(1. 2))나 표 기호(| --- |)는 떼고 읽어 줘.
+마지막에 개수와 AI 실수율(🟡+❌ 비율)을 보여 줘. 주소 첫 단어는 "서울특별시"/"서울"처럼 표기가 다를 수 있으니 비교에서 빼 줘.</pre></div>
+  <p>❌ 하나는 <b>카카오맵 웹에서 직접</b> 찾아보기 (폐업? 다른 이름?). Slack에 <code>AI 실수율 ○% (✅ ○ · 🟡 ○ · ❌ ○)</code> — 조원끼리 비교.</p>
+  <p>커밋 <code>"[직군] D8: 4 팩트체크"</code></p></div></li>
+
+  <li class="step"><label class="chk"><input type="checkbox" data-k="s7"><span class="box"></span></label><div><h3><span class='lv l2'>★★</span>미션 ⑤ — Streamlit 지도 <code>map_app.py</code></h3>
+  <div class="code"><div class="codebar"><span>Claude Code에게</span><button class="copy" type="button">복사</button></div><pre class="pr">d8-map 폴더에 map_app.py 를 Streamlit 으로 만들어 줘. "동네 지도" 화면.
+- 사이드바: 기준 장소 입력(기본 강남역), 무엇을 찾을지 선택(카페 CE7, 음식점 FD6, 편의점 CS2, 약국 PM9, 지하철역 SW8, 주차장 PK6), 반경 슬라이더(200~2000m), 새로 불러오기 버튼
+- 1) 기준 장소를 검색해 좌표를 얻고 2) 그 좌표 반경 안의 카테고리 장소를 가까운 순으로 (앞 결과가 다음 요청에 들어가는 순차 호출)
+- 왼쪽: make_map.py 의 kakao_map_html 로 지도 (기준 장소는 다른 모양 마커), st.iframe 으로 넣기
+- 오른쪽: 이름·거리·주소·전화 표
+- st.cache_data(ttl=600), 에러는 캐시하지 말고 st.error 한국어 한 줄로, 화면에 키·요청 주소 없음</pre></div>
+  <div class="code"><div class="codebar"><span>실행 (python map_app.py 아님!)</span><button class="copy" type="button">복사</button></div><pre class="term">streamlit run map_app.py</pre></div>
+  <p class='tip'><b>막히면</b>지도가 안 뜸 → 도메인에 <code>http://localhost:8501</code>? · 주소창이 <code>localhost:8502</code>(다른 Streamlit이 켜져 있음)·IP 주소·<code>127.0.0.1</code>이면 등록 안 된 주소 → 이전 Streamlit <code>Ctrl+C</code> · <code>.env</code>를 고쳤으면 <code>Ctrl+C</code> 후 다시 <code>streamlit run</code> · <code>AttributeError … iframe</code> → Streamlit 옛 버전, 1.66 이상으로</p>
+  <p>Claude가 <code>st.components.v1.html</code>로 짰다면 → 없어지는 중인 옛 방법(경고가 남) = <b>AI 실수</b> → <code>st.iframe</code>. 반경을 여러 번 움직여도 터미널에 요청이 매번 가지 않나요? (캐시)</p>
+  <p>커밋 <code>"[직군] D8: 5 Streamlit 지도"</code></p></div></li>
+
+  <li class="step"><label class="chk"><input type="checkbox" data-k="s8"><span class="box"></span></label><div><h3><span class='lv l3'>★★★</span>미션 ⑥ — 지도 가운데 날씨 + 금고 잠금</h3>
+  <div class="code"><div class="codebar"><span>Claude Code에게 (날씨 이어 붙이기)</span><button class="copy" type="button">복사</button></div><pre class="pr">map_app.py 오른쪽 위에 기준 장소의 지금 날씨(OpenWeather, 기온)를 st.metric 으로, 날씨 설명은 st.caption 으로 보여 줘.
+기준 장소 좌표(위도·경도)를 OpenWeather 의 lat, lon 에 넣어. 날씨가 실패해도 지도와 표는 보여야 해.
+OpenWeather 요청 주소에는 appid 키가 들어 있으니 주소·res.url 을 절대 화면에 내보내지 마.</pre></div>
+  <p>검사: <code>.env</code>의 날씨 키 한 글자 지우고 <b><code>Ctrl+C</code> → 다시 <code>streamlit run</code></b> → 날씨 칸만 안내, 지도는 그대로? → 되돌리고 재시작</p>
+  <div class="code"><div class="codebar"><span>Claude Code에게 (금고 잠금 — 어제 ⑥과 같음)</span><button class="copy" type="button">복사</button></div><pre class="pr">d8-map 에서 Claude Code가 .env 파일을 읽지 못하게 .claude/settings.json 에 deny 규칙을 넣어 줘. .env.example 은 계속 읽을 수 있어야 해.</pre></div>
+  <p>커밋 <code>"[직군] D8: 6 날씨 + 잠금"</code></p></div></li>
+
+  <li class="step"><label class="chk"><input type="checkbox" data-k="s9"><span class="box"></span></label><div><h3>AI 실수 → 규칙 한 줄 <small style='color:var(--mute);font-weight:400'>(12:15)</small></h3>
+  <p>Slack "오늘 찾은 AI 실수" 스레드에 하나 올리고, 규칙 한 줄로 <code>d8-map/CLAUDE.md</code> 맨 아래에 → 다시 만들어 확인.</p>
+  <div class="code"><div class="codebar"><span>CLAUDE.md 맨 아래 (예시)</span><button class="copy" type="button">복사</button></div><pre class="pr">## 실수에서 배운 규칙
+- (10/23) 카카오 x·y 를 꺼낼 때 위도 = y, 경도 = x 로 이름을 붙인다. (왜: 뒤집으면 마커가 바다에) → 검사: 서울이 (37, 127)</pre></div>
+  <table class='tbl'><tr><th>AI가 틀리기 쉬운 곳</th></tr>
+  <tr><td>x·y를 뒤집음 / <code>float()</code> 안 해서 글자 좌표로 계산</td></tr>
+  <tr><td>REST 키를 HTML에 넣음 / REST 키 자리에 JS 키를 넣어 401</td></tr>
+  <tr><td>HTML에서 <code>libraries=services</code>로 검색까지 하려 함 (오늘은 검색은 파이썬)</td></tr>
+  <tr><td><code>map.html</code>을 더블클릭으로 열라고 안내 / <code>--bind 127.0.0.1</code> 빠짐 / 도메인에 포트 빠짐</td></tr>
+  <tr><td>도로명 주소가 빈 곳(<code>road_address</code>가 null)·결과 0개에서 멈춤</td></tr>
+  <tr><td>Streamlit에 옛 <code>components.html</code> / 캐시 없음 / <code>python map_app.py</code>로 실행 안내</td></tr></table></div></li>
+
+  <li class="step"><label class="chk"><input type="checkbox" data-k="s10"><span class="box"></span></label><div><h3>점심시간 — 공공데이터 CSV 내려받기 <small style='color:var(--mute);font-weight:400'>(12:25 안내)</small></h3>
+  <p><b>공공데이터포털(data.go.kr)</b> → 검색 <b>"전국주차장정보표준데이터"</b> → <b>CSV</b> 내려받기 (파일 데이터는 로그인 없이 받을 수 있어요) → <code>d8-map/data/</code> 폴더에 넣고 이름을 <b><code>parking_raw.csv</code></b>로.</p>
+  <p class='tip'><b>주의</b>엑셀로 열었다가 <b>저장하지 마세요</b> — 인코딩이 바뀌어 한글이 깨질 수 있어요. 안 받아지면 강사가 Slack에 올린 서울 일부 파일(이름이 이미 <code>parking_raw.csv</code>)로.</p>
+  <p>칸 이름(일부): <code>주차장명</code> · <code>주차장구분</code> · <code>주차장유형</code> · <code>소재지도로명주소</code> · <code>소재지지번주소</code> · <code>주차구획수</code> · <code>주차기본시간</code> · <code>주차기본요금</code> · <code>위도</code> · <code>경도</code> · <code>데이터기준일자</code></p></div></li>
+
+  <li class="step"><label class="chk"><input type="checkbox" data-k="s11"><span class="box"></span></label><div><h3><span class='lv l1'>★</span>판다스 1~4단계 — 읽기 · 살펴보기 · 걸러내기 · 숫자로 <small style='color:var(--mute);font-weight:400'>(14:00)</small></h3>
+  <table class='tbl'><tr><th>하고 싶은 것</th><th>엑셀</th><th>판다스</th></tr>
+  <tr><td>파일 열기</td><td>더블클릭</td><td><code>pd.read_csv(경로, encoding=...)</code></td></tr>
+  <tr><td>몇 줄 몇 칸 · 위 몇 줄</td><td>스크롤 · 눈으로</td><td><code>df.shape</code> · <code>df.head(3)</code></td></tr>
+  <tr><td>빈칸 세기</td><td>필터 → (비어 있음)</td><td><code>df.isna().sum()</code></td></tr>
+  <tr><td>조건으로 거르기 · 칸 고르기</td><td>필터 · 열 숨기기</td><td><code>df[조건]</code> · <code>df[["칸1","칸2"]]</code></td></tr>
+  <tr><td>글자 → 숫자</td><td>셀 서식</td><td><code>pd.to_numeric(..., errors="coerce")</code></td></tr>
+  <tr><td>묶어서 세기·평균</td><td>피벗 테이블</td><td><code>df.groupby("칸").agg(...)</code></td></tr>
+  <tr><td>저장</td><td>다른 이름으로 저장</td><td><code>df.to_csv(경로, index=False, encoding="utf-8-sig")</code></td></tr></table>
+  <div class="code"><div class="codebar"><span>1단계 · 읽기</span><button class="copy" type="button">복사</button></div><pre class="pr">d8-map 폴더에 clean_parking.py 를 만들어 줘. 오늘은 단계마다 조금씩 늘려 갈 거야.
+1단계: data/parking_raw.csv 를 판다스로 읽어서 몇 줄 몇 칸인지, 어떤 인코딩으로 읽었는지 보여 줘.
+인코딩은 utf-8-sig 로 먼저 해 보고 안 되면 cp949 로.</pre></div>
+  <div class="code"><div class="codebar"><span>2단계 · 살펴보기</span><button class="copy" type="button">복사</button></div><pre class="pr">2단계: 칸 이름 전체, 처음 3줄, 그리고 주차장명·소재지도로명주소·위도·경도·주차기본요금 칸의 빈칸 개수를 보여 줘.</pre></div>
+  <p>✋ 내 데이터의 <b>빈 위도 개수</b>를 Slack 스레드에. <code>head()</code>에서 주소가 <code>서울특별시</code>로 시작하는지 <code>서울</code>로 시작하는지도 보기.</p>
+  <div class="code"><div class="codebar"><span>3단계 · 걸러내기 (○○구 = 우리 동네, 시·도까지)</span><button class="copy" type="button">복사</button></div><pre class="pr">3단계: 소재지도로명주소(없으면 소재지지번주소)에 "서울특별시 ○○구"가 들어간 줄만 남기고,
+주차장명, 주차장구분, 주차장유형, 소재지도로명주소, 소재지지번주소, 주차구획수, 주차기본시간, 주차기본요금, 위도, 경도, 데이터기준일자 칸만 남겨 줘.
+그리고 도로명 주소(없으면 지번 주소)로 '주소' 칸을 새로 만들어 줘. 몇 곳인지 보여 줘.</pre></div>
+  <p class='tip'><b>왜 시·도까지?</b><code>"남구"</code>만 쓰면 <b>강남구</b>도, 부산 남구도 걸려요. <code>"중구"</code>는 서울·부산·대구…가 다 섞여요. <b>검산</b>: 원본을 엑셀로 열어(저장 X) 필터로 같은 구를 세어 보기 → 판다스 숫자와 같나요?</p>
+  <div class="code"><div class="codebar"><span>4단계 · 숫자로</span><button class="copy" type="button">복사</button></div><pre class="pr">4단계: 주차구획수, 주차기본시간, 주차기본요금, 위도, 경도를 숫자로 바꿔 줘. 이상한 글자는 빈칸으로.
+주차기본요금에 "무료" 같은 글자가 있으면 0 으로 먼저 바꿔 줘.
+위도가 33~39, 경도가 124~132 밖이면(뒤바뀌었거나 0) 잘못된 좌표로 보고 빈칸으로 만들어 줘.</pre></div>
+  <div class="code"><div class="codebar"><span>실행 (단계마다)</span><button class="copy" type="button">복사</button></div><pre class="term">python clean_parking.py</pre></div>
+  <p class='tip'><b>막히면</b><code>UnicodeDecodeError</code> → 인코딩을 하나만 시도(AI 실수) · <code>KeyError</code> → 파일에 없는 칸 이름을 지어냄, <code>df.columns</code>부터 · <code>DtypeWarning</code>·<code>FutureWarning</code>은 오류 아님 · <code>SettingWithCopyWarning</code> → 거른 표에 <code>.copy()</code></p></div></li>
+
+  <li class="step"><label class="chk"><input type="checkbox" data-k="s12"><span class="box"></span></label><div><h3><span class='lv l2'>★★</span>판다스 5~6단계 — 빈 좌표 채우기 · 요약</h3>
+  <div class="code"><div class="codebar"><span>5단계 · 빈 좌표를 카카오로</span><button class="copy" type="button">복사</button></div><pre class="pr">5단계: 위도가 빈 줄의 주소를 geo.py 의 address_to_xy 로 바꿔서 위도·경도를 채워 줘.
+최대 30줄만, 한 번 부를 때마다 0.1초 쉬고, 키·설정·연결 에러가 나면 바로 멈춰. 채움·실패·남은 빈칸 개수를 보여 줘.</pre></div>
+  <p>왜 30줄만? 연습이라서 + <b>남의 서버를 쓰는 예절</b>. 틀린 키로 수천 번 부르면 안 되니까 "키 에러면 멈춤". 실패한 주소 하나를 카카오맵 웹에서 찾아보기.</p>
+  <div class="code"><div class="codebar"><span>6단계 · 요약</span><button class="copy" type="button">복사</button></div><pre class="pr">6단계: 주차장유형별로 개수와 평균 기본요금, 무료 주차장 수를 표로 보여 줘. 어떤 조건으로 셌는지도 한 줄로.</pre></div>
+  <p>숫자 하나는 엑셀로 검산 — <b>AI 숫자는 검산한다</b>.</p></div></li>
+
+  <li class="step"><label class="chk"><input type="checkbox" data-k="s13"><span class="box"></span></label><div><h3><span class='lv l1'>★</span>판다스 7단계 — 저장</h3>
+  <div class="code"><div class="codebar"><span>7단계 · 저장</span><button class="copy" type="button">복사</button></div><pre class="pr">7단계: 좌표가 있는 줄만 data/parking_clean.csv 로 저장해 줘. 엑셀에서도 한글이 안 깨지게 utf-8-sig 로, index 는 빼고.
+data/parking_raw.csv 가 .gitignore 에 걸리는지도 확인해 줘.</pre></div>
+  <p><code>parking_clean.csv</code>를 엑셀로 열어 한글 확인 → <b>오후 조 서비스의 재료</b>예요. 커밋 <code>"[직군] D8: 판다스 정리"</code> — <code>git status</code>에 <code>parking_raw.csv</code>가 안 보이나요?</p>
+  <div class="code"><div class="codebar"><span>★★★ 덤 · 지도에 올려 보기</span><button class="copy" type="button">복사</button></div><pre class="pr">data/parking_clean.csv 를 읽어서 make_map.py 의 kakao_map_html 로 주차장 마커를 찍는 parking_map.py 를 만들어 줘.
+무료 주차장만 보이게. 정보창에 이름·유형·기본요금.</pre></div></div></li>
+  </ol>
+</section>
+<section id="mission" class="sec">
+  <h2>오후 조 미션 <small>15:00–19:00</small></h2>
+  <div class="mhead">
+    <span class="badge t-조">조 미션</span>
+    <span class="where">우리 <b>조(1~8조)</b> 방에서 · 17:00 <b>짝 조</b>와 서로 써 보기</span>
+  </div>
+  <div class="mygroup" id="mygroup"></div>
+  <h3 class="mtitle">우리 조 지도 서비스</h3>
+  <p class="brief"><b>공공데이터 + 카카오 지도 + 질문 하나.</b> "이 지도를 열면 ○○에 <b>30초 안에</b> 답할 수 있다"가 목표예요. 화면은 <b>Streamlit</b>(<code>streamlit run app.py</code>), 각자 컴퓨터에서 돌리고 화면 공유로 보여 줘요.</p>
+  <h4>필수 조건 5개</h4><ul class="rules">
+  <li>🗺️ 카카오 지도에 <b>공공데이터</b> 마커 (판다스로 정리, 좌표 없는 줄은 카카오로 채움, 지도엔 최대 200개)</li>
+  <li>❓ <b>질문 하나</b>에 답하는 <b>필터</b> 1개 이상 → 필터를 바꾸면 <b>지도·숫자·표가 같이</b> 바뀐다</li>
+  <li>🔢 <code>st.metric</code> 숫자 3개 + 표 + <b>출처·데이터 기준일</b> ("실시간" 금지 — 파일 데이터는 기준일 데이터)</li>
+  <li>🔐 레포에 <code>.env</code>·키·원본 대용량 파일 없음, REST 키는 HTML에 없음</li>
+  <li>Issue → 브랜치 → PR → <b>리뷰 1명</b> → 머지, <b>1인 1 PR 이상</b></li></ul>
+  <table class="sched">
+  <tr><th>15:00</th><td><b>질문 하나 + 데이터 고르기</b> (PO 진행, 10분) — 조원 중 한 명을 주인공으로</td></tr>
+  <tr><th>15:10</th><td>개발: 레포 <code>map-○조</code>(<b>Public</b>) + 스타터 프롬프트 + 조원 초대 · PO: <code>CLAUDE.md</code> "우리 조" 칸 + <b>Issue 1인 1장</b></td></tr>
+  <tr><th>15:20</th><td>만들기: 각자 <code>.env</code>(자기 키) → <code>python data_prep.py</code> → <code>streamlit run app.py</code> → Issue → 브랜치 → <b>검사 6가지</b> → PR → 리뷰 → 머지</td></tr>
+  <tr><th>16:40</th><td><b>중간 점검</b>: 지도 캡처를 Slack에 (안 되는 조는 클리닉 먼저)</td></tr>
+  <tr><th>17:00</th><td><b>짝 조 테스트</b> (1↔2, 3↔4, 5↔6, 7↔8): 짝 조의 질문을 듣고 <b>직접 화면을 만져서</b> 답해 보기 · 걸린 시간 + "이 상황이면 열까?" 1~5점</td></tr>
+  <tr><th>17:30</th><td>조 발표 4분: 주인공·질문 → <b>화면에서 실제로 답하기</b> → 빈칸 몇 개였고 어떻게 채웠나 → 짝 조 점수와 고친 것 → AI 실수 1개</td></tr></table>
+  <h4>15:00 질문 하나 고르기</h4>
+  <table class="tbl"><tr><th>좋은 질문 (조건이 들어 있음)</th><th>약한 질문</th></tr>
+  <tr><td>"퇴근길 강남역 근처 <b>무료</b> 주차장은?"</td><td>"주차장을 보여 준다"</td></tr>
+  <tr><td>"회사 근처 <b>지하철역에서 300m 안</b>의 따릉이 대여소는?"</td><td>"따릉이 지도"</td></tr>
+  <tr><td>"<b>영업 중인</b> 동물병원 중 우리 집에서 가장 가까운 곳은?"</td><td>"동물병원 목록"</td></tr></table>
+  <p class="tip"><b>주의</b>파일 데이터는 <b>기준일 데이터</b>예요. "지금 남은 자전거" 같은 실시간 질문은 파일로는 못 답해요.</p>
+  <h4>데이터 메뉴 (하나 고르기)</h4>
+  <table class="tbl"><tr><th>데이터</th><th>어디서 · 형식 · 좌표</th></tr>
+  <tr><td>전국주차장정보표준데이터 (14시에 쓴 것)</td><td>공공데이터포털 · CSV · 위도·경도</td></tr>
+  <tr><td>서울시 따릉이 대여소 정보</td><td>서울 열린데이터광장 · <b>XLSX</b>(<code>pd.read_excel</code>) · 위도·경도</td></tr>
+  <tr><td>○○시 병원 / 동물병원</td><td>공공데이터포털 · CSV · 위도·경도 또는 주소만</td></tr>
+  <tr><td>서울시 버스 정류장 위치</td><td>공공데이터포털 / 서울 열린데이터광장 · CSV · 위도·경도</td></tr>
+  <tr><td>그 밖에 주소·좌표 칸이 있는 파일</td><td>주소만 있으면 카카오로 좌표 (최대 30줄씩)</td></tr></table>
+  <p>고르는 기준: ① 우리 질문에 답하나 ② <b>데이터 기준일</b>이 너무 오래되지 않았나 ③ 우리 동네 줄이 20줄 이상인가. 원본은 <code>data/*_raw.*</code>(안 올림), 정리된 <code>data/clean.csv</code>만 올려요.</p>
+  <h4>15:10 스타터 프롬프트 (개발, 한 번만)</h4>
+  <p>자료의 <b>CLAUDE_우리조지도규칙.md</b>를 레포 <code>CLAUDE.md</code>에 붙이고 맨 위 "우리 조" 두 줄을 채운 뒤:</p>
+  <div class="code"><div class="codebar"><span>Claude Code에게 (조 레포 뼈대)</span><button class="copy" type="button">복사</button></div><pre class="pr">map-○조 레포에 우리 조 지도 서비스 뼈대를 CLAUDE.md 규칙대로 만들어 줘.
+- 우리 질문: "___"  / 데이터: data/___ (원본, .gitignore)
+- data_prep.py: 판다스로 원본을 읽고(인코딩 차례로) → 우리 동네만(시·도까지) → 숫자로 → 빈 좌표 카카오로 채우기(최대 30줄, 키 에러면 멈춤) → data/clean.csv
+- make_map.py: kakao_map_html(js_key, markers) (오늘 오전 것을 가져와도 됨)
+- app.py: Streamlit. 사이드바 필터 1개, st.metric 3개, st.iframe 지도, 표, 결과 0개면 안내, 출처·데이터 기준일 캡션, 맨 위 STYLE = {...}
+- requirements.txt(streamlit>=1.66), .gitignore(.env, map.html, data/*_raw.*), .env.example(KAKAO_REST_API_KEY=, KAKAO_JS_KEY=)
+- 실행 명령도 알려 줘. 커밋 메시지만 제안해 줘.</pre></div>
+  <p class="tip"><b>순서</b>main에 첫 커밋·푸시 → Settings → Collaborators로 조원 초대 → 조원 <b>Accept</b> → 각자 clone → <b>각자 자기 카카오 키</b>로 <code>.env</code> → 각자 콘솔에 <code>http://localhost:8501</code> 등록. 조원이 <code>data_prep.py</code>를 다시 돌렸는데 화면이 그대로면 1분 기다리거나 재시작</p>
+  <h4>15:20 Issue 하나를 만들 때 (전원)</h4>
+  <div class="code"><div class="codebar"><span>Claude Code에게 (Issue마다)</span><button class="copy" type="button">복사</button></div><pre class="pr">Issue #○ 이야: (Issue 내용 붙여넣기)
+지금 feat/○-___ 브랜치야. CLAUDE.md 규칙을 지켜서 만들어 줘.
+다른 사람 담당 파일은 고치지 말고, 꼭 필요하면 먼저 말해 줘.
+다 만들면 검사 6가지를 스스로 점검해서 표로 알려 주고, 커밋 메시지와 PR 본문(Closes #○)은 제안만 해 줘.</pre></div>
+  <table class="tbl"><tr><th>검사</th><th>어떻게</th></tr>
+  <tr><td>① 제자리</td><td>마커 3개를 골라 카카오맵 웹에서 같은 장소인지</td></tr>
+  <tr><td>② 필터</td><td>필터를 바꾸면 지도·숫자·표가 <b>모두</b> 바뀌나</td></tr>
+  <tr><td>③ 검산</td><td>metric 숫자 하나를 엑셀 필터로 직접 세어 봄</td></tr>
+  <tr><td>④ 출처</td><td>화면 맨 아래 출처 + 데이터 기준일</td></tr>
+  <tr><td>⑤ 금고</td><td><code>git status</code>에 <code>.env</code>·<code>*_raw.*</code>·<code>map.html</code> 없음, REST 키 앞 6글자 검색 0건</td></tr>
+  <tr><td>⑥ 빈 결과</td><td>필터를 아무것도 안 나오게 → 하얀 화면이 아니라 "조건에 맞는 곳이 없어요"</td></tr></table>
+  <h4>내 직군 역할</h4>
+  <div class="tabs" role="tablist"><button type="button" role="tab" data-job="개발">개발</button><button type="button" role="tab" data-job="디자인">디자인</button><button type="button" role="tab" data-job="PO">PO</button><button type="button" role="tab" data-job="마케팅">마케팅</button></div>
+  <div class="panel" data-job="개발" hidden><p class="role"><b>개발</b> 레포 뼈대(<code>app.py</code>·<code>data_prep.py</code>·<code>make_map.py</code>), 필터 → 지도 연결, 다른 직군 PR 리뷰. 개발이 1명이면 뼈대 + 리뷰어, 나머지는 각 직군이 Claude Code로. 판다스 단계는 조원과 나눠 맡아도 좋아요</p><div class="code"><div class="codebar"><span>Claude Code 첫 요청</span><button class="copy" type="button">복사</button></div><pre class="pr">app.py 에서 필터된 표 view 하나를 만들고, st.metric 3개·지도 마커·표를 모두 그 view 에서 만들게 해 줘.
+view 가 비면 지도 대신 st.info 로 안내. 지도 마커는 200개까지만.</pre></div></div>
+  <div class="panel" data-job="디자인" hidden><p class="role"><b>디자인</b> 마커 색·모양 규칙(예: 무료/유료), 정보창 문구 3줄, 첫 화면 배치, 범례. 디자인 값은 <code>app.py</code> 맨 위 <code>STYLE</code> 한 곳에서만</p><div class="code"><div class="codebar"><span>Claude Code 첫 요청</span><button class="copy" type="button">복사</button></div><pre class="pr">app.py 맨 위 STYLE 에 마커 규칙(조건별 마커 모양)과 정보창에 보일 칸 3개를 정리해 줘.
+지도 위에 범례 한 줄(어떤 마커가 무슨 뜻인지)도 st.caption 으로.
+글자 대비 4.5:1 이상, 노트북 화면 한눈에 지도·숫자·필터가 보이게.</pre></div></div>
+  <div class="panel" data-job="PO" hidden><p class="role"><b>PO</b> 질문·주인공 정하기 진행 → <code>CLAUDE.md</code> "우리 조" 칸 → <b>필터 조건</b>과 <b>숫자 요약 3개</b> 정하기 → Issue 작성 → 리뷰 배정 → 발표</p><div class="code"><div class="codebar"><span>Claude Code 첫 요청</span><button class="copy" type="button">복사</button></div><pre class="pr">우리 질문은 "___" 이고 데이터는 ___ 야. 이 질문에 30초 안에 답하려면 필요한 필터 1~2개와 st.metric 숫자 3개를 제안해 줘.
+그걸로 GitHub Issue 초안을 조원 수만큼, 제목 앞에 [개발] 처럼 담당 직군을 붙이고 완료 기준은 화면에서 눈으로 확인할 수 있는 문장 2~3개로.</pre></div></div>
+  <div class="panel" data-job="마케팅" hidden><p class="role"><b>마케팅</b> 서비스 이름·한 줄 소개, 첫 화면 문장, 출처·기준일 문구, 짝 조 테스트 질문, 발표 대본</p><div class="code"><div class="codebar"><span>Claude Code 첫 요청</span><button class="copy" type="button">복사</button></div><pre class="pr">우리 지도 서비스의 이름 3안과 첫 화면 한 문장 3안을 써 줘. 데이터에 없는 기능을 약속하지 말고, "실시간" 같은 과장 없이.
+화면 맨 아래 출처·데이터 기준일 문구와, 짝 조에게 물을 테스트 질문 3개도.</pre></div></div>
+  <h4>필수 끝났다면 — 확장 계단</h4>
+  <table class="tbl"><tr><th>단계</th><th>내용</th></tr>
+  <tr><td><span class="lv l2">★★</span></td><td><b>주변 레이어</b>: 고른 장소 주변의 카페·편의점을 카카오 카테고리 검색으로 (예: 주차장 → 근처 카페)</td></tr>
+  <tr><td><span class="lv l2">★★</span></td><td>마커 색 규칙 + 범례 / 거리순 정렬 (기준 장소를 입력받아)</td></tr>
+  <tr><td><span class="lv l3">★★★</span></td><td><b>Streamlit Community Cloud 배포</b>: GitHub 레포 연결 → 키는 앱 설정의 <b>Secrets</b>에(<code>.env</code> 대신) → 카카오 JavaScript SDK 도메인에 <b>배포 주소 추가</b> → 휴대폰으로 열기</td></tr></table>
+  <h4>미션 완료 체크</h4><ul class="checks">
+  <li><label class="chk"><input type="checkbox" data-k="m1"><span class="box"></span></label><span>❓ 질문 하나 + 필터 1개 이상, 필터를 바꾸면 지도·숫자·표가 같이 바뀐다</span></li>
+  <li><label class="chk"><input type="checkbox" data-k="m2"><span class="box"></span></label><span>🗺️ 공공데이터 마커가 제자리에 있다 (3개 확인)</span></li>
+  <li><label class="chk"><input type="checkbox" data-k="m3"><span class="box"></span></label><span>🔢 <code>st.metric</code> 3개, 표, 출처·데이터 기준일</span></li>
+  <li><label class="chk"><input type="checkbox" data-k="m4"><span class="box"></span></label><span>결과 0개일 때 안내 문장</span></li>
+  <li><label class="chk"><input type="checkbox" data-k="m5"><span class="box"></span></label><span>내 PR 1개 이상 머지, 다른 사람 PR 1개 이상 리뷰</span></li>
+  <li><label class="chk"><input type="checkbox" data-k="m6"><span class="box"></span></label><span>레포에 <code>.env</code>·키·원본 파일 없음</span></li>
+  <li><label class="chk"><input type="checkbox" data-k="m7"><span class="box"></span></label><span>짝 조 "30초 안에 답했나" + 1~5점을 받고 하나 고쳤다</span></li></ul>
+  <p class="out"><b>산출물</b> 개인 <code>git-practice/d8-map</code> (.env·map.html·원본 CSV 없음) · 조 <code>map-○조</code> 레포 + 실행 화면 캡처(★★★ 배포 링크) + 짝 조 점수</p>
+</section>
+<section id="data" class="sec">
+  <h2>자료 내려받기</h2>
+  <p class="hint">오늘도 완성 파일 없이 프롬프트로 만들어요. 여기 있는 건 <code>CLAUDE.md</code>에 붙일 규칙 두 개예요. 키는 어디에도 들어 있지 않아요. 공공데이터 CSV는 따라 하기의 점심시간 단계대로 공공데이터포털에서 직접 받아요.</p>
+  <ul class="dls"><li><div><b>CLAUDE_지도API규칙.md</b><span>d8-map/CLAUDE.md에 붙일 두 열쇠·좌표·지도 HTML·Streamlit·판다스 규칙 + API 표 + 에러 읽는 법</span></div><button type="button" class="dl" data-f="CLAUDE_지도API규칙.md">내려받기 <small>11KB</small></button></li><li><div><b>CLAUDE_우리조지도규칙.md</b><span>조 레포 map-○조/CLAUDE.md에 붙일 파일 나누기·화면·데이터·협업 규칙</span></div><button type="button" class="dl" data-f="CLAUDE_우리조지도규칙.md">내려받기 <small>3KB</small></button></li></ul>
+</section>
+<section id="wrap" class="sec">
+  <h2>마무리 <small>18:20–19:00</small></h2>
+  <h3 class="sub">Slack 제출 (개인)</h3>
+  <div class="code"><div class="codebar"><span>Slack</span><button class="copy" type="button">복사</button></div><pre id="slack">[○조] 이름 · D8
+① 오전: 끝낸 미션 (①~⑥) / map.html 에 찍은 검색어
+② 팩트체크: AI 실수율 ○% (✅ ○ · 🟡 ○ · ❌ ○)  (★★ 한 사람)
+③ 판다스: 우리 구 ○곳, 빈 좌표 ○개 → 채움 ○개, 검산 결과 (맞음/다름: 이유)
+④ 조 서비스: (이름) — 질문 "___" — map-○조 캡처 또는 링크
+⑤ 내가 머지한 PR: #번호 (무엇) / 리뷰한 PR: #번호
+⑥ 오늘 찾은 AI 실수 1개 → 추가한 규칙 1줄:</pre></div>
+  <h3 class="sub">AI 위임 로그</h3>
+  <p>오늘의 질문: <b>AI가 준 장소·숫자 중 내가 다른 출처로 확인한 것은 무엇이고, 몇 개가 틀렸나?</b> (양식: 템플릿/01_위임로그_양식.md, 6칸, 맨 위 "AX 14%")</p>
+  <h3 class="sub">3줄 회고 (개인)</h3>
+  <ul class="outs"><li>오늘 새로 할 수 있게 된 것 1개</li><li>아직 헷갈리는 것 1개 (REST 키 vs JS 키, x·y, 인코딩, 판다스 중에서?)</li><li>우리 조 지도를 실제로 쓸 상황이 일주일 안에 올까? 언제?</li></ul>
+  <h3 class="sub">다음 시간 준비</h3><ul class="outs"><li>다음 시간은 <b>도구 조합 워크플로우 설계</b>예요. 오늘 쓴 도구(파이썬·카카오·판다스·Streamlit·Git)를 어떻게 이어 붙일지 설계해요. <code>.env</code>와 카카오 앱은 그대로 두세요</li></ul>
+</section>
+</main>
+<footer class="wrap foot"><a href="D07_1022.html">이전 D7</a><a href="00_목차.html">목차</a><a href="D09_1026.html">다음 D9</a></footer>
+<script>
+const DAY=8, TYPE="조";
+const ROSTER={"1": [["박기석", "개발"], ["조준형", "개발"], ["김태형", "개발"], ["진원용", "디자인"], ["신종원", "PO"]], "2": [["한가영", "개발"], ["김강이", "개발"], ["김지혜", "개발"], ["김이내", "디자인"], ["김유민", "PO"]], "3": [["이영섭", "개발"], ["정민주", "개발"], ["이민정", "디자인"], ["김은빈", "디자인"], ["이성욱", "PO"]], "4": [["이하정", "개발"], ["임종찬", "개발"], ["강상윤", "개발"], ["김미영", "디자인"], ["김태인", "PO"], ["신협성", "마케팅"]], "5": [["윤여원", "개발"], ["차명근", "개발"], ["노현경", "개발"], ["이채로운", "디자인"], ["신선이", "디자인"], ["박우현", "PO"]], "6": [["윤정연", "개발"], ["조아라", "개발"], ["신동훈", "개발"], ["전새이", "디자인"], ["김강", "PO"], ["이수환", "마케팅"]], "7": [["김재민", "개발"], ["이시우", "개발"], ["전현우", "디자인"], ["권지영", "디자인"], ["임성범", "PO"], ["임서영", "마케팅"]], "8": [["김지선", "개발"], ["김리나", "개발"], ["어상경", "디자인"], ["이태오", "디자인"], ["김서안", "PO"], ["허혜정", "마케팅"]]}, GUILDS=[["개발 길드 A", "개발", [1, 2]], ["개발 길드 B", "개발", [3, 4]], ["개발 길드 C", "개발", [5, 6]], ["개발 길드 D", "개발", [7, 8]], ["디자인 길드 A", "디자인", [1, 2, 3, 5]], ["디자인 길드 B", "디자인", [4, 6, 7, 8]], ["PO 길드", "PO", [1, 2, 3, 4, 5, 6, 7, 8]], ["마케팅 길드", "마케팅", [1, 2, 3, 4, 5, 6, 7, 8]]], FILES={"CLAUDE_지도API규칙.md": {"mime": "text/markdown;charset=utf-8", "b64": "IyDsubTsubTsmKQg7KeA64+EIMK3IO2MkOuLpOyKpCDqt5zsuZkgKEQ4IOyYpOyghCArIDE07IucKQoKPiDsnbQg64K07Jqp7J2EICoqYGdpdC1wcmFjdGljZS9kOC1tYXAvQ0xBVURFLm1kYCoqIOyXkCDrtpnsl6wg64Sj7Jy87IS47JqULiAoRDcg7YKkIOq4iOqzoCDqt5zsuZnsnYAg6re464yA66GcICsg7Jik64qYIOy2lOqwgCkKPiDsmKTripjsnYAgKirtjIzsnbTsjazsnbQg7J6l7IaM66W8IOywvuqzoChSRVNUIO2CpCksIOyngOuPhOuKlCDruIzrnbzsmrDsoIDqsIAg6re466Ck7JqUKEphdmFTY3JpcHQg7YKkKS4qKgo+IOykhOuniOuLpCAo7JmcKeyZgCDihpIg6rKA7IKs6rCAIOyeiOyWtOyalC4g6rec7LmZIO2VnCDspIQgPSDqsoDsgqwg7ZWcIOykhC4KCi0tLQoKIyMg65GQIOqwnOydmCDsl7Tsh6Ag6rec7LmZCi0g7J6l7IaMIOqygOyDicK37KO87IaM4oaU7KKM7ZGc64qUICoq7YyM7J207I2sKirsl5DshJwgYEtBS0FPX1JFU1RfQVBJX0tFWWDroZzrp4wg67aA66W464ukLiDtl6TrjZQgYEF1dGhvcml6YXRpb246IEtha2FvQUsg7YKkYC4gKOyZnDogUkVTVCDtgqTripQg6riI6rOgIO2CpCkg4oaSIOqygOyCrDog7L2U65Oc7JeQ7IScIFJFU1Qg7YKk66W8IGBvcy5nZXRlbnZg66Gc66eMIOydveydjAotICoqUkVTVCBBUEkg7YKk64qUIEhUTUzCt2BtYXAuaHRtbGDCt1N0cmVhbWxpdCDtmZTrqbQg7Ja065SU7JeQ64+EIOuEo+yngCDslYrripTri6QuKiogKOyZnDog67iM65287Jqw7KCA66GcIOqwgOuptCDriITqtazrgpgg67SEKSDihpIg6rKA7IKsOiBgbWFwLmh0bWxg7J2EIOyXtOyWtCBSRVNUIO2CpCDslZ4gNuq4gOyekCDqsoDsg4kg4oaSIDDqsbQKLSDsp4Drj4Qg6re466a87JeQ64qUIGBLQUtBT19KU19LRVlgKEphdmFTY3JpcHQg7YKkKeunjCDsk7Tri6QuIOydtCDtgqTripQgYC5lbnZg7JeQ7IScIOydveyWtCBIVE1M7J2EIOunjOuTpCDrlYwg64Sj64qU64ukLiAo7JmcOiBKUyDtgqTripQg67iM65287Jqw7KCA66GcIOqwgOuKlCDqsowg7KCV7IOBLiDrjIDsi6Ag7Lm07Lm07JikIOy9mOyGlOydmCAqKkphdmFTY3JpcHQgU0RLIOuPhOuplOyduCoq7JeQIOuTseuhne2VnCDso7zshozsl5DshJzrp4wg7Lyc7KeQKSDihpIg6rKA7IKsOiBgLmVudmDsl5Ag65GQIO2CpOqwgCDri6Trpbgg6rCS7Jy866GcIOyeiOydjAotIOu4jOudvOyasOyggCDsqr0g7J6l7IaMIOqygOyDiShgbGlicmFyaWVzPXNlcnZpY2VzYCnsnYAg7JOw7KeAIOyViuuKlOuLpC4g6rKA7IOJ7J2AIO2MjOydtOyNrOydtCDtlZzri6QuICjsmZw6IOyYpOuKmOydgCAi6rKA7IOJ7J2AIO2MjOydtOyNrCwg6re466a87J2AIOu4jOudvOyasOyggCIg6rWs7KGwIOyXsOyKtSkg4oaSIOqygOyCrDogSFRNTOyXkCBgc2VydmljZXNgIOyXhuydjAotIGAuZW52YOulvCDrp4zrk6TqsbDrgpgg7Je07Ja0IOuztOyXrCDso7zsp4Ag7JWK64qU64ukLiDsg4gg7YKkIOydtOumhOydgCBgLmVudi5leGFtcGxlYOyXkOunjCDstpTqsIDtlZjqs6Ag6rCS7J2AIOyCrOyaqeyekOqwgCDsp4HsoJEg64Sj64qU64ukLiAo7JmcOiDrjIDtmZTsl5Ag7YKk6rCAIOuCqOycvOuptCDslYgg65CoKSDihpIg6rKA7IKsOiDrjIDtmZTsl5Ag7YKkIOqwkuydtCDtlZwg67KI64+EIOyViCDrgpjsmLQKLSDsmpTssq0g7KO87IaMwrftl6TrjZTCt2ByZXNwb25zZS51cmxgwrdgcmVzLnRleHRgIOulvCDstpzroKXtlZjsp4Ag7JWK64qU64ukLiAo7JmcOiBPcGVuV2VhdGhlcuuKlCDso7zshozsl5AsIOy5tOy5tOyYpOuKlCDtl6TrjZTsl5Ag7YKkKSDihpIg6rKA7IKsOiDtgqTrpbwg7YuA66as6rKMIO2VmOqzoCDsi6TtlontlbQg7Lac66ClIOyghOyytCDtmZXsnbgKCiMjIOyijO2RnCDqt5zsuZkKLSDsubTsubTsmKQg7J2R64u17J2YICoqYHhgID0g6rK964+ELCBgeWAgPSDsnITrj4QqKuydtOqzoCAqKuq4gOyekCoq64ukLiDqurzrgrwg65WMIGBmbG9hdCgpYOuhnCDrsJTqvrjqs6Ag7J2066aE7J2EIGDsnITrj4Rgwrdg6rK964+EYOuhnCDrtpnsnbjri6QuICjsmZw6IHjCt3nrpbwg65Kk7KeR7Jy866m0IOuniOy7pOqwgCDrsJTri6Tsl5Ag7LCN7Z6YKSDihpIg6rKA7IKsOiDshJzsmrgg7KKM7ZGc6rCAICgzNy54LCAxMjcueCkKLSDsp4Drj4QgU0RL7JeQ64qUIGBuZXcga2FrYW8ubWFwcy5MYXRMbmco7JyE64+ELCDqsr3rj4QpYCDsiJzshJzroZwg64Sj64qU64ukLiDsmpTssq3snYQg67O064K8IOuVjOuKlCBgeD3qsr3rj4QsIHk97JyE64+EYC4gKOyZnDog67Cp7Zal66eI64ukIOyInOyEnOqwgCDrsJjrjIApIOKGkiDqsoDsgqw6IOuniOy7pOqwgCDsi6TsoJwg7J6l7IaMIOychOyXkCDsnojsnYwKLSDtlZzqta0g67CWIOyijO2RnCjsnITrj4QgMzN+MzksIOqyveuPhCAxMjR+MTMyIOuwlinripQg7J6Y66q765CcIOqwkuycvOuhnCDrs7Tqs6Ag7JOw7KeAIOyViuuKlOuLpC4gKOyZnDog65Kk67CU64CQIOyijO2RnMK3MCDsooztkZwg6rG465+s64K06riwKSDihpIg6rKA7IKsOiDsooztkZwg7ZWY64KY66W8IOydvOu2gOufrCDrkqTsp5HslrQg7Iuk7ZaJCi0gYHJvYWRfYWRkcmVzc2Ao64+E66Gc66qFKSDsubjsnYAg67mE7Ja0IOyeiOydhCDsiJgg7J6I64ukKG51bGwpLiDsl4bsnLzrqbQg7KeA67KIIOyjvOyGjOulvCDsk7Tri6QuICjsmZw6IOyyqyDqsrDqs7zsl5Ag64+E66Gc66qF7J20IOyXhuydhCDrlYwg66mI7LaU7KeAIOyViuqyjCkg4oaSIOqygOyCrDog7IKwwrfqs7Xsm5Ag6rCZ7J2AIOqzs+ycvOuhnCDsooztkZzihpLso7zshowKCiMjIOyngOuPhCBIVE1MIOq3nOy5mQotIGBtYXAuaHRtbGDsnYAg7YyM7J207I2s7J20IOunjOuTpOqzoCwgKipgZDgtbWFwYCDtj7TrjZTsl5DshJwgYHB5dGhvbiAtbSBodHRwLnNlcnZlciA4MDAwIC0tYmluZCAxMjcuMC4wLjFgKiog4oaSIGBodHRwOi8vbG9jYWxob3N0OjgwMDAvbWFwLmh0bWxg66GcIOyXsOuLpC4g642U67iU7YG066atKGZpbGU6Ly8p7Jy866GcIOyXtOudvOqzoCDslYjrgrTtlZjsp4Ag7JWK64qU64ukLiBgLS1iaW5kIDEyNy4wLjAuMWDsnYQg7KCI64yAIOu5vOyngCDslYrripTri6QuICjsmZw6IEpTIO2CpOuKlCDrk7HroZ3tlZwg7KO87IaM7JeQ7ISc66eMIOy8nOynkCAvIGJpbmQg7JeG7J20IOy8nOuptCDqsJnsnYAg7JmA7J207YyM7J207J2YIOuIhOq1rOuCmCDsnbQg7Y+0642U7J2YIGAuZW52YOulvCDrsJvslYQg6rCIIOyImCDsnojsnYwpIOKGkiDqsoDsgqw6IOyViOuCtCDrrLjsnqXsl5AgYC0tYmluZCAxMjcuMC4wLjFgCi0gU0RL64qUIGBodHRwczovL2RhcGkua2FrYW8uY29tL3YyL21hcHMvc2RrLmpzP2FwcGtleT1KU+2CpCZhdXRvbG9hZD1mYWxzZWAgKyBga2FrYW8ubWFwcy5sb2FkKC4uLilgLiDsp4Drj4Qg7JWE656Y7JeQICLsp4Drj4TqsIAg7ZqM7IOJ7J2066m0OiDikaAg7Lm07Lm07Jik66e1IOyCrOyaqSDshKTsoJUg4pGhIOyngOq4iCDso7zshowo7Y+s7Yq46rmM7KeAKSDrk7HroZ0g4pGiIOyEnOuyhCDso7zshozroZwg7Je06riwIiDslYjrgrQg7ZWcIOykhOydhCAqKu2VreyDgSoqIOuztOyXrCDspIDri6QuICjsmZw6IOuPhOuplOyduCDrr7jrk7HroZ3snbwg65WM64qUIFNESyDtjIzsnbzsnbQg7KCV7IOB7Jy866GcIOuwm+yVhOyguCDsvZTrk5zqsIAg7Iuk7Yyo66W8IOyVjOyVhOyxhOyngCDrqrvtlZjqs6Ag7ZqM7IOJIOuEpOuqqOunjCDrgqjsnYwpIOKGkiDqsoDsgqw6IOyViOuCtCDspITsnbQg67O07J6ECi0g7J6l7IaMIOydtOumhOydgCBgdGV4dENvbnRlbnRg66GcIOuEo+qzoCwg642w7J207YSw64qUIGBqc29uLmR1bXBzYOuhnCDrhKPripTri6QuICjsmZw6IOydtOumhOyXkCDrlLDsmLTtkZzCt+2DnOq3uOqwgCDsnojslrTrj4Qg7ZmU66m07J20IOyViCDquajsp4DqsowpIOKGkiDqsoDsgqw6IOydtOumhOyXkCBgImAg6rCAIOuToCDsnqXshowKLSDrp4jsu6TqsIAg7Jes65+sIOqwnOuptCBgTGF0TG5nQm91bmRzYOuhnCDsoITrtoAg67O07J206rKMIOunnuy2mOuLpC4g66eI7Luk64qUIDIwMOqwnOq5jOyngOunjC4gKOyZnDog64SI66y0IOunjuycvOuptCDripDroKTsp5ApIOKGkiDqsoDsgqw6IOuniOy7pOqwgCDri6Qg7ZmU66m0IOyViOyXkAotIGBtYXAuaHRtbGDsnYAgYC5naXRpZ25vcmVg7JeQIOuEo+uKlOuLpC4gKOyZnDog7Iuk7ZaJ7ZWgIOuVjOuniOuLpCDsg4jroZwg66eM65Oc64qUIOqysOqzvOusvCkg4oaSIOqygOyCrDogYGdpdCBzdGF0dXNg7JeQIOyViCDrs7TsnoQKCiMjIFN0cmVhbWxpdCDqt5zsuZkgKOuvuOyFmCDikaQsIOyYpO2bhCkKLSDsi6TtlonsnYAgYHN0cmVhbWxpdCBydW4g7YyM7J28LnB5YC4g7KeA64+EIEhUTUzsnYAgKipgc3QuaWZyYW1lKGh0bWzquIDsnpAsIGhlaWdodD0uLi4pYCoqIOuhnCDrhKPripTri6QuIGBzdC5jb21wb25lbnRzLnYxLmh0bWxg7J2AIOyTsOyngCDslYrripTri6QuICjsmZw6IFN0cmVhbWxpdCDsg4gg67KE7KCE7JeQ7IScIGNvbXBvbmVudHMuaHRtbOydgCDsl4bslrTsp4DripQg7KSR7J206528IOqyveqzoOqwgCDrgqgpIOKGkiDqsoDsgqw6IOy9lOuTnOyXkCBgY29tcG9uZW50cy52MWAg7JeG7J2MCi0g7Lm07Lm07JikIOy9mOyGlCBKYXZhU2NyaXB0IFNESyDrj4TrqZTsnbjsl5AgYGh0dHA6Ly9sb2NhbGhvc3Q6ODUwMWDsnYQg65Ox66Gd7ZaI64qU7KeAIOyLpO2WiSDslYjrgrTsl5Ag7KCB64qU64ukLiBgbG9jYWxob3N0Ojg1MDJgwrdOZXR3b3JrIFVSTChJUCnCt2AxMjcuMC4wLjFg66GcIOyXtOuptCDslYgg65ys64uk64qUIOqyg+uPhC4gKOyZnDog65Ox66Gd7ZWcIOyjvOyGjOyXkOyEnOunjCDsp4Drj4TqsIAg7Lyc7KeQKSDihpIg6rKA7IKsOiDslYjrgrQg66y47J6lCi0gYC5lbnZg66W8IOydveydhCDrlYwgYGxvYWRfZG90ZW52KG92ZXJyaWRlPVRydWUpYCwg6re466as6rOgIGAuZW52YOulvCDqs6DsuZjrqbQgKipgQ3RybCtDYCDtm4Qg64uk7IucIGBzdHJlYW1saXQgcnVuYCoqIO2VmOudvOqzoCDslYjrgrTtlZzri6QuIOyXkOufrCDqsrDqs7zripQg7LqQ7Iuc7ZWY7KeAIOyViuuKlOuLpCjsupDsi5wg7ZWo7IiYIOyViOyXkOyEnCDsl5Drn6zrqbQg7JiI7Jm466W8IOuCtOqzoCDrsJbsl5DshJwg67Cb6riwKS4gKOyZnDog7YKk66W8IOqzoOyzkOuPhCDsmJsg6rCSwrfsmJsg7JeQ65+s6rCAIDEw67aE6rCEIOuCqOydjCkg4oaSIOqygOyCrDog7YKk66W8IO2LgOuguOuLpCDqs6DsuZwg65KkIOyerOyLnOyeke2VtCDrtIQKLSDrgqDslKgg7ISk66qFIOqwmeydgCDquIDsnpDripQgYHN0Lm1ldHJpY2DsnZgg67OA7ZmU65+JIOyekOumrOyXkCDrhKPsp4Ag7JWK64qU64ukKGBzdC5jYXB0aW9uYOycvOuhnCkuICjsmZw6IOy0iOuhncK367mo6rCVIO2ZlOyCtO2RnOqwgCDrtpnslrQg7Iir7J6QIOuzgO2ZlOyymOufvCDrs7TsnoQpIOKGkiDqsoDsgqw6IO2ZlOyCtO2RnCDsl4bsnYwKLSBgcmVxdWlyZW1lbnRzLnR4dGDsl5AgYHN0cmVhbWxpdD49MS42NmAuICjsmZw6IGBzdC5pZnJhbWVg7J2AIOyDiCDrsoTsoIQg6riw64qlKSDihpIg6rKA7IKsOiBgc3RyZWFtbGl0IC0tdmVyc2lvbmAKLSBBUEkg7ZWo7IiY7JeQIGBAc3QuY2FjaGVfZGF0YSh0dGw9NjAwKWAuIO2RnMK37Iir7J6Q64qUIGBzdC5kYXRhZnJhbWVgLCBgc3QubWV0cmljYC4g7JeQ65+s64qUIGBzdC5lcnJvcigi7ZWc6rWt7Ja0IO2VnCDspIQiKWAuICjsmZw6IO2BtOumreuniOuLpCDsnqzsi6TtlokpIOKGkiDqsoDsgqw6IOyKrOudvOydtOuNlOulvCDsl6zrn6wg67KIIOybgOyngeyXrCDrtIQKCiMjIO2MkOuLpOyKpCDqt5zsuZkgKDE07IucKQotIOuPmeuEpOuhnCDqsbDrpbwg65WM64qUICoq7Iucwrfrj4TquYzsp4Ag67aZ7J24IOydtOumhCoqKGAi7ISc7Jq47Yq567OE7IucIOqwleuCqOq1rCJgKeycvOuhnCDqsbDrpbjri6QuICjsmZw6IGAi64Ko6rWsImDripQgYCLqsJXrgqjqtawiYOyXkOuPhCDrk6TslrQg7J6I6rOgLCBgIuykkeq1rCJg64qUIOyXrOufrCDrj4Tsi5zsl5Ag7J6I7J2MKSDihpIg6rKA7IKsOiDqsbjrn6zsp4Qg7KO87IaMIOyVnuu2gOu2hOydtCDrqqjrkZAg6rCZ7J2MCi0gQ1NW64qUIGB1dGYtOC1zaWdgIOKGkiBgY3A5NDlgIOyInOyEnOuhnCDsi5zrj4TtlbQg7J296rOgLCDslrTrlqQg7J247L2U65Sp7Jy866GcIOydveyXiOuKlOyngCDstpzroKXtlZzri6QuICjsmZw6IOqzteqzteuNsOydtO2EsOuKlCDrkZgg64ukIOyeiOydjC4g7ZWc7Kq966eMIOyTsOuptCBVbmljb2RlRGVjb2RlRXJyb3IpIOKGkiDqsoDsgqw6IOy2nOugpeyXkCDsnbjsvZTrlKkg7J2066aECi0g7J297J2AIOuSpCDtla3sg4EgKirspIQg7IiYwrfsubgg7IiYwrfruYjsubgg6rCc7IiYKirrtoDthLAg67O07JesIOykgOuLpChgc2hhcGVgLCBgaXNuYSgpLnN1bSgpYCkuICjsmZw6IOuNsOydtO2EsOulvCDrs7TquLAg7KCE7JeQIOu2hOyEne2VmOyngCDslYrquLApIOKGkiDqsoDsgqw6IOy2nOugpSDssqsg7KSE65OkCi0g7Iir7J6QIOy5uOydgCBgcGQudG9fbnVtZXJpYyguLi4sIGVycm9ycz0iY29lcmNlIilg66GcIOuwlOq+uOqzoCwgIuustOujjCIg6rCZ7J2AIOq4gOyekOuKlCDrqLzsoIAgMOycvOuhnCDrsJTqvrzri6QuICjsmZw6IOq4gOyekCDsiKvsnpDripQg7ZWp6rOEwrftj4nqt6DsnbQg7JWIIOuQqCkg4oaSIOqygOyCrDog7Y+J6regIOyalOq4iOydtCDsiKvsnpDroZwg64KY7Ji0Ci0g7Lm4IOydtOumhOydgCAqKu2MjOydvOyXkCDsi6TsoJzroZwg7J6I64qUIOydtOumhCoq66eMIOyTtOuLpC4g66qo66W066m0IGBkZi5jb2x1bW5zYOulvCDrqLzsoIAg7Lac66Cl7ZW0IO2ZleyduO2VnOuLpC4g7IOIIOy5uCjsmIg6IGDso7zshoxgKeydgCDsgqzsmqnsnpDqsIAgIuyDiOuhnCDrp4zrk6TslrQi65286rOgIO2WiOydhCDrlYzrp4wg66eM65Og64ukLiBg642w7J207YSw6riw7KSA7J287J6QYOuKlCDrgqjquLTri6Qo7ZmU66m07JeQIOq4sOykgOydvCDtkZzsi5wpLiAo7JmcOiBBSeqwgCDsubgg7J2066aE7J2EIOyngOyWtOuCtOq4sCDsiazsm4ApIOKGkiDqsoDsgqw6IEtleUVycm9yIOyXhuydjAotIOu5iCDsooztkZzrpbwg7Lm07Lm07Jik66GcIOyxhOyauCDrlYzripQgKirstZzrjIAgMzDspIQqKiwg7ZWcIOuyiCDrtoDrpbwg65WM66eI64ukIGB0aW1lLnNsZWVwKDAuMSlgLCDtgqTCt+yEpOyglcK37Jew6rKwIOyXkOufrCjsl5Drn6wg66y47J6l7J20IGDim5Rg66GcIOyLnOyekSnqsIAg64KY66m0IOuwlOuhnCDrqYjstpjri6QuICjsmZw6IOy/vO2EsMK37JiI7KCILCDti4DrprAg7YKk66GcIOyImOyynCDrsogg67aA66W07KeAIOyViuqyjCkg4oaSIOqygOyCrDog7L2U65Oc7JeQIO2VnOuPhMK3c2xlZXDCt+upiOy2pAotIOyggOyepeydgCBgZW5jb2Rpbmc9InV0Zi04LXNpZyJgLCBgaW5kZXg9RmFsc2VgLiDsm5Drs7ggQ1NWKGAqX3Jhdy5jc3ZgKeuKlCBgLmdpdGlnbm9yZWAuICjsmZw6IOyXkeyFgOyXkOyEnCDtlZzquIDsnbQg7JWIIOq5qOyngOqyjCwg7YGwIOybkOuzuOydgCDroIjtj6zsl5Ag7JWIIOyYrOumvCkg4oaSIOqygOyCrDog7JeR7IWA66GcIOyXtOyWtCDrtIQKLSDqsJzsiJjCt+2Pieq3oCDqsJnsnYAg7Iir7J6Q64qUICoq7L2U65Oc66GcIOqzhOyCsCoq7ZWY6rOgLCDtlZjrgpjripQg7IKs656M7J20IOyXkeyFgCDtlYTthLDroZwg6rKA7IKw7ZWgIOyImCDsnojqsowg7Ja065akIOyhsOqxtOycvOuhnCDshYzripTsp4Ag7KCB64qU64ukLiAo7JmcOiBBSSDsiKvsnpDripQg6rKA7IKw7ZWc64ukKSDihpIg6rKA7IKsOiDsobDqsbTsnbQg7Lac66Cl7JeQIOyeiOydjAoKIyMg6rO17Ya1IOq3nOy5mSAoRDfqs7wg6rCZ7J2MKQotIEFQSSDso7zshozripQg7YyM7J28IOunqCDsnIQgYEFQSSA9IHsuLi59YCDtlZwg6rOzICsgYCMg8J+UjGAsIOyalOyyrSDspITsl5AgYCMg8J+UjCBBUEkg7Zi47LacYC4gYHJlcXVlc3RzLmdldCguLi4sIHRpbWVvdXQ9MTApYCwg7Iuk7Yyo64qUIO2VnOq1reyWtCDtlZwg7KSELiDstpzroKUg66eoIOyVhOuemCDstpzsspguIOKGkiDqsoDsgqw6IEN0cmwrRiDwn5SMLCDstpzsspgKLSDsg4gg7Yyo7YKk7KeA64qUIGByZXF1aXJlbWVudHMudHh0YOyXkCDstpTqsIDtlZjqs6Ag7ISk7LmYIOuqheugueydgCDsoJzslYjrp4wuIOy7pOuwi8K37ZG47Iuc64qUIO2VmOyngCDrp5Dqs6Ag66mU7Iuc7KeA66eMIOygnOyViCwg7Luk67CLIOyghCBgZ2l0IHN0YXR1c2Ag67O07JesIOyjvOq4sC4g4oaSIOqygOyCrDogaW1wb3J07JmAIHJlcXVpcmVtZW50cy50eHQg7KedCgojIyDsk7gg7IiYIOyeiOuKlCBBUEkgKDEwLzIyIOusuOyEnCDtmZXsnbgpCnwg66+47IWYIHwgQVBJIHwg7KO87IaMIHwg67O064K064qUIOqwkiB8IOyjvOyalCDsubggfAp8IC0tLSB8IC0tLSB8IC0tLSB8IC0tLSB8IC0tLSB8Cnwg4pGgIOKRoyDikaQgfCDtgqTsm4zrk5zroZwg7J6l7IaMIOqygOyDiSB8IGBodHRwczovL2RhcGkua2FrYW8uY29tL3YyL2xvY2FsL3NlYXJjaC9rZXl3b3JkLmpzb25gIHwgYHF1ZXJ5YCwgKOyEoO2DnSkgYHhgwrdgeWDCt2ByYWRpdXNgKG0sIOy1nOuMgCAyMDAwMCnCt2Bzb3J0PWRpc3RhbmNlYCwgYGNhdGVnb3J5X2dyb3VwX2NvZGVgLCBgc2l6ZWAo7LWc64yAIDE1KSB8IGBkb2N1bWVudHNbaV0ucGxhY2VfbmFtZWAsIGByb2FkX2FkZHJlc3NfbmFtZWAsIGBhZGRyZXNzX25hbWVgLCBgeGAsIGB5YCwgYHBob25lYCwgYGNhdGVnb3J5X25hbWVgLCBgcGxhY2VfdXJsYCwgYGRpc3RhbmNlYCB8Cnwg4pGkIHwg7YKk7JuM65OcIOqygOyDiSArIOy5tO2FjOqzoOumrCAo7Jik64qYIOuNsOuqqCDrsKnsi50pIHwgYGh0dHBzOi8vZGFwaS5rYWthby5jb20vdjIvbG9jYWwvc2VhcmNoL2tleXdvcmQuanNvbmAgfCBgcXVlcnlgKOyYiDog7Lm07Y6YKSArIGBjYXRlZ29yeV9ncm91cF9jb2RlYCArIGB4YCwgYHlgLCBgcmFkaXVzYCwgYHNvcnQ9ZGlzdGFuY2VgIHwg7JyE7JmAIOqwmeydjCB8CnwgKOywuOqzoCkgfCDsubTthYzqs6DrpqzroZwg7J6l7IaMIOqygOyDiSAo6rKA7IOJ7Ja0IOyXhuydtCkgfCBgaHR0cHM6Ly9kYXBpLmtha2FvLmNvbS92Mi9sb2NhbC9zZWFyY2gvY2F0ZWdvcnkuanNvbmAgfCBgY2F0ZWdvcnlfZ3JvdXBfY29kZWAsIGB4YCwgYHlgLCBgcmFkaXVzYCB8IOychOyZgCDqsJnsnYwgfAp8IOKRoSB8IOyjvOyGjOuhnCDsooztkZwg67OA7ZmYIHwgYGh0dHBzOi8vZGFwaS5rYWthby5jb20vdjIvbG9jYWwvc2VhcmNoL2FkZHJlc3MuanNvbmAgfCBgcXVlcnlgIHwgYGRvY3VtZW50c1swXS54YCwgYHlgLCBgYWRkcmVzc19uYW1lYCB8Cnwg4pGhIHwg7KKM7ZGc66GcIOyjvOyGjCDrs4DtmZggfCBgaHR0cHM6Ly9kYXBpLmtha2FvLmNvbS92Mi9sb2NhbC9nZW8vY29vcmQyYWRkcmVzcy5qc29uYCB8IGB4YCjqsr3rj4QpLCBgeWAo7JyE64+EKSB8IGBkb2N1bWVudHNbMF0ucm9hZF9hZGRyZXNzLmFkZHJlc3NfbmFtZWAo7JeG7J2EIOyImCDsnojsnYwpLCBgYWRkcmVzcy5hZGRyZXNzX25hbWVgIHwKfCDikaIg4pGkIHwg7Lm07Lm07JikIOyngOuPhCBKYXZhU2NyaXB0IFNESyB8IGBodHRwczovL2RhcGkua2FrYW8uY29tL3YyL21hcHMvc2RrLmpzP2FwcGtleT1KU+2CpCZhdXRvbG9hZD1mYWxzZWAgfCAo67iM65287Jqw7KCAKSB8IGBrYWthby5tYXBzLk1hcGAsIGBMYXRMbmco7JyE64+ELCDqsr3rj4QpYCwgYE1hcmtlcmAsIGBJbmZvV2luZG93YCwgYExhdExuZ0JvdW5kc2AgfAp8IOKRpSB8IE9wZW5XZWF0aGVyIO2YhOyerCDrgqDslKggfCBENyDqt5zsuZkg6re464yA66GcIHwgYGxhdGAsIGBsb25gLCBgYXBwaWRgLCBgdW5pdHM9bWV0cmljYCwgYGxhbmc9a3JgIHwgYG1haW4udGVtcGAsIGB3ZWF0aGVyWzBdLmRlc2NyaXB0aW9uYCB8CgotIO2XpOuNlOuKlCDrqqjrkZAgYEF1dGhvcml6YXRpb246IEtha2FvQUsge1JFU1QgQVBJIO2CpH1gCi0g7Lm07YWM6rOg66asIOy9lOuTnDogYENFN2Ag7Lm07Y6YIMK3IGBGRDZgIOydjOyLneygkCDCtyBgQ1MyYCDtjrjsnZjsoJAgwrcgYFBNOWAg7JW96rWtIMK3IGBIUDhgIOuzkeybkCDCtyBgU1c4YCDsp4DtlZjssqDsl60gwrcgYFBLNmAg7KO87LCo7J6lIMK3IGBNVDFgIOuMgO2YleuniO2KuCDCtyBgQks5YCDsnYDtlokgwrcgYEFUNGAg6rSA6rSR66qF7IaMIMK3IGBDVDFgIOusuO2ZlOyLnOyEpAoKIyMjIOyXkOufrCDsnb3ripQg67KVCnwg7J2065+0IOuVjCB8IOucuyB8IO2ZlOuptCDslYjrgrQgfAp8IC0tLSB8IC0tLSB8IC0tLSB8CnwgNDAxIHwgUkVTVCDtgqTqsIAg7YuA66a8IChKUyDtgqTrpbwg64Sj7J2AIOqyveyasOqwgCDrp47snYwpIHwgIuy5tOy5tOyYpCBSRVNUIEFQSSDtgqTqsIAg7YuA66C47Ja07JqUIiB8CnwgNDAzIGBkaXNhYmxlZCBPUEVOX01BUF9BTkRfTE9DQUwgc2VydmljZWAgfCDsubTsubTsmKTrp7Ug7IKs7JqpIOyEpOyglSBPRkYgfCAi7Lm07Lm07Jik66e1IOyCrOyaqSDshKTsoJXsnYQg7LycIOyjvOyEuOyalCIgfAp8IGBkb2N1bWVudHNg6rCAIOu5iCDrqqnroZ0gfCDqt7jrn7Ag7J6l7IaMwrfso7zshowg7JeG7J2MIHwgIifil4vil4sn7J2EKOulvCkg7LC+7KeAIOuqu+2WiOyWtOyalCIgfAp8IOyngOuPhCDsnpDrpqzsl5Ag7ZqM7IOJIOuEpOuqqCAvIOyVhOustOqyg+uPhCDsl4bsnYwgfCBKUyDtgqTCt+uPhOuplOyduMK37IKs7JqpIOyEpOyglcK3ZmlsZTovLyDspJEg7ZWY64KYIHwg7KeA64+EIEhUTUzsnZgg7JWI64K0IOusuOyepSB8CgotIOu4jOudvOyasOyggCDsqr0gYHNlcnZpY2VzYCDrnbzsnbTruIzrn6zrpqwsIOq1rOq4gCDsp4Drj4QgQVBJLCDrhKTsnbTrsoQg7KeA64+EIEFQSeuKlCDsk7Dsp4Ag7JWK64qU64ukLiDtkZzsl5Ag7JeG64qUIEFQSeuKlCDrqLzsoIAg7J2066aEwrfso7zshozCt+2CpCDtlYTsmpQg7Jes67aA66W8IOunkO2VmOqzoCDtmZXsnbjrsJvripTri6QuIOKGkiDqsoDsgqw6IOy9lOuTnOyXkCBgc2VydmljZXNgLCBgZ29vZ2xlYXBpc2AsIGBuYXZlcmAg7JeG7J2MCgojIyDsi6TsiJjsl5DshJwg67Cw7Jq0IOq3nOy5mQo8IS0tIEFJIOyLpOyImOulvCDssL7snYQg65WM66eI64ukIO2VnCDspITslKk6IC0gKDEwLzIzKSAo7ZW06528L+2VmOyngCDrp4jrnbwpIF9fXyAo7JmcOiBfX18pIOKGkiDqsoDsgqw6IF9fXyAtLT4K", "size": 11043}, "CLAUDE_우리조지도규칙.md": {"mime": "text/markdown;charset=utf-8", "b64": "IyDsmrDrpqwg7KGwIOyngOuPhCDshJzruYTsiqQg6rec7LmZIChEOCDsmKTtm4QpCgo+IOydtCDrgrTsmqnsnYQgKipgbWFwLeKXi+yhsC9DTEFVREUubWRgKiog7JeQIOu2meyXrCDrhKPqs6AsIOunqCDsnIQg65GQIOykhOydhCDsmrDrpqwg7KGwIOqyg+ycvOuhnCDssYTsmrDshLjsmpQuCj4g7Jik7KCEIGBDTEFVREVf7KeA64+EQVBJ6rec7LmZLm1kYOydmCAqKuuRkCDsl7Tsh6DCt+yijO2RnMK37KeA64+EIEhUTUzCt+2MkOuLpOyKpCDqt5zsuZnsnYAg6re464yA66GcKiog7KeA7Lyc7JqUKOq3uCDtjIzsnbzrj4Qg66CI7Y+s7JeQIGBydWxlcy9gIOuhnCDrhKPqs6Ag7Jes6riw7IScICJydWxlcy/sp4Drj4RBUEnqt5zsuZkubWQg66W8IOuUsOuluOuLpCLrnbzqs6Ag7KCB7Ja064+EIOuPvOyalCkuCgotLS0KCiMjIOyasOumrCDsobAKLSDsp4jrrLg6ICJfX18iICjso7zsnbjqs7U6IF9fXykKLSDrjbDsnbTthLA6IF9fXyAo7Lac7LKYIF9fXywg642w7J207YSwIOq4sOykgOydvCBfX18pLCDsm5Drs7gg7YyM7J28IGBkYXRhL19fX2AKCiMjIO2MjOydvCDrgpjriITquLAKLSBgZGF0YV9wcmVwLnB5YCA9IO2MkOuLpOyKpCDsoJXrpqzrp4wg4oaSIGBkYXRhL2NsZWFuLmNzdmAg66W8IOunjOuToOuLpC4g7ZmU66m0IOy9lOuTnCDsl4bsnYwuICjsmZw6IOuNsOydtO2EsCDri7Tri7nqs7wg7ZmU66m0IOuLtOuLueydtCDqsJnsnYAg7YyM7J287J2EIOyViCDqs6DsuZjqsowpIOKGkiDqsoDsgqw6IGBweXRob24gZGF0YV9wcmVwLnB5YCDtlZwg7KSE66GcIOyLpO2WiQotIGBtYWtlX21hcC5weWAgPSBga2FrYW9fbWFwX2h0bWwoanNfa2V5LCBtYXJrZXJzKWAg7ZWY64KYLiAo7JmcOiDsp4Drj4Qg7L2U65Oc64qUIO2VnCDqs7Psl5ApIOKGkiDqsoDsgqw6IGFwcC5weSDsl5Ag7KeA64+EIEhUTUwg66y47J6Q7Je0IOyXhuydjAotIGBhcHAucHlgID0gU3RyZWFtbGl0IO2ZlOuptOunjC4gYGRhdGEvY2xlYW4uY3N2YCDrpbwgYEBzdC5jYWNoZV9kYXRhYOuhnCDsnb3ripTri6QuIOybkOuzuCDtjIzsnbzsnYQg7KeB7KCRIOydveyngCDslYrripTri6QuICjsmZw6IOunpOuyiCDsiJjsspwg7KSEIOygleumrMK37Lm07Lm07JikIO2YuOy2nCDrsKnsp4ApIOKGkiDqsoDsgqw6IGFwcC5weSDsl5AgYF9yYXdgIOyXhuydjAotIOuniOy7pCDsg4nCt+usuOq1rCDqsJnsnYAg65SU7J6Q7J24IOqwkuydgCBgYXBwLnB5YCDrp6gg7JyEIGBTVFlMRSA9IHsuLi59YCDtlZwg6rOz7JeQLiAo7JmcOiDrlJTsnpDsnbgg64u064u57J20IO2VnCDqs7Prp4wg6rOg7LmY6rKMKSDihpIg6rKA7IKsOiDsg4kg7L2U65Oc6rCAIO2VnCDqs7Psl5Drp4wKCiMjIO2ZlOuptCDqt5zsuZkKLSDsgqzsnbTrk5zrsJQg7ZWE7YSwIDHqsJwg7J207IOBLiDtlYTthLDrpbwg67CU6r6466m0ICoq7KeA64+EwrdtZXRyaWPCt+2RnOqwgCDqsJnsnYAg6rKw6rO8Kirrpbwg7JO064ukKO2VhO2EsOuQnCDtkZwgYHZpZXdgIO2VmOuCmOyXkOyEnCDshYsg64ukIOunjOuToOuLpCkuICjsmZw6IOyIq+yekOyZgCDsp4Drj4TqsIAg64uk66W066m0IOyLoOuisOulvCDsnoPsnYwpIOKGkiDqsoDsgqw6IO2VhO2EsCDrsJTqvrjqs6Ag7IWLIOu5hOq1kAotIGBzdC5tZXRyaWNgIDPqsJwsIGBzdC5pZnJhbWVgKOyngOuPhCwg66eI7LukIOy1nOuMgCAyMDDqsJwpLCBgc3QuZGF0YWZyYW1lYC4gYHN0LmNvbXBvbmVudHMudjEuaHRtbGAg7JOw7KeAIOyViuydjC4g4oaSIOqygOyCrDog7L2U65OcIOqygOyDiQotIOqysOqzvOqwgCAw6rCc66m0IOyngOuPhCDrjIDsi6AgYHN0LmluZm8oIuyhsOqxtOyXkCDrp57ripQg6rOz7J20IOyXhuyWtOyalCIpYC4gKOyZnDog7ZWY7JaAIO2ZlOuptCDrsKnsp4ApIOKGkiDqsoDsgqw6IO2VhO2EsOulvCDqt7nri6jsnLzroZwKLSDtmZTrqbQg66eoIOyVhOuemCDstpzsspjsmYAgKirrjbDsnbTthLAg6riw7KSA7J28KiouICLsi6Tsi5zqsIQiIOydtOudvOqzoCDsk7Dsp4Ag7JWK64qU64ukKO2MjOydvCDrjbDsnbTthLDripQg6riw7KSA7J28IOuNsOydtO2EsCkuIOKGkiDqsoDsgqw6IOy6oeyFmAotIOyIq+yekOuKlCDtjJDri6TsiqTroZwg6rOE7IKw7ZWc64ukLiDtmZTrqbQg66y46rWs7JeQIOqzhOyCsCDslYgg7ZWcIOyIq+yekOulvCDsk7Dsp4Ag7JWK64qU64ukLiAo7JmcOiBBSSDsiKvsnpDripQg6rKA7IKwKSDihpIg6rKA7IKsOiDrrLjqtawg7IaNIOyIq+yekOqwgCDrs4DsiJjsl5DshJwg7Ji0CgojIyDrjbDsnbTthLAg6rec7LmZCi0g7JuQ67O4KGBkYXRhLypfcmF3LmNzdmAsIGAqX3Jhdy54bHN4YCnsnYAgYC5naXRpZ25vcmVgLiBgZGF0YS9jbGVhbi5jc3ZgIOunjCDsmKzrprDri6QoYHV0Zi04LXNpZ2ApLiDihpIg6rKA7IKsOiBgZ2l0IHN0YXR1c2AKLSDqsJzsnbjsoJXrs7Qo6rCc7J24IOydtOumhMK37Zy064yA7Y+wIOuyiO2YuCnqsIAg7J6I64qUIOy5uOydgCBgY2xlYW4uY3N2YOyXkOyEnCDruoDri6QuIOq4sOq0gCDrjIDtkZzrsojtmLjripQg65Gs64+EIOuQnOuLpC4g4oaSIOqygOyCrDogY2xlYW4uY3N2IOy5uCDrqqnroZ0KLSBYTFNY64qUIGBwZC5yZWFkX2V4Y2VsKOqyveuhnClgIChgb3BlbnB5eGxg7J2EIHJlcXVpcmVtZW50cy50eHTsl5ApLiDihpIg6rKA7IKsOiBpbXBvcnTCt3JlcXVpcmVtZW50cyDsp50KCiMjIOqwmeydtCDsnbztlZjquLAgKEQ1fkQ36rO8IOqwmeydjCkKLSBJc3N1ZSDtlZjrgpggPSDruIzrnpzsuZgg7ZWY64KYID0gUFIg7ZWY64KYLiDri6Trpbgg7IKs656MIOuLtOuLuSDtjIzsnbzsnYAg6rOg7LmY7KeAIOyViuuKlOuLpC4gbWFpbuyXkOyEnCDsp4HsoJEg7J6R7JeF7ZWY7KeAIOyViuuKlOuLpC4g4oaSIOqygOyCrDogUFIg66qp66GdCi0g7Luk67CLwrftkbjsi5zCt+uouOyngOuKlCDtlZjsp4Ag66eQ6rOgIOuplOyLnOyngOunjCDsoJzslYgsIOy7pOuwiyDsoIQgYGdpdCBzdGF0dXNgLiDihpIg6rKA7IKsOiDrgrTqsIAg7KeB7KCRIOy7pOuwiwotIOqwgeyekCBgLmVudmDsl5Ag6rCB7J6QIO2CpC4g7YKk66W8IFNsYWNrwrdJc3N1ZcK3UFLsl5Ag67aZ7J207KeAIOyViuuKlOuLpC4g4oaSIOqygOyCrDogUFIg67O466y4CgojIyDsi6TsiJjsl5DshJwg67Cw7Jq0IOq3nOy5mQo8IS0tIC0gKDEwLzIzKSBfX18gKOyZnDogX19fKSDihpIg6rKA7IKsOiBfX18gLS0+Cg==", "size": 3145}};
+
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+document.querySelectorAll('.copy').forEach(b=>b.addEventListener('click',async()=>{
+  const t=b.closest('.code').querySelector('pre').innerText;
+  try{await navigator.clipboard.writeText(t)}catch(e){const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()}
+  b.textContent='복사됨';b.classList.add('ok');setTimeout(()=>{b.textContent='복사';b.classList.remove('ok')},1400);
+}));
+document.querySelectorAll('input[type=checkbox][data-k]').forEach(c=>{
+  const k=`camp_d${DAY}_${c.dataset.k}`; c.checked=store.get(k)==='1';
+  c.addEventListener('change',()=>store.set(k,c.checked?'1':'0'));
+});
+document.querySelectorAll('.dl').forEach(b=>b.addEventListener('click',()=>{
+  const f=FILES[b.dataset.f]; const bin=atob(f.b64); const arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+  const url=URL.createObjectURL(new Blob([arr],{type:f.mime}));
+  const a=document.createElement('a');a.href=url;a.download=b.dataset.f;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}));
+const tabs=[...document.querySelectorAll('.tabs button')], panels=[...document.querySelectorAll('.panel')];
+function showJob(j){tabs.forEach(t=>t.setAttribute('aria-selected',t.dataset.job===j));panels.forEach(p=>p.hidden=p.dataset.job!==j)}
+tabs.forEach(t=>t.addEventListener('click',()=>showJob(t.dataset.job)));
+const sel=document.getElementById('me'), info=document.getElementById('meinfo'), mg=document.getElementById('mygroup');
+const PAIR={1:2,2:1,3:4,4:3,5:6,6:5,7:8,8:7};
+Object.keys(ROSTER).forEach(g=>{const og=document.createElement('optgroup');og.label=g+'조';
+  ROSTER[g].forEach(([n,j])=>{const o=document.createElement('option');o.value=n;o.textContent=`${n} (${j})`;og.appendChild(o)});sel.appendChild(og)});
+function who(name){for(const g in ROSTER){for(const [n,j] of ROSTER[g]){if(n===name){
+  const guild=GUILDS.find(([gn,gj,cs])=>gj===j&&cs.includes(+g));
+  return {g:+g,j,guild:guild?guild[0]:'',mates:ROSTER[g].map(x=>x[0]).filter(x=>x!==name),
+          gmates:guild?guild[2].flatMap(c=>ROSTER[c].filter(x=>x[1]===j).map(x=>x[0])).filter(x=>x!==name):[]}}}}return null}
+const slackBase=document.getElementById('slack').textContent;
+function render(name){
+  const w=name?who(name):null;
+  const slack=document.getElementById('slack');
+  if(!w){info.textContent='';if(mg)mg.innerHTML='';showJob('개발');slack.textContent=slackBase;return}
+  info.textContent=`${w.g}조 · ${w.j} · ${w.guild}`;
+  showJob(w.j);
+  slack.textContent=slackBase.replace(/\[○조\]/,`[${w.g}조]`).replace(/ 이름 · D8/,` ${name} · D8`).replace(/map-○조/,`map-${w.g}조`);
+  if(!mg)return;
+  const jo=`<b>${w.g}조</b> (${w.mates.join(', ')})`;
+  const gu=`<b>${w.guild}</b> (${w.gmates.join(', ')})`;
+  mg.innerHTML=`오전·14시 판다스: <b>개인</b> · 막히면 같은 직군 ${gu}에게<br>15:00~ 조: ${jo} · 레포 <b>map-${w.g}조</b><br>17:00 짝 조 테스트: <b>${PAIR[w.g]}조</b>와 서로 써 보기`;
+}
+sel.value=store.get('camp_me')||''; render(sel.value);
+sel.addEventListener('change',()=>{store.set('camp_me',sel.value);render(sel.value)});
+</script>
+</body></html>
