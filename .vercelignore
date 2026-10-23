@@ -1,0 +1,9 @@
+# 배포에 필요 없거나 올리면 안 되는 것
+.env
+.env.*
+!.env.example
+/data/
+*.py
+__pycache__/
+CLAUDE.md
+node_modules
