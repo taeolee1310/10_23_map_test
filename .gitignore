@@ -5,6 +5,7 @@
 
 # 생성 파일 (파이썬이 만든다)
 map.html
+map_config.js
 
 # 원본 대용량 CSV (정리본 data/parking_clean.csv만 올린다)
 data/*

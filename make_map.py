@@ -13,6 +13,7 @@ API = {
 load_dotenv(override=True)
 
 MAX_MARKERS = 200
+CONFIG_FILE = "map_config.js"  # JS 키만 담는 파일. .gitignore에 있어서 GitHub에 안 올라간다
 
 HTML = """<!DOCTYPE html>
 <html lang="ko">
@@ -28,12 +29,12 @@ HTML = """<!DOCTYPE html>
 </head>
 <body>
 <div id="map"></div>
-<div class="tip">지도가 회색이면 확인할 것 3가지: ①카카오맵 사용 설정 ② 지금 주소(포트까지) 등록 ③ 서버 주소로 열기</div>
-<!-- 🔌 API 호출: 지도 SDK -->
-<script src="__SDK__?appkey=__JS_KEY__&autoload=false"></script>
+<div class="tip">지도가 회색이면 확인할 것 3가지: ① 카카오맵 사용 설정 ② 지금 주소(포트까지) 등록 ③ 서버 주소로 열기</div>
+__KEY_LOADER__
 <script>
   const markers = __MARKERS__;
-  kakao.maps.load(function () {
+
+  function draw() {
     const map = new kakao.maps.Map(document.getElementById("map"), {
       center: new kakao.maps.LatLng(37.5665, 126.9780),
       level: 5,
@@ -60,20 +61,43 @@ HTML = """<!DOCTYPE html>
       bounds.extend(pos);
     });
     if (markers.length) map.setBounds(bounds);
-  });
+  }
+
+  // 🔌 API 호출: 지도 SDK (JS 키는 위에서 불러온 window.KAKAO_JS_KEY)
+  const sdk = document.createElement("script");
+  sdk.src = "__SDK__?appkey=" + encodeURIComponent(window.KAKAO_JS_KEY || "") + "&autoload=false";
+  sdk.onload = function () { kakao.maps.load(draw); };
+  document.head.appendChild(sdk);
 </script>
 </body>
 </html>
 """
 
 
-def kakao_map_html(js_key, markers):
-    """마커 [{이름, 주소, 위도, 경도}, ...]를 찍는 카카오 지도 HTML 글자를 만든다. JS 키만 쓴다."""
-    data = json.dumps(markers[:MAX_MARKERS], ensure_ascii=False).replace("</", "<\\/")
+def _safe_json(data):
+    """<script> 안에 넣어도 태그가 깨지지 않게 '</'를 막는다."""
+    return json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
+
+
+def kakao_map_config(js_key):
+    """JS 키만 담은 map_config.js 글자를 만든다."""
+    return f"window.KAKAO_JS_KEY = {_safe_json(js_key)};\n"
+
+
+def kakao_map_html(js_key, markers, separate_key=False):
+    """마커 [{이름, 주소, 위도, 경도}, ...]를 찍는 카카오 지도 HTML 글자를 만든다. JS 키만 쓴다.
+
+    separate_key=True면 HTML에 키를 넣지 않고 map_config.js를 불러오게 한다.
+    (st.iframe처럼 파일 하나로 보여 줄 때는 False)
+    """
+    if separate_key:
+        loader = f'<script src="{CONFIG_FILE}"></script>'
+    else:
+        loader = f"<script>{kakao_map_config(js_key)}</script>"
     return (
-        HTML.replace("__SDK__", API["sdk"])
-        .replace("__JS_KEY__", js_key)
-        .replace("__MARKERS__", data)
+        HTML.replace("__KEY_LOADER__", loader)
+        .replace("__SDK__", API["sdk"])
+        .replace("__MARKERS__", _safe_json(markers[:MAX_MARKERS]))
     )
 
 
@@ -81,6 +105,9 @@ if __name__ == "__main__":
     js_key = os.getenv("KAKAO_JS_KEY")
     if not js_key:
         print("⛔ .env에 KAKAO_JS_KEY 값을 넣어 주세요")
+        raise SystemExit(1)
+    if js_key == os.getenv("KAKAO_REST_API_KEY"):
+        print("⛔ KAKAO_JS_KEY에 REST 키가 들어가 있어요. JavaScript 키로 바꿔 주세요")
         raise SystemExit(1)
 
     query = input("검색어: ").strip()
@@ -97,10 +124,14 @@ if __name__ == "__main__":
     for i, p in enumerate(places, 1):
         print(f"{i}. {p['이름']} | {p['주소']} | ({p['위도']}, {p['경도']})")
 
+    # map.html에는 키가 없고, 키는 map_config.js에만 있다
     with open("map.html", "w", encoding="utf-8") as f:
-        f.write(kakao_map_html(js_key, places))
+        f.write(kakao_map_html(js_key, places, separate_key=True))
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        f.write(kakao_map_config(js_key))
 
     print(f"\n마커 {len(places)}개로 map.html을 만들었어요 (검색어: '{query}', 최대 10개)")
+    print("키는 map.html이 아니라 map_config.js에만 있어요 (둘 다 GitHub에 안 올라가요)")
     print("이 폴더에서 서버를 켜고 브라우저로 여세요:")
     print("  python -m http.server 8000 --bind 127.0.0.1")
     print("  http://localhost:8000/map.html")
