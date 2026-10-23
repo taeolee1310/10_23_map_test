@@ -71,6 +71,7 @@ function MainBody({ data }: { data: Loaded }) {
   const [me, setMe] = useState<LatLng | null>(null)
   const [note, setNote] = useState('')
   const [toast, setToast] = useState('')
+  const [toastOn, setToastOn] = useState(false) // 글자는 남겨 두고 보이고 안 보이는 것만 바꿔, 사라질 때도 부드럽게
   const [selId, setSelId] = useState<string | null>(null)
   const [hotId, setHotId] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -177,8 +178,9 @@ function MainBody({ data }: { data: Loaded }) {
   // 위치: 거리 계산에만 쓰고 저장하거나 보내지 않는다
   const showToast = (msg: string) => {
     setToast(msg)
+    setToastOn(true)
     window.clearTimeout(toastTimer.current)
-    toastTimer.current = window.setTimeout(() => setToast(''), 3500)
+    toastTimer.current = window.setTimeout(() => setToastOn(false), 3500)
   }
   const locate = useCallback((after?: (p: LatLng) => void) => {
     if (!navigator.geolocation) {
@@ -278,8 +280,8 @@ function MainBody({ data }: { data: Loaded }) {
           </label>
           <div className="quick">
             <button className="qp" onClick={goNear}><IconPin />내 주변 온천</button>
-            <button className="qp" disabled={!pricedCount} title={pricedCount ? '' : '실측확인되는 대로 열려요'} onClick={() => updateFilters({ priceOnly: true })}>
-              <IconDrop />실측확인된 곳{pricedCount ? <b>{pricedCount}</b> : null}
+            <button className="qp" disabled={!pricedCount} title={pricedCount ? '' : '직접 확인한 곳이 생기면 열려요'} onClick={() => updateFilters({ priceOnly: true })}>
+              <IconDrop />직접 확인한 곳{pricedCount ? <b>{pricedCount}</b> : null}
             </button>
             <button
               className="qp"
@@ -320,7 +322,7 @@ function MainBody({ data }: { data: Loaded }) {
             <label className="sw">
               <input type="checkbox" checked={filters.priceOnly} onChange={(e) => updateFilters({ priceOnly: e.target.checked })} />
               <i />
-              <span>실측확인된 곳만</span>
+              <span>직접 확인한 곳만</span>
             </label>
           </div>
           {note && <div className="note">{note}</div>}
@@ -390,7 +392,7 @@ function MainBody({ data }: { data: Loaded }) {
                 <IconLocate />
               </button>
             </div>
-            {toast && <div id="toast" role="status">{toast}</div>}
+            <div id="toast" role="status" className={toastOn ? 'show' : ''}>{toast}</div>
           </div>
           <PlacePreview
             place={selected}
