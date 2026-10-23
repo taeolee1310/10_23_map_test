@@ -9,6 +9,11 @@ map_config.js
 # 원본 대용량 CSV (정리본 data/parking_clean.csv만 올린다)
 data/*
 !data/parking_clean.csv
+!data/onsen_clean.csv
+!data/onsen_official_clean.csv
+!data/onsen_merged.csv
+!data/onsen_prices.csv
+!data/onsen_parking.csv
 
 # Python
 __pycache__/
