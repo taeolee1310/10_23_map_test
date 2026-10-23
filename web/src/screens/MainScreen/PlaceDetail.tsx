@@ -1,0 +1,150 @@
+import { useEffect, useRef } from 'react'
+import { KIND_CLASS, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
+
+type Props = {
+  place: PlaceWithDist | null
+  open: boolean
+  me: LatLng | null
+  onClose: () => void
+  onLocate: () => void
+}
+
+function PriceBlock({ d }: { d: PlaceWithDist }) {
+  const p = d.price
+  if (!p) {
+    return (
+      <section className="sec unknown-box">
+        <h3>이용 요금</h3>
+        <b>가격 정보 없음</b>
+        <p className="small">입장료를 알 수 있는 자료가 아직 없어요. 가기 전에 카카오맵 장소 페이지나 공식 채널에서 알아봐 주세요.</p>
+      </section>
+    )
+  }
+  const row = (k: string, v: string) => (
+    <div className="pr">
+      <span>{k}</span>
+      <b>{v}</b>
+    </div>
+  )
+  return (
+    <section className="sec">
+      <h3>이용 요금</h3>
+      {p.adult != null && row('성인 1인 (평일)', won(p.adult))}
+      {p.weekend != null && row('성인 1인 (주말)', won(p.weekend))}
+      {p.towel != null && row('수건', p.towel === 0 ? '무료' : '별도 ' + won(p.towel))}
+      {p.parking != null && row('주차', p.parking === 0 ? '무료' : won(p.parking))}
+      {p.child != null && row('어린이', won(p.child))}
+      {p.adult != null && p.towel != null && (
+        <div className="total">예상 지출 (평일 성인 1인, 수건 포함) {won(p.adult + p.towel)}</div>
+      )}
+      {p.adult != null && p.towel == null && <p className="small">수건·대여용품 같은 별도 비용은 알 수 없어요.</p>}
+      {p.none && <p className="small">추가 요금 없음 (확인됨)</p>}
+      {p.memo && <p className="small">{p.memo}</p>}
+      <p className="small">
+        확인일 {p.checked || '미상'} · 출처{' '}
+        {/^https?:\/\//.test(p.source || '') ? (
+          <a href={p.source} target="_blank" rel="noopener noreferrer">보기</a>
+        ) : (
+          '미상'
+        )}
+      </p>
+    </section>
+  )
+}
+
+function ParkingBlock({ d }: { d: PlaceWithDist }) {
+  const r = d.parking_radius
+  return (
+    <section className="sec">
+      <h3>근처 주차장{r ? ` (반경 ${r}m)` : ''}</h3>
+      {d.parking == null ? (
+        <p className="small" style={{ margin: 0 }}>주차장은 아직 찾아보지 않았어요.</p>
+      ) : !d.parking.length ? (
+        <p className="small" style={{ margin: 0 }}>반경 {r}m 안에 카카오에 등록된 주차장이 없어요. 가기 전에 주차할 수 있는지 알아봐 주세요.</p>
+      ) : (
+        <>
+          {d.parking.map((p) => {
+            const u = safeUrl(p.url)
+            return (
+              <div className="pr" key={p.name + p.addr}>
+                <span>
+                  {u ? <a href={u} target="_blank" rel="noopener noreferrer">{p.name}</a> : p.name}
+                  <br />
+                  <span className="small">{p.kind} · {p.addr}</span>
+                </span>
+                <b>{p.dist}m</b>
+              </div>
+            )
+          })}
+          <p className="small">주차 요금은 카카오 데이터에 없어요. 장소 페이지에서 알아봐 주세요.</p>
+        </>
+      )}
+      <p className="small">온천 시설 자체의 주차 정책이 아니라, 근처에 등록된 주차장이에요.</p>
+    </section>
+  )
+}
+
+export default function PlaceDetail({ place: d, open, me, onClose, onLocate }: Props) {
+  const backRef = useRef<HTMLButtonElement>(null)
+  const boxRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    boxRef.current?.scrollTo({ top: 0 })
+    backRef.current?.focus({ preventScroll: true }) // 화면 밖에서 슬라이드해 들어오는 중이라 스크롤이 튀지 않게
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [open, d?.id, onClose])
+
+  const l = d ? mapLinks(d, me) : null
+  const kakao = d ? safeUrl(d.url) : ''
+  const tel = d ? safeTel(d.tel) : ''
+  return (
+    <article id="detail" ref={boxRef} className={open ? 'open' : ''} aria-hidden={!open} aria-label="온천 상세">
+      {d && l && (
+        <>
+          <button className="back" ref={backRef} onClick={onClose}>← 목록으로</button>
+          <div className={`pill kind ${KIND_CLASS[d.kind] || ''}`}>{d.sido}{d.kind ? ` · ${d.kind}` : ''}</div>
+          <h2>{d.name}</h2>
+          <div className="small" style={{ margin: 0 }}>{d.addr}</div>
+          <PriceBlock d={d} />
+          <ParkingBlock d={d} />
+          <section className="sec">
+            <h3>내 위치에서</h3>
+            {d.dist != null ? (
+              <>
+                <div className="pr"><span>직선거리</span><b>{fmtDist(d.dist)}</b></div>
+                <p className="small">지도에서 잰 직선거리예요. 실제 도로 거리와 이동 시간은 아래 길찾기에서 볼 수 있어요.</p>
+              </>
+            ) : (
+              <>
+                <p className="small" style={{ margin: '0 0 8px' }}>
+                  {d.lat == null ? '아직 지도에서 위치를 찾지 못해 직선거리를 알 수 없어요.' : '현재 위치를 허용하면 직선거리를 보여 드려요.'}
+                </p>
+                {d.lat != null && <button className="btn ghost sm" onClick={onLocate}>내 위치로 거리 보기</button>}
+              </>
+            )}
+            <div className="actions">
+              <a className="btn sm" target="_blank" rel="noopener noreferrer" href={l.car}>자동차 길찾기</a>
+              <a className="btn ghost sm" target="_blank" rel="noopener noreferrer" href={l.pt}>대중교통 길찾기</a>
+            </div>
+          </section>
+          <section className="sec">
+            <h3>아직 모르는 정보</h3>
+            <p className="small" style={{ margin: 0 }}>
+              운영시간·휴무일, 노천탕, 가족탕·개인탕, 주차·편의시설은 자료가 없어 비워 뒀어요. 카카오맵 장소 페이지에서 볼 수 있어요.
+            </p>
+            <div className="actions">
+              {kakao && <a className="btn ghost sm" target="_blank" rel="noopener noreferrer" href={kakao}>카카오맵 장소 페이지</a>}
+              {tel && <a className="btn ghost sm" href={`tel:${tel}`}>{tel}</a>}
+            </div>
+          </section>
+          <p className="small">
+            출처: {d.source === '카카오' ? '카카오 로컬 API (장소 검색)' : '행정안전부 전국 온천이용업소 현황' + (d.source === '행안부+카카오' ? ', 카카오 로컬 API' : '')} · 데이터 기준일 {d.checked_at}
+          </p>
+        </>
+      )}
+    </article>
+  )
+}

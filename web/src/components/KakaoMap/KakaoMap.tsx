@@ -1,0 +1,227 @@
+import { useEffect, useRef, useState } from 'react'
+import { hasXY, type LatLng, type Place } from '../../lib/onsen'
+
+// 지도는 카카오 JavaScript SDK(JS 키만 사용). 장소 검색은 파이썬이 하므로 services 라이브러리는 쓰지 않는다.
+const API = { sdk: 'https://dapi.kakao.com/v2/maps/sdk.js' } // 🔌 지도 SDK 주소는 여기 한 곳에만
+const BUBBLE_OVER = 120 // 이보다 많으면, 멀리서 볼 때 시·도별 묶음 풍선으로 보여 준다
+const BUBBLE_LEVEL = 9 // 지도 단계가 이 이상(멀리)일 때만 풍선, 가까이 가면 핀
+const MAX_PINS = 200 // 핀은 최대 200개
+const FOREST = '#03A3EA' // 메인색 (평소 핀)
+const TERRA = '#e05832' // 인트로 수영복 색 (고른 핀)
+const IVORY = '#ffffff'
+
+const PIN_PATH = 'M16 1.8C9.6 1.8 4.8 6.5 4.8 12.6c0 7.6 11.2 18.4 11.2 18.4s11.2-10.8 11.2-18.4C27.2 6.5 22.4 1.8 16 1.8z'
+const STEAM_PATH = 'M12.6 13.4c-1.6-1.5 1.5-2.8 0-4.7M17.4 13.4c-1.6-1.5 1.5-2.8 0-4.7'
+const WAVE_PATH = 'M9.6 17c1.5-1.3 3-1.3 4.5 0s3 1.3 4.5 0 3-1.3 3.8 0M10.6 20.4c1.3-1.1 2.6-1.1 3.9 0s2.6 1.1 3.9 0'
+
+const markSvg = (fill: string) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="${PIN_PATH}" fill="${fill}"/><g fill="none" stroke="${IVORY}" stroke-width="1.5" stroke-linecap="round"><path d="${STEAM_PATH}"/><path d="${WAVE_PATH}"/></g></svg>`
+
+export type MapBounds = { sw: LatLng; ne: LatLng }
+export type FitRequest = { n: number; pts: LatLng[] }
+
+type Props = {
+  points: Place[] // 지도에 찍을 곳 (좌표 없는 곳은 알아서 뺀다)
+  selId: string | null
+  hotId: string | null
+  me: LatLng | null
+  fit: FitRequest
+  onSelect: (id: string) => void
+  onHover: (id: string | null) => void
+  onPickSido: (sido: string) => void
+  onBounds: (b: MapBounds) => void
+  onStatus: (s: 'ready' | 'error') => void
+}
+
+let sdkPromise: Promise<void> | null = null
+
+function loadSdk(key: string) {
+  if (sdkPromise) return sdkPromise
+  sdkPromise = new Promise<void>((resolve, reject) => {
+    const sc = document.createElement('script')
+    sc.src = `${API.sdk}?appkey=${encodeURIComponent(key)}&autoload=false`
+    sc.onload = () => {
+      try {
+        window.kakao.maps.load(() => resolve())
+      } catch {
+        reject(new Error('sdk'))
+      }
+    }
+    sc.onerror = () => reject(new Error('sdk'))
+    document.head.appendChild(sc)
+  })
+  sdkPromise.catch(() => {
+    sdkPromise = null // 다시 시도할 수 있게 비운다
+  })
+  return sdkPromise
+}
+
+export default function KakaoMap(props: Props) {
+  const { points, selId, hotId, me, fit } = props
+  const boxRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<any>(null)
+  const overlaysRef = useRef<any[]>([])
+  const pinElsRef = useRef<Record<string, HTMLElement>>({})
+  const meRef = useRef<any>(null)
+  const cb = useRef(props) // 이벤트에서 늘 최신 콜백을 부르도록
+  cb.current = props
+  const readyRef = useRef(false)
+  const [view, setView] = useState<{ level: number; sw: LatLng; ne: LatLng } | null>(null)
+  const [mapReady, setMapReady] = useState(false) // 지도 객체는 ref라서, 만들어진 뒤 아래 효과들이 다시 돌게 한다
+
+  // 지도 만들기 (한 번)
+  useEffect(() => {
+    const key = import.meta.env.KAKAO_JS_KEY as string | undefined
+    if (!key) {
+      cb.current.onStatus('error')
+      return
+    }
+    let dead = false
+    const timer = window.setTimeout(() => {
+      if (!readyRef.current) cb.current.onStatus('error')
+    }, 12000)
+    loadSdk(key)
+      .then(() => {
+        if (dead || !boxRef.current) return
+        const kakao = window.kakao
+        const map = new kakao.maps.Map(boxRef.current, { center: new kakao.maps.LatLng(36.3, 127.8), level: 13 })
+        mapRef.current = map
+        readyRef.current = true
+        kakao.maps.event.addListener(map, 'idle', () => {
+          const b = map.getBounds()
+          const sw = b.getSouthWest()
+          const ne = b.getNorthEast()
+          const box = { sw: { lat: sw.getLat(), lng: sw.getLng() }, ne: { lat: ne.getLat(), lng: ne.getLng() } }
+          cb.current.onBounds(box)
+          setView({ level: map.getLevel(), ...box })
+        })
+        kakao.maps.event.addListener(map, 'tilesloaded', () => cb.current.onStatus('ready'))
+        map.relayout()
+        setMapReady(true)
+      })
+      .catch(() => cb.current.onStatus('error'))
+    const onResize = () => mapRef.current?.relayout()
+    window.addEventListener('resize', onResize)
+    return () => {
+      dead = true
+      window.clearTimeout(timer)
+      window.removeEventListener('resize', onResize)
+    }
+  }, [])
+
+  // 핀 그리기. 많으면 시·도별 묶음 풍선으로 보여 준다
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const kakao = window.kakao
+    overlaysRef.current.forEach((o) => o.setMap(null))
+    overlaysRef.current = []
+    pinElsRef.current = {}
+    const all = points.filter(hasXY)
+    const zoomedOut = !view || view.level >= BUBBLE_LEVEL
+    if (zoomedOut && all.length > BUBBLE_OVER) {
+      const list = all
+      const g: Record<string, typeof list> = {}
+      list.forEach((d) => (g[d.sido] = g[d.sido] || []).push(d))
+      Object.keys(g).forEach((s) => {
+        const items = g[s]
+        const lat = items.reduce((a, d) => a + d.lat, 0) / items.length
+        const lng = items.reduce((a, d) => a + d.lng, 0) / items.length
+        const el = document.createElement('button')
+        el.className = 'bubble'
+        el.setAttribute('aria-label', `${s} 온천 ${items.length}곳, 눌러서 확대`)
+        const num = document.createTextNode(String(items.length))
+        const small = document.createElement('small')
+        small.textContent = s // 이름은 textContent로
+        el.append(num, small)
+        el.addEventListener('click', () => cb.current.onPickSido(s))
+        overlaysRef.current.push(
+          new kakao.maps.CustomOverlay({ map, position: new kakao.maps.LatLng(lat, lng), content: el, yAnchor: 0.5, zIndex: 2 }),
+        )
+      })
+      return
+    }
+    // 가까이 보고 있으면 화면 안(여유 20%)의 핀만 그린다. 고른 곳은 항상 그린다
+    const padLat = view ? (view.ne.lat - view.sw.lat) * 0.2 : 0
+    const padLng = view ? (view.ne.lng - view.sw.lng) * 0.2 : 0
+    const near = view
+      ? all.filter(
+          (d) =>
+            d.id === selId ||
+            (d.lat >= view.sw.lat - padLat && d.lat <= view.ne.lat + padLat && d.lng >= view.sw.lng - padLng && d.lng <= view.ne.lng + padLng),
+        )
+      : all
+    const list = near.length > MAX_PINS ? near.slice(0, MAX_PINS) : near
+    list.forEach((d) => {
+      const sel = selId === d.id
+      const el = document.createElement('button')
+      el.className = 'pin' + (sel ? ' sel' : '')
+      el.setAttribute('aria-label', d.name)
+      el.innerHTML = markSvg(sel ? TERRA : FOREST) + (sel ? '<i class="spl"><b></b><b></b><b></b></i>' : '')
+      el.addEventListener('click', () => cb.current.onSelect(d.id))
+      el.addEventListener('mouseenter', () => cb.current.onHover(d.id))
+      el.addEventListener('mouseleave', () => cb.current.onHover(null))
+      pinElsRef.current[d.id] = el
+      overlaysRef.current.push(
+        new kakao.maps.CustomOverlay({
+          map,
+          position: new kakao.maps.LatLng(d.lat, d.lng),
+          content: el,
+          yAnchor: 1,
+          zIndex: sel ? 10 : 3,
+        }),
+      )
+    })
+  }, [points, selId, mapReady, view])
+
+  // 목록에서 마우스를 올린 곳의 핀 강조
+  useEffect(() => {
+    Object.entries(pinElsRef.current).forEach(([id, el]) => el.classList.toggle('hot', id === hotId))
+  }, [hotId, points, selId, mapReady])
+
+  // 보이는 범위 맞추기: 요청이 올 때만
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !fit.pts.length) return
+    const kakao = window.kakao
+    if (fit.pts.length === 1) {
+      map.setLevel(4)
+      map.setCenter(new kakao.maps.LatLng(fit.pts[0].lat, fit.pts[0].lng))
+      return
+    }
+    const b = new kakao.maps.LatLngBounds()
+    fit.pts.forEach((p) => b.extend(new kakao.maps.LatLng(p.lat, p.lng)))
+    map.setBounds(b, 40, 40, 40, 40)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fit.n, mapReady])
+
+  // 선택한 곳으로 이동
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !selId) return
+    const d = points.find((p) => p.id === selId)
+    if (!d || !hasXY(d)) return
+    if (map.getLevel() > 6) map.setLevel(5)
+    map.panTo(new window.kakao.maps.LatLng(d.lat, d.lng))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selId])
+
+  // 내 위치 점
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    if (meRef.current) meRef.current.setMap(null)
+    meRef.current = null
+    if (!me) return
+    const dot = document.createElement('div')
+    dot.className = 'me'
+    meRef.current = new window.kakao.maps.CustomOverlay({
+      map,
+      position: new window.kakao.maps.LatLng(me.lat, me.lng),
+      content: dot,
+      zIndex: 1,
+    })
+  }, [me, mapReady])
+
+  return <div id="map" ref={boxRef} role="application" aria-label="온천 지도" />
+}
