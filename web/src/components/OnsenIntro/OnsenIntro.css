@@ -1,22 +1,23 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css');
 
-/* 인트로 전용 값. 브랜드 블루는 팔레트(--pal-blue)를 그대로 쓴다.
-   움직임 곡선·길이는 styles/motion.css 토큰을 따른다. */
+/* 인트로 전용 값. 브랜드 블루는 팔레트(--pal-blue)를 그대로 쓰고, 움직임 곡선·길이는 styles/motion.css를 따른다.
+   배경은 단색(그라데이션 없음): 아주 옅은 물빛 하나. */
 .onsen-intro {
-  --intro-bg: #f8f8f4;
+  --intro-water: color-mix(in srgb, var(--pal-ice) 64%, #f8f8f4);
   --intro-ink: #123e50;
-  --intro-ink-soft: color-mix(in srgb, #123e50 72%, #f8f8f4);
-  --intro-line: color-mix(in srgb, var(--pal-blue) 24%, #f8f8f4); /* 블루 계열 저대비 선 */
+  --intro-ink-soft: color-mix(in srgb, #123e50 66%, var(--intro-water));
   --intro-blue: var(--pal-blue);
   --intro-leave: 700ms;
-  --intro-art-h: clamp(240px, 52vh, 560px);
+  --intro-scene-h: clamp(92px, 15vh, 150px); /* 캐릭터는 장면의 일부처럼 작게 */
+  --intro-scene-x: 50%;
+  --intro-scene-y: 60%; /* 수면선(물결의 중심) 높이 */
+  --intro-pad: clamp(20px, 4.4vw, 64px);
 
   position: relative;
-  display: flex;
-  flex-direction: column;
   min-height: 100dvh;
-  padding: clamp(18px, 3vw, 36px) clamp(20px, 5vw, 72px) clamp(24px, 4vw, 48px);
-  background: var(--intro-bg);
+  overflow: hidden;
+
+  background: var(--intro-water);
   color: var(--intro-ink);
   font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   opacity: 1;
@@ -29,11 +30,11 @@
   pointer-events: none;
 }
 
-/* ---------- 처음 나타날 때: 아래에서 8px, 천천히 ---------- */
+/* ---------- 나타나기: 아주 천천히, 거의 제자리에서 ---------- */
 .onsen-intro__reveal {
   opacity: 0;
-  transform: translateY(8px);
-  animation: onsen-intro-in 1100ms var(--ease-out) forwards;
+  transform: translateY(6px);
+  animation: onsen-intro-in 1800ms var(--ease-out) forwards;
   animation-delay: var(--d, 0ms);
 }
 
@@ -44,126 +45,154 @@
   }
 }
 
-/* ---------- 상단 바 ---------- */
-.onsen-intro__bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: clamp(12px, 1.6vw, 18px);
-  border-bottom: 1px solid var(--intro-line);
+/* ---------- 수면 ---------- */
+.onsen-intro__water {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
-.onsen-intro__brand {
+/* 가로로 넓은 타원(위에서 비스듬히 본 수면). 선은 아주 옅게 */
+.onsen-intro__ring {
+  position: absolute;
+  left: var(--intro-scene-x);
+  top: var(--intro-scene-y);
+  width: var(--w, 40vmax);
+  aspect-ratio: 3.4 / 1;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--intro-blue) calc(var(--a, 0.2) * 100%), transparent);
+  transform: translate(-50%, -50%);
+}
+
+/* 물결 겹: 처음에 천천히 떠오른다. 각 물결의 너비·진하기는 React가 시간에 맞춰 --w, --a로 넣어 준다.
+   선 굵기는 1px로 고정(크기를 키워도 선이 굵어지지 않는 '표면 안정'). 너비만 바뀌므로 contain으로 계산 범위를 가둔다. */
+.onsen-intro__rings {
+  position: absolute;
+  inset: 0;
+  contain: layout paint;
+  filter: url(#wave-distortion); /* 물결 선이 넘실거리는 SVG 필터. 값은 React가 시간에 따라 바꾼다 */
+  opacity: 0;
+  animation: onsen-intro-soft 3200ms var(--ease-out) 900ms forwards;
+}
+
+@keyframes onsen-intro-soft {
+  to {
+    opacity: 1;
+  }
+}
+
+.onsen-intro__defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* 들어올 때 한 번, 캐릭터 자리에서 파장이 넓게 퍼지며 사라진다 */
+.onsen-intro__ring--pulse {
+  --w: 96vmax;
+  --a: 0.34;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.06);
+  animation: onsen-intro-pulse 9000ms var(--ease-out) forwards; /* 캐릭터 움직임(10초)과 함께 천천히 */
+  animation-delay: 1600ms;
+}
+
+@keyframes onsen-intro-pulse {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.06);
+  }
+  14% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* ---------- 캐릭터 (수면선이 장면의 중심에 오게 놓는다) ---------- */
+.onsen-intro__scene {
+  position: absolute;
+  left: var(--intro-scene-x);
+  top: var(--intro-scene-y);
+  transform: translate(-50%, -67%); /* 로고 그림의 수면선 위치가 약 67% */
+  opacity: 0;
+  animation: onsen-intro-soft 2200ms var(--ease-out) forwards; /* 위치(transform)는 건드리지 않고 투명도만 */
+  animation-delay: 700ms;
+}
+
+/* ---------- 상단: 로고만 작게 ---------- */
+.onsen-intro__bar {
+  position: absolute;
+  top: var(--intro-pad);
+  left: var(--intro-pad);
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-}
-
-.onsen-intro__mark {
-  flex: none;
+  gap: 8px;
 }
 
 .onsen-intro__wordmark {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 10px;
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
-.onsen-intro__wordmark small {
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0.2em;
-  color: var(--intro-ink-soft);
-}
-
-.onsen-intro__guide {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  color: var(--intro-ink-soft);
-}
-
-/* ---------- 본문: 데스크톱은 왼쪽 카피+CTA / 오른쪽 일러스트 ---------- */
-.onsen-intro__body {
-  flex: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-  grid-template-areas:
-    'copy art'
-    'cta art';
-  grid-template-rows: auto auto;
-  align-content: center;
-  align-items: center;
-  column-gap: clamp(32px, 7vw, 120px);
-  row-gap: clamp(24px, 4vh, 44px);
-  padding-block: clamp(24px, 5vh, 64px);
-}
-
+/* ---------- 카피: 왼쪽 아래에만 짧게 ---------- */
 .onsen-intro__copy {
-  grid-area: copy;
-  align-self: end;
-}
-
-.onsen-intro__eyebrow {
-  margin: 0 0 clamp(14px, 2.4vh, 22px);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  color: color-mix(in srgb, var(--pal-blue) 72%, #123e50); /* 밝은 바탕에서 읽히도록 네이비 쪽으로 어둡게 */
+  position: absolute;
+  left: var(--intro-pad);
+  bottom: var(--intro-pad);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: min(32rem, calc(100vw - var(--intro-pad) * 2));
 }
 
 .onsen-intro h1 {
   margin: 0;
-  font-size: clamp(40px, 6.4vw, 92px);
-  font-weight: 700;
-  line-height: 1.12;
+  font-size: clamp(30px, 4.2vw, 56px);
+  font-weight: 600;
+  line-height: 1.18;
   letter-spacing: -0.035em;
-  text-wrap: balance;
 }
 
 .onsen-intro__sub {
-  margin: clamp(16px, 2.6vh, 26px) 0 0;
-  max-width: 28em;
-  font-size: clamp(16px, 1.5vw, 20px);
+  margin: clamp(10px, 1.6vh, 16px) 0 0;
+  font-size: clamp(15px, 1.25vw, 18px);
   font-weight: 400;
-  line-height: 1.6;
+  line-height: 1.55;
   letter-spacing: -0.02em;
   color: var(--intro-ink-soft);
 }
 
-.onsen-intro__cta {
-  grid-area: cta;
-  align-self: start;
-}
-
-.onsen-intro__art {
-  grid-area: art;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: var(--intro-blue);
-}
-
-/* ---------- CTA: 밑줄 하나, 호버에서 화살표 4px ---------- */
-.onsen-intro__button {
+/* ---------- CTA: 버튼이 아니라 글자 링크 ---------- */
+.onsen-intro__link {
   display: inline-flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
+  margin-top: clamp(16px, 3vh, 28px);
   min-height: 44px;
-  padding: 6px 0 8px;
+  padding: 0;
   border: 0;
-  border-bottom: 1.5px solid color-mix(in srgb, var(--intro-ink) 40%, transparent);
   background: transparent;
   color: var(--intro-ink);
   font: inherit;
-  font-size: clamp(16px, 1.4vw, 19px);
+  font-size: clamp(15px, 1.25vw, 18px);
   font-weight: 600;
   letter-spacing: -0.02em;
   cursor: pointer;
-  transition: border-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
+}
+
+/* 밑줄은 글자에만(화살표 밑에는 긋지 않는다). 색은 부드럽게 바뀐다 */
+.onsen-intro__link > span:first-child {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--intro-ink) 28%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 7px;
+  transition: text-decoration-color var(--dur-base) var(--ease-out);
 }
 
 .onsen-intro__arrow {
@@ -173,22 +202,22 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .onsen-intro__button:hover {
-    border-bottom-color: var(--intro-blue);
+  .onsen-intro__link:hover > span:first-child {
+    text-decoration-color: var(--intro-blue);
   }
 
-  .onsen-intro__button:hover .onsen-intro__arrow {
+  .onsen-intro__link:hover .onsen-intro__arrow {
     transform: translateX(4px);
   }
 }
 
-.onsen-intro__button:focus-visible {
+.onsen-intro__link:focus-visible {
   outline: 2px solid var(--intro-ink);
   outline-offset: 6px;
   border-radius: 2px;
 }
 
-.onsen-intro__button:disabled {
+.onsen-intro__link:disabled {
   cursor: default;
 }
 
@@ -205,49 +234,44 @@
   border: 0;
 }
 
-/* ---------- 태블릿 ---------- */
-@media (max-width: 960px) {
-  .onsen-intro__body {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
-    column-gap: clamp(20px, 4vw, 48px);
-  }
-
-  .onsen-intro {
-    --intro-art-h: clamp(220px, 40vh, 420px);
-  }
-}
-
-/* ---------- 모바일: 카피 → 일러스트 → CTA ---------- */
+/* ---------- 작은 화면: 장면은 조금 위로, 카피는 그대로 왼쪽 아래 ---------- */
 @media (max-width: 700px) {
   .onsen-intro {
-    --intro-art-h: clamp(170px, 30vh, 300px); /* 낮은 화면에서도 CTA가 아래로 밀리지 않게 */
-  }
-
-  .onsen-intro__body {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      'copy'
-      'art'
-      'cta';
-    align-content: start;
-    row-gap: clamp(16px, 3vh, 28px);
-    padding-block: clamp(20px, 4vh, 40px);
-  }
-
-  .onsen-intro__art {
-    justify-content: flex-start;
-  }
-
-  .onsen-intro__guide {
-    display: none;
+    --intro-scene-h: clamp(84px, 13vh, 120px);
+    --intro-scene-y: 46%;
   }
 }
 
-/* ---------- 모션 감소: 이동 없이 천천히 나타나기만 ---------- */
+/* 낮은 화면(가로로 누운 폰·작은 창): 카피와 장면이 겹치지 않게 장면을 위로 */
+@media (max-height: 620px) {
+  .onsen-intro {
+    --intro-scene-y: 44%;
+    --intro-scene-h: clamp(80px, 17vh, 110px);
+  }
+
+  .onsen-intro h1 {
+    font-size: clamp(26px, 3.6vw, 40px);
+  }
+}
+
+/* ---------- 모션 감소: 움직임 없이 천천히 나타나기만 ---------- */
 @media (prefers-reduced-motion: reduce) {
   .onsen-intro__reveal {
     transform: none;
-    animation-duration: 400ms;
+    animation-duration: 600ms;
+  }
+
+  .onsen-intro__scene {
+    animation-duration: 600ms;
+  }
+
+  .onsen-intro__rings {
+    animation-duration: 600ms;
+    filter: none; /* 울렁임 없이 정지한 선 */
+  }
+
+  .onsen-intro__ring--pulse {
+    display: none;
   }
 
   .onsen-intro {
