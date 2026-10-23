@@ -138,7 +138,7 @@ export default function OnsenIntro({ onEnter }: OnsenIntroProps) {
       </div>
 
       <section className="onsen-intro__content" aria-labelledby="onsen-intro-title">
-        <p className="onsen-intro__eyebrow">나를 위한 온천 여행</p>
+        <p className="onsen-intro__eyebrow">탕방</p>
         <h1 id="onsen-intro-title">잠시, 쉬어가도 괜찮아요.</h1>
         <p className="onsen-intro__description">
           아직 만나지 못한 따뜻한 곳,

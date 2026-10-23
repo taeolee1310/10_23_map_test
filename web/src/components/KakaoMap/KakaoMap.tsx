@@ -6,16 +6,7 @@ const API = { sdk: 'https://dapi.kakao.com/v2/maps/sdk.js' } // 🔌 지도 SDK 
 const BUBBLE_OVER = 120 // 이보다 많으면, 멀리서 볼 때 시·도별 묶음 풍선으로 보여 준다
 const BUBBLE_LEVEL = 9 // 지도 단계가 이 이상(멀리)일 때만 풍선, 가까이 가면 핀
 const MAX_PINS = 200 // 핀은 최대 200개
-const FOREST = '#03A3EA' // 메인색 (평소 핀)
-const TERRA = '#e05832' // 인트로 수영복 색 (고른 핀)
-const IVORY = '#ffffff'
-
-const PIN_PATH = 'M16 1.8C9.6 1.8 4.8 6.5 4.8 12.6c0 7.6 11.2 18.4 11.2 18.4s11.2-10.8 11.2-18.4C27.2 6.5 22.4 1.8 16 1.8z'
-const STEAM_PATH = 'M12.6 13.4c-1.6-1.5 1.5-2.8 0-4.7M17.4 13.4c-1.6-1.5 1.5-2.8 0-4.7'
-const WAVE_PATH = 'M9.6 17c1.5-1.3 3-1.3 4.5 0s3 1.3 4.5 0 3-1.3 3.8 0M10.6 20.4c1.3-1.1 2.6-1.1 3.9 0s2.6 1.1 3.9 0'
-
-const markSvg = (fill: string) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="${PIN_PATH}" fill="${fill}"/><g fill="none" stroke="${IVORY}" stroke-width="1.5" stroke-linecap="round"><path d="${STEAM_PATH}"/><path d="${WAVE_PATH}"/></g></svg>`
+// 핀은 Figma 'Outline Pin'(304:2) 에셋 2장(윤곽 + 욕조)을 겹쳐 쓴다(MainScreen.css의 .pin__outline, .pin__tub). 고른 핀만 같은 모양을 코랄로 칠한다.
 
 export type MapBounds = { sw: LatLng; ne: LatLng }
 export type FitRequest = { n: number; pts: LatLng[] }
@@ -129,8 +120,11 @@ export default function KakaoMap(props: Props) {
         const lng = items.reduce((a, d) => a + d.lng, 0) / items.length
         const el = document.createElement('button')
         el.className = 'bubble'
+        el.dataset.size = items.length < 10 ? 's' : items.length < 30 ? 'm' : 'l' // 개수가 많을수록 조금 크게
         el.setAttribute('aria-label', `${s} 온천 ${items.length}곳, 눌러서 확대`)
-        const num = document.createTextNode(String(items.length))
+        const num = document.createElement('span')
+        num.className = 'bubble__n'
+        num.textContent = String(items.length)
         const small = document.createElement('small')
         small.textContent = s // 이름은 textContent로
         el.append(num, small)
@@ -157,7 +151,7 @@ export default function KakaoMap(props: Props) {
       const el = document.createElement('button')
       el.className = 'pin' + (sel ? ' sel' : '')
       el.setAttribute('aria-label', d.name)
-      el.innerHTML = markSvg(sel ? TERRA : FOREST) + (sel ? '<i class="spl"><b></b><b></b><b></b></i>' : '')
+      el.innerHTML = '<span class="pin__outline"></span><span class="pin__tub"></span>' + (sel ? '<i class="spl"><b></b><b></b><b></b></i>' : '')
       el.addEventListener('click', () => cb.current.onSelect(d.id))
       el.addEventListener('mouseenter', () => cb.current.onHover(d.id))
       el.addEventListener('mouseleave', () => cb.current.onHover(null))

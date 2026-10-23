@@ -36,11 +36,8 @@ export const IconLocate = () => (
 )
 
 export const HintPin = () => (
-  <svg width="54" height="54" viewBox="0 0 32 32" aria-hidden="true">
-    <path d="M16 1.8C9.6 1.8 4.8 6.5 4.8 12.6c0 7.6 11.2 18.4 11.2 18.4s11.2-10.8 11.2-18.4C27.2 6.5 22.4 1.8 16 1.8z" fill="#dff1fb" />
-    <g fill="none" stroke="#03A3EA" strokeWidth="1.5" strokeLinecap="round">
-      <path d="M12.6 13.4c-1.6-1.5 1.5-2.8 0-4.7M17.4 13.4c-1.6-1.5 1.5-2.8 0-4.7" />
-      <path d="M9.6 17c1.5-1.3 3-1.3 4.5 0s3 1.3 4.5 0 3-1.3 3.8 0M10.6 20.4c1.3-1.1 2.6-1.1 3.9 0s2.6 1.1 3.9 0" />
-    </g>
-  </svg>
+  <span className="pin-static" aria-hidden="true">
+    <span className="pin__outline" />
+    <span className="pin__tub" />
+  </span>
 )
