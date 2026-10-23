@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>장소 지도</title>
+<style>
+  body { margin: 0; font-family: sans-serif; }
+  #map { width: 100%; height: 520px; }
+  .tip { padding: 8px 12px; font-size: 13px; color: #555; }
+  .iw { padding: 6px 10px; font-size: 13px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="tip">지도가 회색이면 확인할 것 3가지: ① 카카오맵 사용 설정 ② 지금 주소(포트까지) 등록 ③ 서버 주소로 열기</div>
+<script src="map_config.js"></script>
+<script>
+  const markers = [{"이름": "소과당", "주소": "서울 강남구 강남대로96길 12", "위도": 37.499734261007006, "경도": 127.02806874426594}, {"이름": "장꼬방", "주소": "서울 서초구 강남대로61길 27", "위도": 37.498331428974, "경도": 127.023807097178}, {"이름": "커피빈 강남역12번출구점", "주소": "서울 강남구 테헤란로 111", "위도": 37.4988455657308, "경도": 127.029316901779}, {"이름": "키이스케이프 로그인1", "주소": "서울 강남구 강남대로98길 16", "위도": 37.500734399109, "경도": 127.027978646062}, {"이름": "스크렘", "주소": "서울 강남구 봉은사로4길 17", "위도": 37.50372608718901, "경도": 127.02646428623794}, {"이름": "썸띵어바웃커피", "주소": "서울 강남구 강남대로102길 30", "위도": 37.502824775159816, "경도": 127.02779847587531}, {"이름": "히히냥냥", "주소": "서울 강남구 강남대로102길 14", "위도": 37.50190413152262, "경도": 127.02700422527253}, {"이름": "제로월드 강남점", "주소": "서울 서초구 서초대로73길 40", "위도": 37.5009333761724, "경도": 127.024581465886}, {"이름": "브라운홀릭", "주소": "서울 강남구 강남대로98길 25", "위도": 37.5010549835616, "경도": 127.028702549419}, {"이름": "라운지엑스 24h 강남역점", "주소": "서울 강남구 강남대로 378", "위도": 37.49665538680532, "경도": 127.0286330147522}];
+
+  function draw() {
+    const map = new kakao.maps.Map(document.getElementById("map"), {
+      center: new kakao.maps.LatLng(37.5665, 126.9780),
+      level: 5,
+    });
+    const bounds = new kakao.maps.LatLngBounds();
+    let opened = null;
+    markers.forEach(function (m) {
+      const pos = new kakao.maps.LatLng(m["위도"], m["경도"]);  // 위도, 경도 순서
+      const marker = new kakao.maps.Marker({ map: map, position: pos });
+      const box = document.createElement("div");
+      box.className = "iw";
+      const name = document.createElement("b");
+      name.textContent = m["이름"];
+      const addr = document.createElement("div");
+      addr.textContent = m["주소"];
+      box.appendChild(name);
+      box.appendChild(addr);
+      const info = new kakao.maps.InfoWindow({ content: box });
+      kakao.maps.event.addListener(marker, "click", function () {
+        if (opened) opened.close();
+        info.open(map, marker);
+        opened = info;
+      });
+      bounds.extend(pos);
+    });
+    if (markers.length) map.setBounds(bounds);
+  }
+
+  // 🔌 API 호출: 지도 SDK (JS 키는 위에서 불러온 window.KAKAO_JS_KEY)
+  const sdk = document.createElement("script");
+  sdk.src = "https://dapi.kakao.com/v2/maps/sdk.js?appkey=" + encodeURIComponent(window.KAKAO_JS_KEY || "") + "&autoload=false";
+  sdk.onload = function () { kakao.maps.load(draw); };
+  document.head.appendChild(sdk);
+</script>
+</body>
+</html>
