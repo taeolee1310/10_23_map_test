@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { ESTIMATE_CAPTION, KIND_CLASS, PRICE_BADGE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
+import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
 
 type Props = {
   place: PlaceWithDist | null
@@ -15,12 +15,12 @@ function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string) 
   const est = d.price_estimate
   if (!p && est) {
     return (
-      <section className="sec estimate-box">
-        <h3>이용 요금<span className="badge badge--outline">{PRICE_BADGE.estimate}</span></h3>
+      <section className="sec">
+        <h3>이용 요금</h3>
         <div className="pr"><span>성인 1인</span><b>약 {won(est.adult)}</b></div>
         {est.child != null && <div className="pr"><span>어린이</span><b>약 {won(est.child)}</b></div>}
-        <div className="est-note">
-          {ESTIMATE_CAPTION}{est.basis ? ` (${est.basis})` : ''}
+        <div className="price-note">
+          {PRICE_NOTE.estimate}{est.basis ? ` (${est.basis})` : ''}
           <button className="linkbtn" onClick={() => onReport(d.id)}>요금 제보</button>
         </div>
         <p className="small">실제 요금과 다를 수 있어요. 기준일 {est.checked}</p>
@@ -32,7 +32,7 @@ function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string) 
       <section className="sec unknown-box">
         <h3>이용 요금</h3>
         <b>가격 정보 없음</b>
-        <p className="small">입장료를 알 수 있는 자료가 아직 없어요. 가기 전에 카카오맵 장소 페이지나 공식 채널에서 알아봐 주세요.</p>
+        <p className="small">입장료를 알 수 있는 자료가 아직 없어요. 가기 전에 카카오맵 장소 페이지나 공식 채널에서 찾아봐 주세요.</p>
       </section>
     )
   }
@@ -44,7 +44,8 @@ function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string) 
   )
   return (
     <section className="sec">
-      <h3>이용 요금<span className="badge badge--solid">{PRICE_BADGE.confirmed}</span></h3>
+      <h3>이용 요금</h3>
+      <div className="price-note" style={{ marginBottom: 6 }}>{PRICE_NOTE.confirmed}</div>
       {p.adult != null && row('성인 1인 (평일)', won(p.adult))}
       {p.weekend != null && row('성인 1인 (주말)', won(p.weekend))}
       {p.towel != null && row('수건', p.towel === 0 ? '무료' : '별도 ' + won(p.towel))}
@@ -93,7 +94,7 @@ function ParkingBlock({ d }: { d: PlaceWithDist }) {
               </div>
             )
           })}
-          <p className="small">주차 요금은 카카오 데이터에 없어요. 장소 페이지에서 알아봐 주세요.</p>
+          <p className="small">주차 요금은 카카오 데이터에 없어요. 장소 페이지를 확인해 주세요.</p>
         </>
       )}
       <p className="small">온천 시설 자체의 주차 정책이 아니라, 근처에 등록된 주차장이에요.</p>

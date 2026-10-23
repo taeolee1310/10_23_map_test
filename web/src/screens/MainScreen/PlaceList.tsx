@@ -1,4 +1,4 @@
-import { ESTIMATE_CAPTION, KIND_CLASS, PRICE_BADGE, fmtDist, priceClass, priceLabel, priceState, type PlaceWithDist } from '../../lib/onsen'
+import { KIND_CLASS, PRICE_NOTE, fmtDist, priceClass, priceLabel, priceState, type PlaceWithDist } from '../../lib/onsen'
 import { IconHeart } from './Icons'
 
 type Props = {
@@ -48,16 +48,14 @@ export default function PlaceList({ list, total, shown, selId, hotId, favs, anim
             <div className="meta">
               {d.kind && <span className={`pill kind ${KIND_CLASS[d.kind] || ''}`}>{d.kind}</span>}
               <span className={`pill price${priceClass(d)}`}>{priceLabel(d)}</span>
-              {priceState(d) === 'confirmed' && <span className="badge badge--solid">{PRICE_BADGE.confirmed}</span>}
-              {priceState(d) === 'estimate' && <span className="badge badge--outline">{PRICE_BADGE.estimate}</span>}
               {d.dist != null && <span className="pill dist">직선 {fmtDist(d.dist)}</span>}
               {d.lat == null && <span className="pill unknown">지도에 없음</span>}
             </div>
           </button>
-          {priceState(d) === 'estimate' && (
-            <div className="est-note">
-              {ESTIMATE_CAPTION}
-              <button className="linkbtn" onClick={() => onReport(d.id)}>요금 제보</button>
+          {priceState(d) !== 'none' && (
+            <div className="price-note">
+              {PRICE_NOTE[priceState(d) as 'confirmed' | 'estimate']}
+              {priceState(d) === 'estimate' && <button className="linkbtn" onClick={() => onReport(d.id)}>요금 제보</button>}
             </div>
           )}
           <button className="heart" aria-pressed={favs.has(d.id)} aria-label={`${d.name} 담아두기`} onClick={() => onFav(d.id)}>

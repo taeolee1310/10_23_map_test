@@ -91,15 +91,15 @@ export function priceLabel(p: Place) {
   return '가격 정보 없음'
 }
 
-// 요금 상태: 실측확인(웹·영수증 등으로 검증된 실제 요금) / 실측불가(인근 시·군·구 평균 시세로 낸 추정) / 없음
+// 요금 상태는 '요금 표기'로만 알린다. 확인한 요금은 그대로, 평균으로 낸 요금은 '약'을 붙이고 아래에 한 줄을 덧붙인다.
+// 색·뱃지·정렬로는 구분하지 않는다.
 export const priceState = (p: Place): 'confirmed' | 'estimate' | 'none' => (p.price ? 'confirmed' : p.price_estimate ? 'estimate' : 'none')
-export const PRICE_BADGE = { confirmed: '실측확인', estimate: '실측불가' } as const
-export const ESTIMATE_CAPTION = '인근 지역 평균 시세 기준'
+export const PRICE_NOTE = { confirmed: '직접 확인한 요금', estimate: '근처 평균 시세 기준' } as const
 // 요금 제보를 받을 주소(구글 폼 등). 비워 두면 화면에서 '곧 열릴 예정'이라고 알려 준다.
 export const REPORT_URL: string = ''
 
-// 칩 모양: 실측확인은 코랄, 실측불가는 회색, 없으면 옅은 회색
-export const priceClass = (p: Place) => (p.price ? '' : p.price_estimate ? ' estimate' : ' unknown')
+// 요금 칩은 상태와 관계없이 같은 모양, 요금이 없을 때만 옅은 회색
+export const priceClass = (p: Place) => (p.price || p.price_estimate ? '' : ' unknown')
 
 export function mapLinks(p: Place, me: LatLng | null) {
   if (p.lat == null || p.lng == null) {
