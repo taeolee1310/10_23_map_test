@@ -36,7 +36,7 @@
 - SDK는 `https://dapi.kakao.com/v2/maps/sdk.js?appkey=JS키&autoload=false` + `kakao.maps.load(...)`. 지도 아래에 "지도가 회색이면: ① 카카오맵 사용 설정 ② 지금 주소(포트까지) 등록 ③ 서버 주소로 열기" 안내 한 줄을 **항상** 보여 준다. → 검사: 안내 줄이 보임
 - 장소 이름은 `textContent`로, 데이터는 `json.dumps`로 넣는다. → 검사: 이름에 `"`가 든 장소
 - 마커가 여러 개면 `LatLngBounds`로 전부 보이게 맞춘다. 마커는 200개까지만. → 검사: 마커가 다 화면 안에
-- `map.html`은 `.gitignore`에 둔다. → 검사: `git status`에 안 보임
+- JS 키는 `map.html`에 넣지 않고 `map_config.js`에만 둔다. `map_config.js`는 `.gitignore`에 두고, 키가 없는 `map.html`은 올려도 된다. (왜: 키 파일만 빼면 HTML은 공유해도 안전) → 검사: `map.html`에서 JS 키 앞 6글자 검색 → 0건, `git status`에 `map_config.js` 안 보임
 
 ## Streamlit 규칙
 - 실행은 `streamlit run 파일.py`. 지도 HTML은 **`st.iframe(html글자, height=...)`** 로 넣는다. `st.components.v1.html`은 쓰지 않는다. → 검사: 코드에 `components.v1` 없음
