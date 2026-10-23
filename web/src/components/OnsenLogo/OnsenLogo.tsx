@@ -59,12 +59,18 @@ type Props = {
   playKey?: number
   /** 모션 한 번의 길이(초). 기본 3 */
   cycle?: number
+  /** false면 처음 나타날 때 재생하지 않고, playKey가 바뀔 때만 재생한다. 기본 true */
+  autoPlay?: boolean
+  /** 처음 재생을 시작하기 전에 기다리는 시간(ms). 화면이 먼저 자리 잡은 뒤 움직이게 할 때 쓴다 */
+  delay?: number
+  /** true면 넘치는 물줄기 4개를 빼고 보여 준다(수증기·수면·캐릭터만). 절제된 장면에 쓴다 */
+  calm?: boolean
 }
 
 const pct = (v: number, size: number, origin = 0) => `${((v - origin) / size) * 100}%`
 const STEAM_GROUPS: SteamGroup[] = ['left', 'center', 'right']
 
-export default function OnsenLogo({ height = 64, title, className, playKey = 0, cycle = 3 }: Props) {
+export default function OnsenLogo({ height = 64, title, className, playKey = 0, cycle = 3, autoPlay = true, delay = 0, calm = false }: Props) {
   const h = typeof height === 'number' ? `${height}px` : height
   const [playing, setPlaying] = useState(false)
   const busy = useRef(false)
@@ -72,15 +78,18 @@ export default function OnsenLogo({ height = 64, title, className, playKey = 0, 
   // 처음 나타날 때, 그리고 playKey가 바뀔 때 한 번 재생. 이미 재생 중이면 그대로 둔다.
   useEffect(() => {
     if (busy.current) return
+    if (!autoPlay && playKey === 0) return
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return // 모션 감소 설정이면 정지 상태 그대로
     busy.current = true
-    setPlaying(true)
-    const timer = window.setTimeout(() => {
+    const wait = playKey === 0 ? delay : 0
+    const start = window.setTimeout(() => setPlaying(true), wait)
+    const end = window.setTimeout(() => {
       setPlaying(false)
       busy.current = false
-    }, cycle * 1000 + 150)
+    }, wait + cycle * 1000 + 150)
     return () => {
-      window.clearTimeout(timer)
+      window.clearTimeout(start)
+      window.clearTimeout(end)
       busy.current = false
     }
   }, [playKey, cycle])
@@ -94,7 +103,7 @@ export default function OnsenLogo({ height = 64, title, className, playKey = 0, 
       style={{ height: h, width: `calc(${h} * ${CROP.w / CROP.h})`, ['--ol-t' as string]: `${cycle}s` }}
     >
       <span className="onsen-logo__box">
-        {PARTS.map(({ cls, src, box }) => (
+        {PARTS.filter((p) => !(calm && p.cls.startsWith('overflow'))).map(({ cls, src, box }) => (
           <span
             key={src}
             className={`onsen-logo__part onsen-logo__${cls}`}
