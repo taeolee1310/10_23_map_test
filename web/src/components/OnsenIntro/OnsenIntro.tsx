@@ -14,7 +14,7 @@ const at = (ms: number) => ({ '--d': `${ms}ms` }) as CSSProperties
 /**
  * 인트로: 편집 디자인(포스터·여행 안내서) 느낌의 비대칭 2단 구성.
  * 왼쪽에 카피와 CTA, 오른쪽에 온천에서 쉬는 캐릭터 한 장면(단색 일러스트).
- * 움직임은 천천히·부드럽게. 처음 한 번 보여 주고 멈춘다.
+ * 움직임은 천천히·부드럽게. 재생과 쉼을 번갈아 반복한다.
  */
 export default function OnsenIntro({ onEnter }: OnsenIntroProps) {
   const [isLeaving, setIsLeaving] = useState(false)
@@ -61,8 +61,8 @@ export default function OnsenIntro({ onEnter }: OnsenIntroProps) {
         </div>
 
         <div className="onsen-intro__art onsen-intro__reveal" style={at(500)}>
-          {/* 장면은 먼저 자리 잡고, 잠시 뒤 한 번만 움직인다 */}
-          <OnsenLogo className="onsen-intro__scene" height="var(--intro-art-h)" title="온천에 몸을 담근 탕방 캐릭터" cycle={4} delay={1100} calm />
+          {/* 장면은 먼저 자리 잡고, 잠시 뒤부터 움직임을 반복한다(재생 4초 → 쉼 2.2초) */}
+          <OnsenLogo className="onsen-intro__scene" height="var(--intro-art-h)" title="온천에 몸을 담근 탕방 캐릭터" cycle={4} delay={1100} rest={2200} loop calm />
         </div>
 
         <div className="onsen-intro__cta onsen-intro__reveal" style={at(1000)}>
