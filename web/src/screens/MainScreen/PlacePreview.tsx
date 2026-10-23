@@ -1,18 +1,20 @@
-import { KIND_CLASS, fmtDist, mapLinks, priceLabel, type LatLng, type PlaceWithDist } from '../../lib/onsen'
+import { ESTIMATE_CAPTION, KIND_CLASS, PRICE_BADGE, fmtDist, mapLinks, priceClass, priceLabel, priceState, type LatLng, type PlaceWithDist } from '../../lib/onsen'
 import { HintPin, IconHeart } from './Icons'
 
 type Props = {
   place: PlaceWithDist | null
   total: number
   pricedCount: number
+  estimateCount: number
   me: LatLng | null
   fav: boolean
   swapKey: string
   onFav: (id: string) => void
   onDetail: () => void
+  onReport: (id: string) => void
 }
 
-export default function PlacePreview({ place: d, total, pricedCount, me, fav, swapKey, onFav, onDetail }: Props) {
+export default function PlacePreview({ place: d, total, pricedCount, estimateCount, me, fav, swapKey, onFav, onDetail, onReport }: Props) {
   if (!d) {
     return (
       <div className="preview" id="preview">
@@ -20,9 +22,9 @@ export default function PlacePreview({ place: d, total, pricedCount, me, fav, sw
           <HintPin />
           <div>
             <b>핀이나 목록의 온천을 눌러 보세요</b>
-            전국 {total}곳 · 요금이 확인된 곳 {pricedCount}곳
+            전국 {total}곳 · 실측확인 {pricedCount}곳 · 실측불가 {estimateCount}곳
             <br />
-            가격은 확인된 것만 보여 드려요. 이동 시간은 길찾기에서 볼 수 있어요.
+            실측확인과 평균 추정 요금을 나눠서 보여 드려요. 이동 시간은 길찾기에서 볼 수 있어요.
           </div>
         </div>
       </div>
@@ -42,7 +44,9 @@ export default function PlacePreview({ place: d, total, pricedCount, me, fav, sw
       </div>
       <div className="row">
         {d.kind && <span className={`pill kind ${KIND_CLASS[d.kind] || ''}`}>{d.kind}</span>}
-        <span className={`pill price${d.price ? '' : ' unknown'}`}>{priceLabel(d)}</span>
+        <span className={`pill price${priceClass(d)}`}>{priceLabel(d)}</span>
+        {priceState(d) === 'confirmed' && <span className="badge badge--solid">{PRICE_BADGE.confirmed}</span>}
+        {priceState(d) === 'estimate' && <span className="badge badge--outline">{PRICE_BADGE.estimate}</span>}
         {d.dist != null && <span className="pill dist">직선 {fmtDist(d.dist)}</span>}
         {near && <span className="pill">주차장 {near.dist}m</span>}
       </div>
@@ -50,6 +54,12 @@ export default function PlacePreview({ place: d, total, pricedCount, me, fav, sw
         <button className="btn sm" onClick={onDetail}>자세히 보기</button>
         <a className="btn ghost sm" target="_blank" rel="noopener noreferrer" href={mapLinks(d, me).car}>길찾기</a>
       </div>
+      {priceState(d) === 'estimate' && (
+        <div className="est-note">
+          {ESTIMATE_CAPTION}
+          <button className="linkbtn" onClick={() => onReport(d.id)}>요금 제보</button>
+        </div>
+      )}
     </div>
   )
 }

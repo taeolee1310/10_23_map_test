@@ -5,12 +5,14 @@
 """
 import json
 import os
+import re
 
 import pandas as pd
 
 MERGED = "data/onsen_merged.csv"
 PARKING_FILE = "data/onsen_parking.csv"  # onsen_parking.py가 카카오 API로 만든다
 PRICE_FILE = "data/onsen_prices.csv"  # 확인된 가격만 사람이 적는다
+TANGBANG_PRICES = "data/tangbang_places_price_data.json"  # 요금 조사 자료(실측 확인 + 인근 평균 추정)
 OUT = "web/public/data/onsen.json"
 PRICE_COLS = ("성인_평일", "성인_주말", "수건", "주차", "어린이")
 
@@ -44,6 +46,7 @@ def load_prices():
             "towel": none_if_nan(r["수건"]),
             "parking": none_if_nan(r["주차"]),
             "child": none_if_nan(r["어린이"]),
+            "jjimjil": None,
             "none": str(r.get("추가요금_없음확인", "")).strip().upper() in ("Y", "예", "O"),
             "memo": "" if pd.isna(r["메모"]) else str(r["메모"]),
             "source": "" if pd.isna(r["출처"]) else str(r["출처"]),
@@ -68,14 +71,70 @@ def load_parking():
     return parking, radius
 
 
+def _name_key(s):
+    return re.sub(r"\(.*?\)|㈜|주식회사|\s", "", s)
+
+
+def _addr_key(addr):
+    """시·도 표기가 달라도(경기/경기도) 같게 비교하려고 첫 토큰을 빼고, 괄호·공백도 뺀다."""
+    return re.sub(r"\(.*?\)|\s", "", " ".join(addr.split()[1:]))
+
+
+def _sigungu(addr):
+    t = addr.split()
+    if len(t) > 2 and t[1].endswith("시") and t[2].endswith("구"):
+        return f"{t[1]} {t[2]}"
+    return t[1] if len(t) > 1 else ""
+
+
+def load_tangbang_prices():
+    """요금 조사 자료를 (이름, 주소) 열쇠로 모은다.
+    price_status가 '실측확인완료'·'확인완료'면 확인된 요금, '근처 욕탕 요금 바탕 평균 추정가'면 추정(확인된 요금 아님)."""
+    if not os.path.exists(TANGBANG_PRICES):
+        return {}, {}
+    rows = json.load(open(TANGBANG_PRICES, encoding="utf-8-sig"))
+    by_addr, by_sigungu = {}, {}
+    for r in rows:
+        status = r["price_status"]
+        confirmed = not status.startswith("근처")
+        adult, child = none_if_nan(pd.to_numeric(r["adult_price"], errors="coerce")), none_if_nan(pd.to_numeric(r["child_price"], errors="coerce"))
+        extra = none_if_nan(pd.to_numeric(r["jjimjil_extra"], errors="coerce"))
+        basis = re.search(r"\(인근 (.+?) 기준\)", status)
+        info = {"confirmed": confirmed, "adult": adult, "child": child, "jjimjil": extra,
+                "basis": basis.group(1) if basis else "", "checked": str(r["last_updated"])}
+        nk = _name_key(r["place_name"])
+        for store, key in ((by_addr, (nk, _addr_key(r["address"]))), (by_sigungu, (nk, _sigungu(r["address"])))):
+            old = store.get(key)
+            if old is None or (info["confirmed"] and not old["confirmed"]):  # 같은 곳이 둘이면 확인된 쪽을 쓴다
+                store[key] = info
+    return by_addr, by_sigungu
+
+
 def build():
     df = pd.read_csv(MERGED, encoding="utf-8-sig", keep_default_na=False, dtype=str)
     prices = load_prices()
     parking, radius = load_parking()
+    tb_addr, tb_sigungu = load_tangbang_prices()
+    sigungu_count = {}
+    for r in df.to_dict("records"):
+        k = (_name_key(r["이름"]), r["시군구"])
+        sigungu_count[k] = sigungu_count.get(k, 0) + 1
 
     places = []
     for i, r in enumerate(df.to_dict("records")):
         kid = r["카카오ID"]
+        # 요금: ① 사람이 적은 확인값(onsen_prices.csv) ② 요금 조사 자료의 확인값. 추정값은 확인된 요금과 따로 둔다.
+        price = prices.get(kid) if kid else None
+        estimate = None
+        hit = tb_addr.get((_name_key(r["이름"]), _addr_key(r["주소"])))
+        if hit is None and sigungu_count.get((_name_key(r["이름"]), r["시군구"])) == 1:
+            hit = tb_sigungu.get((_name_key(r["이름"]), r["시군구"]))  # 주소가 달라도 같은 시·군·구에 같은 이름이 하나뿐이면 같은 곳
+        if hit and price is None:
+            if hit["confirmed"]:
+                price = {"adult": hit["adult"], "weekend": None, "towel": None, "parking": None, "child": hit["child"],
+                         "jjimjil": hit["jjimjil"], "none": False, "memo": "", "source": "탕방 직접 확인", "checked": hit["checked"]}
+            elif hit["adult"] is not None:
+                estimate = {"adult": hit["adult"], "child": hit["child"], "basis": hit["basis"], "checked": hit["checked"]}
         has_xy = r["위도"] != "" and r["경도"] != ""
         places.append({
             "id": kid or f"m{i}",  # 카카오ID가 없는 곳(행안부만)은 줄 번호로
@@ -89,7 +148,8 @@ def build():
             "url": r["카카오장소주소"],
             "checked_at": r["데이터기준일자"],
             "source": r["출처"],
-            "price": prices.get(kid) if kid else None,
+            "price": price,
+            "price_estimate": estimate,
             "parking": parking.get(kid) if kid else None,  # None=조회 안 됨, []=반경 안에 없음
             "parking_radius": radius,
         })
@@ -99,7 +159,7 @@ def build():
 if __name__ == "__main__":
     places = build()
     no_xy = sum(1 for p in places if p["lat"] is None)
-    print(f"온천 {len(places)}곳 (조건: onsen_merged.csv 전체) / 좌표 없는 곳 {no_xy}곳 / 요금 확인 {sum(1 for p in places if p['price'])}곳")
+    print(f"온천 {len(places)}곳 (조건: onsen_merged.csv 전체) / 좌표 없는 곳 {no_xy}곳 / 확인된 요금 {sum(1 for p in places if p['price'])}곳 / 추정 요금 {sum(1 for p in places if p['price_estimate'])}곳")
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump({"baseDate": max(p["checked_at"] for p in places), "places": places}, f, ensure_ascii=False)

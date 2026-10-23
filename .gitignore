@@ -12,6 +12,7 @@ data/*
 !data/onsen_clean.csv
 !data/onsen_official_clean.csv
 !data/onsen_merged.csv
+!data/tangbang_places_price_data.json
 !data/onsen_prices.csv
 !data/onsen_parking.csv
 

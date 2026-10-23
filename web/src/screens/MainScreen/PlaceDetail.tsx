@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { KIND_CLASS, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
+import { ESTIMATE_CAPTION, KIND_CLASS, PRICE_BADGE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
 
 type Props = {
   place: PlaceWithDist | null
@@ -7,10 +7,26 @@ type Props = {
   me: LatLng | null
   onClose: () => void
   onLocate: () => void
+  onReport: (id: string) => void
 }
 
-function PriceBlock({ d }: { d: PlaceWithDist }) {
+function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string) => void }) {
   const p = d.price
+  const est = d.price_estimate
+  if (!p && est) {
+    return (
+      <section className="sec estimate-box">
+        <h3>이용 요금<span className="badge badge--outline">{PRICE_BADGE.estimate}</span></h3>
+        <div className="pr"><span>성인 1인</span><b>약 {won(est.adult)}</b></div>
+        {est.child != null && <div className="pr"><span>어린이</span><b>약 {won(est.child)}</b></div>}
+        <div className="est-note">
+          {ESTIMATE_CAPTION}{est.basis ? ` (${est.basis})` : ''}
+          <button className="linkbtn" onClick={() => onReport(d.id)}>요금 제보</button>
+        </div>
+        <p className="small">실제 요금과 다를 수 있어요. 기준일 {est.checked}</p>
+      </section>
+    )
+  }
   if (!p) {
     return (
       <section className="sec unknown-box">
@@ -28,12 +44,13 @@ function PriceBlock({ d }: { d: PlaceWithDist }) {
   )
   return (
     <section className="sec">
-      <h3>이용 요금</h3>
+      <h3>이용 요금<span className="badge badge--solid">{PRICE_BADGE.confirmed}</span></h3>
       {p.adult != null && row('성인 1인 (평일)', won(p.adult))}
       {p.weekend != null && row('성인 1인 (주말)', won(p.weekend))}
       {p.towel != null && row('수건', p.towel === 0 ? '무료' : '별도 ' + won(p.towel))}
       {p.parking != null && row('주차', p.parking === 0 ? '무료' : won(p.parking))}
       {p.child != null && row('어린이', won(p.child))}
+      {p.jjimjil != null && row('찜질 이용 시 추가', '+' + won(p.jjimjil))}
       {p.adult != null && p.towel != null && (
         <div className="total">예상 지출 (평일 성인 1인, 수건 포함) {won(p.adult + p.towel)}</div>
       )}
@@ -45,7 +62,7 @@ function PriceBlock({ d }: { d: PlaceWithDist }) {
         {/^https?:\/\//.test(p.source || '') ? (
           <a href={p.source} target="_blank" rel="noopener noreferrer">보기</a>
         ) : (
-          '미상'
+          p.source || '미상'
         )}
       </p>
     </section>
@@ -84,7 +101,7 @@ function ParkingBlock({ d }: { d: PlaceWithDist }) {
   )
 }
 
-export default function PlaceDetail({ place: d, open, me, onClose, onLocate }: Props) {
+export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onReport }: Props) {
   const backRef = useRef<HTMLButtonElement>(null)
   const boxRef = useRef<HTMLElement>(null)
 
@@ -108,7 +125,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate }: P
           <div className={`pill kind ${KIND_CLASS[d.kind] || ''}`}>{d.sido}{d.kind ? ` · ${d.kind}` : ''}</div>
           <h2>{d.name}</h2>
           <div className="small" style={{ margin: 0 }}>{d.addr}</div>
-          <PriceBlock d={d} />
+          <PriceBlock d={d} onReport={onReport} />
           <ParkingBlock d={d} />
           <section className="sec">
             <h3>내 위치에서</h3>

@@ -4,10 +4,12 @@ import OnsenLogo from '../../components/OnsenLogo'
 import {
   DEFAULT_FILTERS,
   KINDS,
+  REPORT_URL,
   filterPlaces,
   hasXY,
   km,
   sortPlaces,
+  sortRegions,
   type Filters,
   type LatLng,
   type Place,
@@ -129,8 +131,9 @@ function MainBody({ data }: { data: Loaded }) {
     places.forEach((d) => (c[d.sido] = (c[d.sido] || 0) + 1))
     return c
   }, [places])
-  const regions = useMemo(() => Object.keys(regionCounts).sort((a, b) => regionCounts[b] - regionCounts[a]), [regionCounts])
+  const regions = useMemo(() => sortRegions(Object.keys(regionCounts)), [regionCounts])
   const pricedCount = useMemo(() => places.filter((d) => d.price).length, [places])
+  const estimateCount = useMemo(() => places.filter((d) => d.price_estimate).length, [places])
   const selected = useMemo(() => withDist.find((d) => d.id === selId) ?? null, [withDist, selId])
 
   const requestFit = useCallback((list: Place[], extra: LatLng[] = []) => {
@@ -242,6 +245,15 @@ function MainBody({ data }: { data: Loaded }) {
   }, [])
 
   const closeDetail = useCallback(() => setDetailOpen(false), [])
+  // 요금 제보: 제보 받을 주소(REPORT_URL)가 정해지면 그곳으로, 아직이면 안내만 한다
+  const reportPrice = (id: string) => {
+    const p = places.find((d) => d.id === id)
+    if (!REPORT_URL) {
+      showToast('요금 제보 창구를 준비 중이에요')
+      return
+    }
+    window.open(`${REPORT_URL}${REPORT_URL.includes('?') ? '&' : '?'}place=${encodeURIComponent(p?.name ?? id)}`, '_blank', 'noopener')
+  }
   const count = inView && bounds ? `지도 안 ${view.length}곳` : `${view.length}곳`
 
   return (
@@ -250,12 +262,12 @@ function MainBody({ data }: { data: Loaded }) {
         <div className="hero-copy">
           <div className="brand">
             <span className="brand-badge" onMouseEnter={() => setLogoRun((n) => n + 1)} onClick={() => setLogoRun((n) => n + 1)}>
-              <OnsenLogo height="clamp(52px, 5.6vw, 72px)" title="한국의 온천을 찾아서" playKey={logoRun} />
+              <OnsenLogo height="clamp(52px, 5.6vw, 72px)" title="탕방" playKey={logoRun} />
             </span>
             <div>
-              <p className="eyebrow">KOREA ONSEN</p>
+              <p className="eyebrow"><b>탕방</b> · 한국의 온천을 찾아서</p>
               <h1>오늘, 어디서 몸을 담글까요?</h1>
-              <p className="sub">확인된 요금만 보여 드려요. 길찾기는 카카오맵으로 이어져요.</p>
+              <p className="sub">아직 몰랐던 전국의 온천을 발견하는 즐거움.</p>
             </div>
           </div>
           <div>
@@ -266,8 +278,8 @@ function MainBody({ data }: { data: Loaded }) {
           </label>
           <div className="quick">
             <button className="qp" onClick={goNear}><IconPin />내 주변 온천</button>
-            <button className="qp" disabled={!pricedCount} title={pricedCount ? '' : '요금을 알게 되면 열려요'} onClick={() => updateFilters({ priceOnly: true })}>
-              <IconDrop />요금 확인된 곳{pricedCount ? <b>{pricedCount}</b> : null}
+            <button className="qp" disabled={!pricedCount} title={pricedCount ? '' : '실측확인되는 대로 열려요'} onClick={() => updateFilters({ priceOnly: true })}>
+              <IconDrop />실측확인된 곳{pricedCount ? <b>{pricedCount}</b> : null}
             </button>
             <button
               className="qp"
@@ -308,7 +320,7 @@ function MainBody({ data }: { data: Loaded }) {
             <label className="sw">
               <input type="checkbox" checked={filters.priceOnly} onChange={(e) => updateFilters({ priceOnly: e.target.checked })} />
               <i />
-              <span>가격 확인된 곳만</span>
+              <span>실측확인된 곳만</span>
             </label>
           </div>
           {note && <div className="note">{note}</div>}
@@ -340,8 +352,9 @@ function MainBody({ data }: { data: Loaded }) {
             onHover={setHotId}
             onMore={() => setShown((s) => s + PAGE)}
             onReset={reset}
+            onReport={reportPrice}
           />
-          <PlaceDetail place={selected} open={detailOpen} me={me} onClose={closeDetail} onLocate={() => locate()} />
+          <PlaceDetail place={selected} open={detailOpen} me={me} onClose={closeDetail} onLocate={() => locate()} onReport={reportPrice} />
         </section>
 
         <aside id="side">
@@ -383,11 +396,13 @@ function MainBody({ data }: { data: Loaded }) {
             place={selected}
             total={places.length}
             pricedCount={pricedCount}
+            estimateCount={estimateCount}
             me={me}
             fav={!!selected && favs.has(selected.id)}
             swapKey={selected?.id ?? ''}
             onFav={toggleFav}
             onDetail={() => setDetailOpen(true)}
+            onReport={reportPrice}
           />
         </aside>
       </div>
