@@ -64,7 +64,7 @@ export const sortRegions = (list: string[]) => {
   return list.slice().sort((a, b) => rank(a) - rank(b) || a.localeCompare(b, 'ko'))
 }
 
-export const KIND_CLASS: Record<string, string> = { 온천: 'k0', '온천 숙박': 'k1', '온천 목욕탕·사우나': 'k2' }
+export const KIND_CLASS: Record<string, string> = { 온천: 'k0', '온천 숙박': 'k1', '온천 목욕탕·사우나': 'k2', '목욕탕·사우나': 'k2' }
 
 export const hasXY = (p: Place): p is Place & { lat: number; lng: number } => p.lat != null && p.lng != null
 

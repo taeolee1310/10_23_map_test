@@ -15,6 +15,8 @@ data/*
 !data/tangbang_places_price_data.json
 !data/onsen_prices.csv
 !data/onsen_parking.csv
+!data/seoul_bath_clean.csv
+!data/seoul_bath_license_clean.csv
 
 # Python
 __pycache__/
@@ -41,3 +43,6 @@ CLAUDE_우리조지도규칙.md
 CLAUDE_지도API규칙.md
 D08_1023_파이썬_카카오지도_판다스.md
 .vercel
+
+# 설치 파일 (85MB, 올리지 않는다)
+Miniforge3-*.sh

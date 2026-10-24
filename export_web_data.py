@@ -13,6 +13,8 @@ MERGED = "data/onsen_merged.csv"
 PARKING_FILE = "data/onsen_parking.csv"  # onsen_parking.py가 카카오 API로 만든다
 PRICE_FILE = "data/onsen_prices.csv"  # 확인된 가격만 사람이 적는다
 TANGBANG_PRICES = "data/tangbang_places_price_data.json"  # 요금 조사 자료(실측 확인 + 인근 평균 추정)
+# 한국소비자원 참가격 '목욕(성인 일반대중탕 1회)' 서울 값. 기준월 미표기·잠정치라 추정으로만 쓴다.
+SEOUL_REGION_PRICE = {"adult": 11000.0, "basis": "서울 일반 대중탕 지역 요금·참가격 잠정", "checked": "2026-10-24"}
 OUT = "web/public/data/onsen.json"
 PRICE_COLS = ("성인_평일", "성인_주말", "수건", "주차", "어린이")
 
@@ -135,6 +137,8 @@ def build():
                          "jjimjil": hit["jjimjil"], "none": False, "memo": "", "source": "탕방 직접 확인", "checked": hit["checked"]}
             elif hit["adult"] is not None:
                 estimate = {"adult": hit["adult"], "child": hit["child"], "basis": hit["basis"], "checked": hit["checked"]}
+        if price is None and estimate is None and r["시도"] == "서울특별시" and r["구분"] == "목욕탕·사우나" and not any(w in r["분류"] for w in ("찜질", "한증막")):
+            estimate = {"adult": SEOUL_REGION_PRICE["adult"], "child": None, "basis": SEOUL_REGION_PRICE["basis"], "checked": SEOUL_REGION_PRICE["checked"]}
         has_xy = r["위도"] != "" and r["경도"] != ""
         places.append({
             "id": kid or f"m{i}",  # 카카오ID가 없는 곳(행안부만)은 줄 번호로
@@ -164,4 +168,4 @@ if __name__ == "__main__":
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump({"baseDate": max(p["checked_at"] for p in places), "places": places}, f, ensure_ascii=False)
     print(f"저장: {OUT}")
-    print("출처: 행정안전부 전국 온천이용업소 현황, 카카오 로컬 API")
+    print("출처: 행정안전부 전국 온천이용업소 현황, 서울시 목욕장업 인허가 정보, 카카오 로컬 API")

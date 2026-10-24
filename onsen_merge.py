@@ -4,6 +4,7 @@
 같은 곳이면 이름·주소·시도는 행안부 것, 좌표·구분·카카오 정보는 카카오 것을 쓴다.
 행안부에만 있는 곳은 좌표가 비어 있다. (카카오로 채우는 건 30줄 한도 규칙이 있어 따로 한다)
 """
+import os
 import re
 
 import pandas as pd
@@ -12,6 +13,8 @@ from onsen_official import SIDO, sigungu_of
 
 OFFICIAL = "data/onsen_official_clean.csv"
 KAKAO = "data/onsen_clean.csv"
+SEOUL_BATH = "data/seoul_bath_clean.csv"  # 선택. 없으면 온천만 합친다
+SEOUL_LICENSE = "data/seoul_bath_license_clean.csv"  # 선택. 서울시 인허가에만 있는 목욕탕 (seoul_bath_license.py)
 OUT = "data/onsen_merged.csv"
 
 COLUMNS = ["이름", "시도", "시군구", "주소", "위도", "경도", "전화", "구분", "분류",
@@ -80,6 +83,12 @@ if __name__ == "__main__":
     o, k = read(OFFICIAL), read(KAKAO)
     print(f"행안부 {len(o)}곳, 카카오 {len(k)}곳")
     df = merge(o, k)
+    for path, source in ((SEOUL_BATH, "카카오"), (SEOUL_LICENSE, "서울시 인허가")):  # 카카오ID가 이미 있는 곳은 넘긴다
+        if os.path.exists(path):
+            sb = read(path)
+            sb = sb[~sb["카카오ID"].isin(df["카카오ID"])].assign(출처=source)
+            df = pd.concat([df, sb[COLUMNS]], ignore_index=True).sort_values(["시도", "시군구", "이름"]).reset_index(drop=True)
+            print(f"{path}에서 {len(sb)}곳 추가")
     print(df.shape)
     print("출처별 (조건: 합친 전체):", df["출처"].value_counts().to_dict())
     print("좌표 있는 곳:", int(df["위도"].notna().sum()), "/ 좌표 없는 곳:", int(df["위도"].isna().sum()))
