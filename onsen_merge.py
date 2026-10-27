@@ -4,6 +4,7 @@
 같은 곳이면 이름·주소·시도는 행안부 것, 좌표·구분·카카오 정보는 카카오 것을 쓴다.
 행안부에만 있는 곳은 좌표가 비어 있다. (카카오로 채우는 건 30줄 한도 규칙이 있어 따로 한다)
 """
+import os
 import re
 
 import pandas as pd
@@ -12,6 +13,7 @@ from onsen_official import SIDO, sigungu_of
 
 OFFICIAL = "data/onsen_official_clean.csv"
 KAKAO = "data/onsen_clean.csv"
+EXTRA = "data/onsen_extra_seoul.csv"  # onsen_seoul_bath.py가 모은 서울 목욕탕·사우나
 OUT = "data/onsen_merged.csv"
 
 COLUMNS = ["이름", "시도", "시군구", "주소", "위도", "경도", "전화", "구분", "분류",
@@ -78,8 +80,17 @@ def merge(o, k):
 
 if __name__ == "__main__":
     o, k = read(OFFICIAL), read(KAKAO)
+    if os.path.exists(EXTRA):
+        extra = read(EXTRA)
+        extra = extra[~extra["카카오ID"].isin(k["카카오ID"])]  # 카카오 온천 목록에 이미 있는 곳은 겹치지 않게
+        k = pd.concat([k, extra], ignore_index=True)
+        print(f"추가 목록 {len(extra)}곳을 카카오 목록에 붙임 ({EXTRA})")
     print(f"행안부 {len(o)}곳, 카카오 {len(k)}곳")
     df = merge(o, k)
+    # 서울은 지도에 찍히는 목욕·사우나만 둔다: 좌표 없는 곳(행안부에만 있는 법인명)과 숙박(여관,모텔) 분류는 뺀다
+    drop = (df["시도"] == "서울특별시") & (df["위도"].isna() | df["분류"].fillna("").str.contains("여관,모텔"))
+    print(f"서울에서 뺀 곳 {int(drop.sum())}곳 (조건: 좌표 없음 또는 분류가 여관,모텔):", df.loc[drop, "이름"].tolist())
+    df = df[~drop].reset_index(drop=True)
     print(df.shape)
     print("출처별 (조건: 합친 전체):", df["출처"].value_counts().to_dict())
     print("좌표 있는 곳:", int(df["위도"].notna().sum()), "/ 좌표 없는 곳:", int(df["위도"].isna().sum()))
