@@ -25,6 +25,7 @@ export type Place = {
   lng: number | null
   tel: string
   kind: string
+  women_only: boolean
   url: string
   checked_at: string
   source: string
@@ -87,19 +88,17 @@ export const safeTel = (t: string) => (/^[0-9+\-() ]{5,20}$/.test(t || '') ? t :
 export function priceLabel(p: Place) {
   if (p.price && p.price.adult != null) return '성인 ' + won(p.price.adult)
   if (p.price) return '가격 일부만 확인'
-  if (p.price_estimate) return '성인 약 ' + won(p.price_estimate.adult)
-  return '가격 정보 없음'
+  return '요금 미확인' // 평균으로 낸 추정값은 숫자로 보여 주지 않는다
 }
 
-// 요금 상태는 '요금 표기'로만 알린다. 확인한 요금은 그대로, 평균으로 낸 요금은 '약'을 붙이고 아래에 한 줄을 덧붙인다.
-// 색·뱃지·정렬로는 구분하지 않는다.
+// 요금은 직접 확인한 곳만 숫자로 보여 준다. 확인 못 한 곳(평균 추정 포함)은 '요금 미확인'으로 두고 아래에 한 줄을 덧붙인다.
 export const priceState = (p: Place): 'confirmed' | 'estimate' | 'none' => (p.price ? 'confirmed' : p.price_estimate ? 'estimate' : 'none')
-export const PRICE_NOTE = { confirmed: '직접 확인한 요금', estimate: '근처 평균 시세 기준' } as const
+export const PRICE_NOTE = { confirmed: '직접 확인한 요금', estimate: '아직 확인하지 못한 요금이에요' } as const
 // 요금 제보를 받을 주소(구글 폼 등). 비워 두면 화면에서 '곧 열릴 예정'이라고 알려 준다.
 export const REPORT_URL: string = ''
 
-// 요금 칩은 상태와 관계없이 같은 모양, 요금이 없을 때만 옅은 회색
-export const priceClass = (p: Place) => (p.price || p.price_estimate ? '' : ' unknown')
+// 요금 칩은 확인한 요금만 진하게, 미확인은 옅은 회색
+export const priceClass = (p: Place) => (p.price ? '' : ' unknown')
 
 export function mapLinks(p: Place, me: LatLng | null) {
   if (p.lat == null || p.lng == null) {

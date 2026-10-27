@@ -149,6 +149,7 @@ def build():
             "lng": float(r["경도"]) if has_xy else None,
             "tel": r["전화"],
             "kind": r["구분"],
+            "women_only": "여성" in r["이름"],  # 이름에 '여성'이 든 곳은 여성전용 배지
             "url": r["카카오장소주소"],
             "checked_at": r["데이터기준일자"],
             "source": r["출처"],

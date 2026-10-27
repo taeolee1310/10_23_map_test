@@ -16,6 +16,7 @@ KAKAO = "data/onsen_clean.csv"
 SEOUL_BATH = "data/seoul_bath_clean.csv"  # 선택. 없으면 온천만 합친다
 SEOUL_LICENSE = "data/seoul_bath_license_clean.csv"  # 선택. 서울시 인허가에만 있는 목욕탕 (seoul_bath_license.py)
 OUT = "data/onsen_merged.csv"
+EXCLUDE = "data/naver_notfound_exclude.csv"  # 네이버 플레이스에서 못 찾아 뺀 곳 (이름+주소로 맞춤)
 
 COLUMNS = ["이름", "시도", "시군구", "주소", "위도", "경도", "전화", "구분", "분류",
            "카카오ID", "카카오장소주소", "출처", "데이터기준일자"]
@@ -89,6 +90,12 @@ if __name__ == "__main__":
             sb = sb[~sb["카카오ID"].isin(df["카카오ID"])].assign(출처=source)
             df = pd.concat([df, sb[COLUMNS]], ignore_index=True).sort_values(["시도", "시군구", "이름"]).reset_index(drop=True)
             print(f"{path}에서 {len(sb)}곳 추가")
+    if os.path.exists(EXCLUDE):
+        ex = read(EXCLUDE)
+        key = df["이름"] + "|" + df["주소"]
+        gone = key.isin(ex["이름"] + "|" + ex["주소"])
+        print(f"{EXCLUDE}에 있어서 뺀 곳 {int(gone.sum())}곳 (조건: 이름+주소 일치)")
+        df = df[~gone].reset_index(drop=True)
     print(df.shape)
     print("출처별 (조건: 합친 전체):", df["출처"].value_counts().to_dict())
     print("좌표 있는 곳:", int(df["위도"].notna().sum()), "/ 좌표 없는 곳:", int(df["위도"].isna().sum()))

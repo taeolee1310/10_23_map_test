@@ -5,7 +5,7 @@ type Props = {
   place: PlaceWithDist | null
   total: number
   pricedCount: number
-  estimateCount: number
+  unconfirmedCount: number
   me: LatLng | null
   fav: boolean
   swapKey: string
@@ -14,7 +14,7 @@ type Props = {
   onReport: (id: string) => void
 }
 
-export default function PlacePreview({ place: d, total, pricedCount, estimateCount, me, fav, swapKey, onFav, onDetail, onReport }: Props) {
+export default function PlacePreview({ place: d, total, pricedCount, unconfirmedCount, me, fav, swapKey, onFav, onDetail, onReport }: Props) {
   if (!d) {
     return (
       <div className="preview" id="preview">
@@ -22,9 +22,9 @@ export default function PlacePreview({ place: d, total, pricedCount, estimateCou
           <HintPin />
           <div>
             <b>핀이나 목록의 온천을 눌러 보세요</b>
-            전국 {total}곳 · 직접 확인 {pricedCount}곳 · 평균 추정 {estimateCount}곳
+            전국 {total}곳 · 요금 확인 {pricedCount}곳 · 미확인 {unconfirmedCount}곳
             <br />
-            직접 확인한 요금과 평균으로 낸 요금을 나눠서 보여 드려요. 이동 시간은 길찾기에서 볼 수 있어요.
+            요금은 직접 확인한 곳만 숫자로 보여 드려요. 이동 시간은 길찾기에서 볼 수 있어요.
           </div>
         </div>
       </div>
@@ -44,6 +44,7 @@ export default function PlacePreview({ place: d, total, pricedCount, estimateCou
       </div>
       <div className="row">
         {d.kind && <span className={`pill kind ${KIND_CLASS[d.kind] || ''}`}>{d.kind}</span>}
+        {d.women_only && <span className="pill women">여성전용</span>}
         <span className={`pill price${priceClass(d)}`}>{priceLabel(d)}</span>
         {d.dist != null && <span className="pill dist">직선 {fmtDist(d.dist)}</span>}
         {near && <span className="pill">주차장 {near.dist}m</span>}

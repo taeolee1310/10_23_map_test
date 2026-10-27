@@ -134,7 +134,7 @@ function MainBody({ data }: { data: Loaded }) {
   }, [places])
   const regions = useMemo(() => sortRegions(Object.keys(regionCounts)), [regionCounts])
   const pricedCount = useMemo(() => places.filter((d) => d.price).length, [places])
-  const estimateCount = useMemo(() => places.filter((d) => d.price_estimate).length, [places])
+  const unconfirmedCount = useMemo(() => places.filter((d) => !d.price).length, [places])
   const selected = useMemo(() => withDist.find((d) => d.id === selId) ?? null, [withDist, selId])
 
   const requestFit = useCallback((list: Place[], extra: LatLng[] = []) => {
@@ -398,7 +398,7 @@ function MainBody({ data }: { data: Loaded }) {
             place={selected}
             total={places.length}
             pricedCount={pricedCount}
-            estimateCount={estimateCount}
+            unconfirmedCount={unconfirmedCount}
             me={me}
             fav={!!selected && favs.has(selected.id)}
             swapKey={selected?.id ?? ''}
@@ -409,7 +409,7 @@ function MainBody({ data }: { data: Loaded }) {
         </aside>
       </div>
       <p className="graytip" style={{ margin: '0 8px 4px' }}>
-        출처: 행정안전부 전국 온천이용업소 현황, 서울시 목욕장업 인허가 정보, 카카오 로컬 API(장소·주차장 검색), 요금: 행안부 착한가격업소·한국소비자원 참가격(서울 평균 추정), 지도: 카카오맵. 데이터 기준일 {data.baseDate}.
+        출처: 행정안전부 전국 온천이용업소 현황, 서울시 목욕장업 인허가 정보, 카카오 로컬 API(장소·주차장 검색), 요금: 업체 가격표(네이버 플레이스)·행안부 착한가격업소, 지도: 카카오맵. 데이터 기준일 {data.baseDate}.
         위치는 이 브라우저에서 거리 계산에만 쓰고 저장하거나 보내지 않아요. 지도 위치를 못 찾은 곳은 목록에만 나와요.
       </p>
     </div>

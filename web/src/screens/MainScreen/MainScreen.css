@@ -83,6 +83,7 @@
 .onsen-main .pill.kind::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--primary); }
 .onsen-main .pill.kind.k1::before { background: var(--accent); }
 .onsen-main .pill.kind.k2::before { background: var(--secondary); }
+.onsen-main .pill.women { background: color-mix(in srgb, var(--secondary) 14%, #fff); color: var(--secondary); font-weight: 700; }
 .onsen-main .pill.price { background: color-mix(in srgb, var(--pal-coral) 38%, #fff); color: var(--accent-ink); font-weight: 600; }
 /* 요금 아래 한 줄: 확인한 요금인지, 평균으로 낸 요금인지 */
 .onsen-main .price-note { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 11.5px; color: var(--muted); }

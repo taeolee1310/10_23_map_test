@@ -47,6 +47,7 @@ export default function PlaceList({ list, total, shown, selId, hotId, favs, anim
             <div className="ad">{d.addr}</div>
             <div className="meta">
               {d.kind && <span className={`pill kind ${KIND_CLASS[d.kind] || ''}`}>{d.kind}</span>}
+              {d.women_only && <span className="pill women">여성전용</span>}
               <span className={`pill price${priceClass(d)}`}>{priceLabel(d)}</span>
               {d.dist != null && <span className="pill dist">직선 {fmtDist(d.dist)}</span>}
               {d.lat == null && <span className="pill unknown">지도에 없음</span>}

@@ -12,18 +12,17 @@ type Props = {
 
 function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string) => void }) {
   const p = d.price
-  const est = d.price_estimate
+  const est = d.price_estimate // 평균 추정값은 숫자로 보여 주지 않고 '미확인'으로만 쓴다
   if (!p && est) {
     return (
-      <section className="sec">
+      <section className="sec unknown-box">
         <h3>이용 요금</h3>
-        <div className="pr"><span>성인 1인</span><b>약 {won(est.adult)}</b></div>
-        {est.child != null && <div className="pr"><span>어린이</span><b>약 {won(est.child)}</b></div>}
+        <b>요금 미확인</b>
         <div className="price-note">
-          {PRICE_NOTE.estimate}{est.basis ? ` (${est.basis})` : ''}
+          {PRICE_NOTE.estimate}
           <button className="linkbtn" onClick={() => onReport(d.id)}>요금 제보</button>
         </div>
-        <p className="small">실제 요금과 다를 수 있어요. 기준일 {est.checked}</p>
+        <p className="small">가기 전에 카카오맵 장소 페이지나 공식 채널에서 요금을 확인해 주세요.</p>
       </section>
     )
   }
@@ -125,6 +124,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
           <button className="back" ref={backRef} onClick={onClose}>← 목록으로</button>
           <div className={`pill kind ${KIND_CLASS[d.kind] || ''}`}>{d.sido}{d.kind ? ` · ${d.kind}` : ''}</div>
           <h2>{d.name}</h2>
+          {d.women_only && <span className="pill women">여성전용</span>}
           <div className="small" style={{ margin: 0 }}>{d.addr}</div>
           <PriceBlock d={d} onReport={onReport} />
           <ParkingBlock d={d} />
