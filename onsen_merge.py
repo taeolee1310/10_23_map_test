@@ -96,6 +96,7 @@ if __name__ == "__main__":
         gone = key.isin(ex["이름"] + "|" + ex["주소"])
         print(f"{EXCLUDE}에 있어서 뺀 곳 {int(gone.sum())}곳 (조건: 이름+주소 일치)")
         df = df[~gone].reset_index(drop=True)
+    df = df[df["주소"].str.startswith("서울")].reset_index(drop=True)  # 서비스는 서울만 (멘토 피드백)
     print(df.shape)
     print("출처별 (조건: 합친 전체):", df["출처"].value_counts().to_dict())
     print("좌표 있는 곳:", int(df["위도"].notna().sum()), "/ 좌표 없는 곳:", int(df["위도"].isna().sum()))

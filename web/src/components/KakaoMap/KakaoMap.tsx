@@ -3,8 +3,8 @@ import { hasXY, type LatLng, type Place } from '../../lib/onsen'
 
 // 지도는 카카오 JavaScript SDK(JS 키만 사용). 장소 검색은 파이썬이 하므로 services 라이브러리는 쓰지 않는다.
 const API = { sdk: 'https://dapi.kakao.com/v2/maps/sdk.js' } // 🔌 지도 SDK 주소는 여기 한 곳에만
-const BUBBLE_OVER = 120 // 이보다 많으면, 멀리서 볼 때 시·도별 묶음 풍선으로 보여 준다
-const BUBBLE_LEVEL = 9 // 지도 단계가 이 이상(멀리)일 때만 풍선, 가까이 가면 핀
+const BUBBLE_OVER = 120 // 이보다 많으면, 멀리서 볼 때 구별 묶음 풍선으로 보여 준다
+const BUBBLE_LEVEL = 7 // 지도 단계가 이 이상(멀리)일 때만 풍선, 가까이 가면 핀
 const MAX_PINS = 200 // 핀은 최대 200개
 // 핀은 Figma 'Outline Pin'(304:2) 에셋 2장(윤곽 + 욕조)을 겹쳐 쓴다(MainScreen.css의 .pin__outline, .pin__tub). 고른 핀만 같은 모양을 코랄로 칠한다.
 
@@ -19,7 +19,6 @@ type Props = {
   fit: FitRequest
   onSelect: (id: string) => void
   onHover: (id: string | null) => void
-  onPickSido: (sido: string) => void
   onBounds: (b: MapBounds) => void
   onStatus: (s: 'ready' | 'error') => void
 }
@@ -75,7 +74,7 @@ export default function KakaoMap(props: Props) {
       .then(() => {
         if (dead || !boxRef.current) return
         const kakao = window.kakao
-        const map = new kakao.maps.Map(boxRef.current, { center: new kakao.maps.LatLng(36.3, 127.8), level: 13 })
+        const map = new kakao.maps.Map(boxRef.current, { center: new kakao.maps.LatLng(37.5665, 126.978), level: 8 })
         mapRef.current = map
         readyRef.current = true
         kakao.maps.event.addListener(map, 'idle', () => {
@@ -100,7 +99,7 @@ export default function KakaoMap(props: Props) {
     }
   }, [])
 
-  // 핀 그리기. 많으면 시·도별 묶음 풍선으로 보여 준다
+  // 핀 그리기. 많으면 구별 묶음 풍선으로 보여 준다
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
@@ -113,7 +112,7 @@ export default function KakaoMap(props: Props) {
     if (zoomedOut && all.length > BUBBLE_OVER) {
       const list = all
       const g: Record<string, typeof list> = {}
-      list.forEach((d) => (g[d.sido] = g[d.sido] || []).push(d))
+      list.forEach((d) => (g[d.gu] = g[d.gu] || []).push(d))
       Object.keys(g).forEach((s) => {
         const items = g[s]
         const lat = items.reduce((a, d) => a + d.lat, 0) / items.length
@@ -121,14 +120,14 @@ export default function KakaoMap(props: Props) {
         const el = document.createElement('button')
         el.className = 'bubble'
         el.dataset.size = items.length < 10 ? 's' : items.length < 30 ? 'm' : 'l' // 개수가 많을수록 조금 크게
-        el.setAttribute('aria-label', `${s} 온천 ${items.length}곳, 눌러서 확대`)
+        el.setAttribute('aria-label', `${s} ${items.length}곳, 눌러서 확대`)
         const num = document.createElement('span')
         num.className = 'bubble__n'
         num.textContent = String(items.length)
         const small = document.createElement('small')
         small.textContent = s // 이름은 textContent로
         el.append(num, small)
-        el.addEventListener('click', () => cb.current.onPickSido(s))
+        el.addEventListener('click', () => map.setLevel(BUBBLE_LEVEL - 2, { anchor: new kakao.maps.LatLng(lat, lng) })) // 눌러서 확대
         overlaysRef.current.push(
           new kakao.maps.CustomOverlay({ map, position: new kakao.maps.LatLng(lat, lng), content: el, yAnchor: 0.5, zIndex: 2 }),
         )

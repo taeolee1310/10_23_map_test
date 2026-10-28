@@ -122,7 +122,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
       {d && l && (
         <>
           <button className="back" ref={backRef} onClick={onClose}>← 목록으로</button>
-          <div className={`pill kind ${KIND_CLASS[d.kind] || ''}`}>{d.sido}{d.kind ? ` · ${d.kind}` : ''}</div>
+          <div className={`pill kind ${KIND_CLASS[d.kind] || ''}`}>{d.gu}{d.kind ? ` · ${d.kind}` : ''}</div>
           <h2>{d.name}</h2>
           {d.women_only && <span className="pill women">여성전용</span>}
           <div className="small" style={{ margin: 0 }}>{d.addr}</div>
@@ -159,7 +159,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
             </div>
           </section>
           <p className="small">
-            출처: {d.source === '카카오' ? '카카오 로컬 API (장소 검색)' : d.source === '서울시 인허가' ? '서울시 목욕장업 인허가 정보(서울 열린데이터광장), 카카오 로컬 API(주소→좌표)' : '행정안전부 전국 온천이용업소 현황' + (d.source === '행안부+카카오' ? ', 카카오 로컬 API' : '')} · 데이터 기준일 {d.checked_at}
+            출처: {d.source === '카카오' ? '카카오 로컬 API (장소 검색)' : d.source === '서울시 인허가' ? '서울시 목욕장업 인허가 정보(서울 열린데이터광장), 카카오 로컬 API(주소→좌표)' : '행정안전부 온천이용업소 현황' + (d.source === '행안부+카카오' ? ', 카카오 로컬 API' : '')} · 데이터 기준일 {d.checked_at}
           </p>
         </>
       )}

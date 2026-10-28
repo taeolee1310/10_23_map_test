@@ -20,7 +20,7 @@ export type Place = {
   id: string
   name: string
   addr: string
-  sido: string
+  gu: string
   lat: number | null
   lng: number | null
   tel: string
@@ -40,13 +40,12 @@ export type LatLng = { lat: number; lng: number }
 
 export type Filters = {
   q: string
-  sido: string
   kind: string
   priceOnly: boolean
   favOnly: boolean
 }
 
-export const DEFAULT_FILTERS: Filters = { q: '', sido: '전체', kind: '', priceOnly: false, favOnly: false }
+export const DEFAULT_FILTERS: Filters = { q: '', kind: '', priceOnly: false, favOnly: false }
 
 export const KINDS: [string, string][] = [
   ['', '전체'],
@@ -54,16 +53,6 @@ export const KINDS: [string, string][] = [
   ['온천', '온천'],
   ['온천 숙박', '숙박'],
 ]
-// 시·도 드롭다운 순서: 한국에서 흔히 쓰는 행정구역 순서(서울 → 광역시 → 경기 → 도 → 제주).
-// 카카오가 새 행정구역명(전남광주통합특별시)으로 준 곳은 '광주·전남'으로 줄여 광주 바로 뒤에 둔다.
-export const REGION_ORDER = ['서울', '부산', '대구', '인천', '광주', '광주·전남', '대전', '울산', '세종', '경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주']
-export const sortRegions = (list: string[]) => {
-  const rank = (r: string) => {
-    const i = REGION_ORDER.indexOf(r)
-    return i < 0 ? REGION_ORDER.length : i // 목록에 없는 이름은 맨 뒤
-  }
-  return list.slice().sort((a, b) => rank(a) - rank(b) || a.localeCompare(b, 'ko'))
-}
 
 export const KIND_CLASS: Record<string, string> = { 온천: 'k0', '온천 숙박': 'k1', '온천 목욕탕·사우나': 'k2', '목욕탕·사우나': 'k2' }
 
@@ -118,7 +107,6 @@ export function filterPlaces<T extends Place>(places: T[], f: Filters, favs: Set
   const q = f.q.trim().toLowerCase()
   return places.filter(
     (d) =>
-      (f.sido === '전체' || d.sido === f.sido) &&
       (!f.kind || d.kind === f.kind) &&
       (!f.priceOnly || d.price) &&
       (!f.favOnly || favs.has(d.id)) &&
@@ -133,7 +121,7 @@ export function sortPlaces(list: PlaceWithDist[], sort: string, hasMe: boolean) 
     // 좌표 없는 곳은 거리를 모르니 맨 뒤로
     a.sort((x, y) => (x.dist ?? Infinity) - (y.dist ?? Infinity))
   } else {
-    a.sort((x, y) => x.sido.localeCompare(y.sido, 'ko') || x.name.localeCompare(y.name, 'ko'))
+    a.sort((x, y) => x.gu.localeCompare(y.gu, 'ko') || x.name.localeCompare(y.name, 'ko'))
   }
   return a
 }

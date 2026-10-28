@@ -9,13 +9,12 @@ import {
   hasXY,
   km,
   sortPlaces,
-  sortRegions,
   type Filters,
   type LatLng,
   type Place,
   type PlaceWithDist,
 } from '../../lib/onsen'
-import { IconHeart, IconDrop, IconLeaf, IconLocate, IconPin, IconSearch } from './Icons'
+import { IconHeart, IconDrop, IconLocate, IconPin, IconSearch } from './Icons'
 import PlaceDetail from './PlaceDetail'
 import PlaceList from './PlaceList'
 import PlacePreview from './PlacePreview'
@@ -127,12 +126,6 @@ function MainBody({ data }: { data: Loaded }) {
   const view = useMemo(() => sortPlaces(inside, sort, !!me), [inside, sort, me])
   const mapPoints = useMemo(() => inside.filter(hasXY), [inside])
 
-  const regionCounts = useMemo(() => {
-    const c: Record<string, number> = {}
-    places.forEach((d) => (c[d.sido] = (c[d.sido] || 0) + 1))
-    return c
-  }, [places])
-  const regions = useMemo(() => sortRegions(Object.keys(regionCounts)), [regionCounts])
   const pricedCount = useMemo(() => places.filter((d) => d.price).length, [places])
   const unconfirmedCount = useMemo(() => places.filter((d) => !d.price).length, [places])
   const selected = useMemo(() => withDist.find((d) => d.id === selId) ?? null, [withDist, selId])
@@ -184,7 +177,7 @@ function MainBody({ data }: { data: Loaded }) {
   }
   const locate = useCallback((after?: (p: LatLng) => void) => {
     if (!navigator.geolocation) {
-      setNote('이 브라우저에서는 위치를 쓸 수 없어요. 지역을 고르거나 검색으로 온천을 찾아 보세요.')
+      setNote('이 브라우저에서는 위치를 쓸 수 없어요. 검색으로 온천을 찾아 보세요.')
       return
     }
     setNote('가까운 온천까지 직선거리를 보여 드리려고 지금 위치를 한 번만 사용해요. 저장하거나 서버로 보내지 않아요.')
@@ -192,7 +185,7 @@ function MainBody({ data }: { data: Loaded }) {
       (pos) => {
         const p = { lat: pos.coords.latitude, lng: pos.coords.longitude }
         if (p.lat < 33 || p.lat > 39 || p.lng < 124 || p.lng > 132) {
-          setNote('한국 밖에 계신 것 같아요. 지역을 고르거나 검색으로 온천을 찾아 보세요.')
+          setNote('한국 밖에 계신 것 같아요. 검색으로 온천을 찾아 보세요.')
           setMe(null)
           return
         }
@@ -203,8 +196,8 @@ function MainBody({ data }: { data: Loaded }) {
       (err) =>
         setNote(
           err.code === 1
-            ? '위치 권한이 꺼져 있어요. 괜찮아요, 지역을 고르거나 검색으로 온천을 찾을 수 있어요.'
-            : '지금은 위치를 가져오지 못했어요. 지역을 고르거나 검색으로 찾아 보세요.',
+            ? '위치 권한이 꺼져 있어요. 괜찮아요, 검색으로 온천을 찾을 수 있어요.'
+            : '지금은 위치를 가져오지 못했어요. 검색으로 찾아 보세요.',
         ),
       { timeout: 10000, maximumAge: 60000 },
     )
@@ -220,7 +213,7 @@ function MainBody({ data }: { data: Loaded }) {
         .sort((a, b) => a.k - b.k)
         .slice(0, 8)
         .map((x) => x.d)
-      updateFilters({ sido: '전체', favOnly: false })
+      updateFilters({ favOnly: false })
       requestFit(near, [p]) // 위 updateFilters의 맞춤보다 나중에 불러서 이쪽이 이긴다
     })
 
@@ -267,27 +260,21 @@ function MainBody({ data }: { data: Loaded }) {
               <OnsenLogo height="clamp(52px, 5.6vw, 72px)" title="탕방" playKey={logoRun} />
             </span>
             <div>
-              <p className="eyebrow"><b>탕방</b> · 한국의 온천을 찾아서</p>
+              <p className="eyebrow"><b>탕방</b> · 서울의 온천·목욕탕을 찾아서</p>
               <h1>오늘, 어디서 몸을 담글까요?</h1>
-              <p className="sub">아직 몰랐던 전국의 온천을 발견하는 즐거움.</p>
+              <p className="sub">아직 몰랐던 서울의 온천·목욕탕을 발견하는 즐거움.</p>
             </div>
           </div>
           <div>
           <label className="search">
             <IconSearch />
             <span className="sr">온천 검색</span>
-            <input type="search" placeholder="온천 이름이나 지역으로 찾기" autoComplete="off" value={query} onChange={(e) => onQuery(e.target.value)} />
+            <input type="search" placeholder="이름이나 구로 찾기" autoComplete="off" value={query} onChange={(e) => onQuery(e.target.value)} />
           </label>
           <div className="quick">
             <button className="qp" onClick={goNear}><IconPin />내 주변 온천</button>
             <button className="qp" disabled={!pricedCount} title={pricedCount ? '' : '직접 확인한 곳이 생기면 열려요'} onClick={() => updateFilters({ priceOnly: true })}>
               <IconDrop />직접 확인한 곳{pricedCount ? <b>{pricedCount}</b> : null}
-            </button>
-            <button
-              className="qp"
-              onClick={() => updateFilters({ sido: [...regions].sort((a, z) => regionCounts[a] - regionCounts[z])[0] })}
-            >
-              <IconLeaf />아직 몰랐던 지역
             </button>
             <button
               className="qp"
@@ -305,15 +292,6 @@ function MainBody({ data }: { data: Loaded }) {
       <div id="app">
         <section id="panel" aria-label="온천 목록">
           <div className="filters">
-            <label className="sel">
-              <span className="sr">지역</span>
-              <select value={filters.sido} onChange={(e) => updateFilters({ sido: e.target.value })}>
-                <option value="전체">전국 {places.length}곳</option>
-                {regions.map((r) => (
-                  <option key={r} value={r}>{r} {regionCounts[r]}곳</option>
-                ))}
-              </select>
-            </label>
             <div className="seg" role="group" aria-label="시설 유형">
               {KINDS.map(([v, l]) => (
                 <button key={v} aria-pressed={filters.kind === v} onClick={() => updateFilters({ kind: v })}>{l}</button>
@@ -369,7 +347,6 @@ function MainBody({ data }: { data: Loaded }) {
               fit={fit}
               onSelect={(id) => select(id, 'map')}
               onHover={setHotId}
-              onPickSido={(s) => updateFilters({ sido: s })}
               onBounds={setBounds}
               onStatus={setMapStatus}
             />
@@ -409,7 +386,7 @@ function MainBody({ data }: { data: Loaded }) {
         </aside>
       </div>
       <p className="graytip" style={{ margin: '0 8px 4px' }}>
-        출처: 행정안전부 전국 온천이용업소 현황, 서울시 목욕장업 인허가 정보, 카카오 로컬 API(장소·주차장 검색), 요금: 업체 가격표(네이버 플레이스)·행안부 착한가격업소, 지도: 카카오맵. 데이터 기준일 {data.baseDate}.
+        출처: 행정안전부 온천이용업소 현황, 서울시 목욕장업 인허가 정보, 카카오 로컬 API(장소·주차장 검색), 요금: 업체 가격표(네이버 플레이스)·행안부 착한가격업소, 지도: 카카오맵. 데이터 기준일 {data.baseDate}.
         위치는 이 브라우저에서 거리 계산에만 쓰고 저장하거나 보내지 않아요. 지도 위치를 못 찾은 곳은 목록에만 나와요.
       </p>
     </div>
