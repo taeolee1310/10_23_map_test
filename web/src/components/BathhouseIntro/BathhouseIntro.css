@@ -1,0 +1,159 @@
+/* 목욕탕 인트로. 원본(Figma 381:2) 1536×1024를 화면에 꽉 차게(cover) 깔고, 좌표는 --u 단위로 쓴다. */
+.bh {
+  --leave: 700ms;
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #1c1410;
+  color: #fff4e4;
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  transition: opacity var(--leave) ease;
+}
+.bh--leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.bh__stage {
+  --W: max(100vw, 150vh); /* 가로 1536 : 세로 1024 비율을 유지한 채 화면을 덮는 너비 */
+  --u: calc(var(--W) / 1536); /* 원본 1px이 화면에서 차지하는 길이 */
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--W);
+  height: calc(var(--W) * 1024 / 1536);
+  transform: translate(-50%, -50%);
+}
+.bh__scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+/* 해에서 비치는 빛. 컨테이너는 원본 좌표 (-330, -300)에서 1900×1500으로 장면 위·옆·아래 밖까지 덮고,
+   빛의 출발점은 해(1170, 278) = 컨테이너 안의 (0.789, 0.385). */
+.bh__rays {
+  position: absolute;
+  left: calc(-330 * var(--u));
+  top: calc(-300 * var(--u));
+  width: calc(1900 * var(--u));
+  height: calc(1500 * var(--u));
+  pointer-events: none;
+}
+/* 물줄기 캔버스: 원본 좌표 (1230, 484) 에서 306×276 (waterfall.ts의 CANVAS_BOX와 같게) */
+.bh__fall {
+  position: absolute;
+  left: calc(1230 * var(--u));
+  top: calc(484 * var(--u));
+  width: calc(306 * var(--u));
+  height: calc(276 * var(--u));
+  pointer-events: none;
+}
+
+/* ---- 글자 ---- */
+.bh__scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(34, 18, 10, 0.6) 0%, rgba(34, 18, 10, 0.26) 36%, rgba(34, 18, 10, 0) 62%),
+    linear-gradient(0deg, rgba(34, 18, 10, 0.32) 0%, rgba(34, 18, 10, 0) 38%);
+}
+.bh__copy {
+  position: absolute;
+  left: clamp(24px, 6vw, 96px);
+  bottom: clamp(36px, 10vh, 108px);
+  max-width: min(560px, calc(100% - 48px));
+}
+.bh__brand {
+  margin: 0 0 18px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  opacity: 0.9;
+}
+.bh__copy h1 {
+  margin: 0;
+  font-size: clamp(32px, 4.4vw, 60px);
+  font-weight: 600;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 24px rgba(34, 18, 10, 0.45);
+}
+.bh__sub {
+  margin: 14px 0 0;
+  font-size: clamp(15px, 1.25vw, 18px);
+  opacity: 0.88;
+}
+.bh__link {
+  margin-top: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 22px;
+  border: 1px solid rgba(255, 244, 228, 0.7);
+  border-radius: 999px;
+  background: rgba(255, 244, 228, 0.12);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: inherit;
+  font: inherit;
+  font-size: clamp(15px, 1.25vw, 18px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 200ms ease;
+}
+.bh__link:focus-visible {
+  outline: 2px solid #fff4e4;
+  outline-offset: 3px;
+}
+.bh__link:disabled {
+  cursor: default;
+}
+@media (hover: hover) {
+  .bh__link:hover {
+    background: rgba(255, 244, 228, 0.24);
+  }
+}
+.bh__brand,
+.bh__copy h1,
+.bh__sub,
+.bh__link {
+  animation: bh-rise 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.bh__copy h1 {
+  animation-delay: 500ms;
+}
+.bh__sub {
+  animation-delay: 800ms;
+}
+.bh__link {
+  animation-delay: 1100ms;
+}
+@keyframes bh-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.bh__status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bh__brand,
+  .bh__copy h1,
+  .bh__sub,
+  .bh__link {
+    animation: none;
+  }
+}
