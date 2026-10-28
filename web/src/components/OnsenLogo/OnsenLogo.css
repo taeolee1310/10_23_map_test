@@ -4,6 +4,9 @@
 .onsen-logo { position: relative; display: block; flex: none; container-type: inline-size; overflow: visible; }
 .onsen-logo__box { --u: calc(100cqw / 784); position: absolute; inset: 0; }
 .onsen-logo__part, .onsen-logo__curl { position: absolute; display: block; }
+/* endless: 재생 중인 모든 모션(캐릭터·물결·넘치는 물·김)을 무한 반복 */
+/* (아래 모션 규칙이 animation 축약으로 반복 횟수를 1로 정하므로, 이기도록 선택자를 한 단계 더 구체적으로 쓴다) */
+.onsen-logo.is-infinite.is-playing .onsen-logo__box, .onsen-logo.is-infinite.is-playing .onsen-logo__box * { animation-iteration-count: infinite; }
 .onsen-logo__fill { position: absolute; inset: 0; display: block; width: 100%; height: 100%; background: var(--logo-line);
   -webkit-mask: var(--mask) center / 100% 100% no-repeat; mask: var(--mask) center / 100% 100% no-repeat; }
 /* 색은 tangbang-colors.css 토큰: 캐릭터·욕조 = 일러스트 윤곽선, 물(물결·넘치는 물) = 물, 김 = 김 */

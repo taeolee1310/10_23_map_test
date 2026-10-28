@@ -65,6 +65,8 @@ type Props = {
   delay?: number
   /** true면 한 번 재생하고 rest(ms) 쉬었다가 계속 반복한다. 인트로처럼 화면에 오래 머무는 장면에 쓴다 */
   loop?: boolean
+  /** true면 쉬는 틈 없이 모션을 끝없이 반복한다(loop보다 우선). 사용자가 캐릭터를 누른 뒤처럼 계속 움직이게 할 때 쓴다 */
+  endless?: boolean
   /** loop일 때 한 번 재생이 끝나고 다음 재생까지 쉬는 시간(ms). 기본 2500 */
   rest?: number
   /** true면 넘치는 물줄기 4개를 빼고 보여 준다(수증기·수면·캐릭터만). 절제된 장면에 쓴다 */
@@ -74,14 +76,14 @@ type Props = {
 const pct = (v: number, size: number, origin = 0) => `${((v - origin) / size) * 100}%`
 const STEAM_GROUPS: SteamGroup[] = ['left', 'center', 'right']
 
-export default function OnsenLogo({ height = 64, title, className, playKey = 0, cycle = 3, autoPlay = true, delay = 0, loop = false, rest = 2500, calm = false }: Props) {
+export default function OnsenLogo({ height = 64, title, className, playKey = 0, cycle = 3, autoPlay = true, delay = 0, loop = false, endless = false, rest = 2500, calm = false }: Props) {
   const h = typeof height === 'number' ? `${height}px` : height
   const [playing, setPlaying] = useState(false)
   const busy = useRef(false)
 
   // 처음 나타날 때, 그리고 playKey가 바뀔 때 한 번 재생. 이미 재생 중이면 그대로 둔다.
   useEffect(() => {
-    if (loop) return // 반복할 때는 아래 효과가 맡는다
+    if (loop || endless) return // 반복할 때는 아래 효과가 맡는다
     if (busy.current) return
     if (!autoPlay && playKey === 0) return
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return // 모션 감소 설정이면 정지 상태 그대로
@@ -101,7 +103,7 @@ export default function OnsenLogo({ height = 64, title, className, playKey = 0, 
 
   // 반복: 재생 → 쉬기 → 재생 … (모션 감소 설정이면 하지 않는다)
   useEffect(() => {
-    if (!loop) return
+    if (!loop || endless) return
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
     let timer = 0
     const play = () => {
@@ -116,11 +118,19 @@ export default function OnsenLogo({ height = 64, title, className, playKey = 0, 
       window.clearTimeout(timer)
       setPlaying(false)
     }
-  }, [loop, cycle, rest, delay])
+  }, [loop, endless, cycle, rest, delay])
+
+  // 끝없이 반복: 재생 상태를 계속 켜 두고 CSS가 모션을 무한 반복한다 (모션 감소 설정이면 하지 않는다)
+  useEffect(() => {
+    if (!endless) return
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    setPlaying(true)
+    return () => setPlaying(false)
+  }, [endless])
 
   return (
     <span
-      className={`onsen-logo${playing ? ' is-playing' : ''}${className ? ' ' + className : ''}`}
+      className={`onsen-logo${playing ? ' is-playing' : ''}${endless ? ' is-infinite' : ''}${className ? ' ' + className : ''}`}
       role={title ? 'img' : undefined}
       aria-label={title}
       aria-hidden={title ? undefined : true}

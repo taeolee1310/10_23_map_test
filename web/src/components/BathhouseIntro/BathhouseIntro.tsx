@@ -47,7 +47,7 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
   const fallRef = useRef<HTMLCanvasElement>(null)
 
   const [volume, setVolume] = useState(BGM_VOLUME)
-  const [logoRun, setLogoRun] = useState(0) // 캐릭터를 누를 때마다 모션을 한 번 더
+  const [logoRun, setLogoRun] = useState(0) // 캐릭터를 누른 횟수. 누르기 전: 5초 재생 + 2.5초 쉼 반복 / 누른 뒤: 쉬지 않고 계속 반복
   const bgmRef = useRef<Bgm | null>(null)
   const volumeRef = useRef(volume)
   volumeRef.current = volume
@@ -213,7 +213,7 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
             setLogoRun((n) => n + 1)
           }}
         >
-          <OnsenLogo height="calc(200 * var(--u))" playKey={logoRun} loop calm />
+          <OnsenLogo height="calc(200 * var(--u))" playKey={logoRun} cycle={logoRun > 0 ? 3 : 5} rest={2500} loop endless={logoRun > 0} calm />
         </button>
       </div>
 
