@@ -321,6 +321,7 @@
   pointer-events: none;
 }
 .bh__mascot {
+  color: inherit; /* 버튼은 글자색을 물려받지 않으므로 인트로 글자색(.bh)을 그대로 받게 한다 */
   position: absolute;
   left: calc(600 * var(--u));
   top: calc(600 * var(--u));
@@ -330,6 +331,12 @@
   cursor: pointer;
   pointer-events: auto;
   transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* 인트로에서만: 로고 캐릭터의 선·물·김을 모두 인트로 글자색과 같게 칠한다(메인 화면 로고는 컬러 시스템 토큰 그대로) */
+.bh__mascot .onsen-logo {
+  --logo-line: currentColor;
+  --logo-water: currentColor;
+  --logo-steam: currentColor;
 }
 @media (hover: hover) and (pointer: fine) {
   .bh__mascot:hover {
