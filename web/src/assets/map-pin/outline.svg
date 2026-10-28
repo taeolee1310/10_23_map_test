@@ -1,6 +1,6 @@
 <svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="196.5" height="274.5" viewBox="0 0 196.5 274.5" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g id="Group">
-<path id="Vector" d="M98.25 3.25C45.25 3.25 3.25 45.25 3.25 97.25C3.25 151.25 60.25 227.25 98.25 271.25C136.25 227.25 193.25 151.25 193.25 97.25C193.25 45.25 151.25 3.25 98.25 3.25Z" stroke-width="6.5" stroke-linejoin="round" stroke="#1B5A8D"/>
-<path id="Vector_2" d="M173.25 98.25C173.25 139.671 139.671 173.25 98.25 173.25C56.8286 173.25 23.25 139.671 23.25 98.25C23.25 56.8286 56.8286 23.25 98.25 23.25C139.671 23.25 173.25 56.8286 173.25 98.25Z" stroke-width="6.5" stroke-linejoin="round" stroke="#1B5A8D"/>
+<path id="Vector" d="M98.25 3.25C45.25 3.25 3.25 45.25 3.25 97.25C3.25 151.25 60.25 227.25 98.25 271.25C136.25 227.25 193.25 151.25 193.25 97.25C193.25 45.25 151.25 3.25 98.25 3.25Z" stroke-width="6.5" stroke-linejoin="round" stroke="#000"/>
+<path id="Vector_2" d="M173.25 98.25C173.25 139.671 139.671 173.25 98.25 173.25C56.8286 173.25 23.25 139.671 23.25 98.25C23.25 56.8286 56.8286 23.25 98.25 23.25C139.671 23.25 173.25 56.8286 173.25 98.25Z" stroke-width="6.5" stroke-linejoin="round" stroke="#000"/>
 </g>
 </svg>

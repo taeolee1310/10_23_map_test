@@ -6,17 +6,11 @@
 # 생성 파일 (파이썬이 만든다) - map.html은 키가 없어서 올리고, 키가 든 map_config.js만 제외
 map_config.js
 
-# 원본 대용량 CSV (정리본 data/parking_clean.csv만 올린다)
-data/*
-!data/parking_clean.csv
-!data/onsen_clean.csv
-!data/onsen_official_clean.csv
-!data/onsen_merged.csv
-!data/tangbang_places_price_data.json
-!data/onsen_prices.csv
-!data/onsen_parking.csv
-!data/seoul_bath_clean.csv
-!data/seoul_bath_license_clean.csv
+# 데이터 (분류는 data/README.md): 원본(raw)과 수집 중간 산출은 올리지 않고, 정리된 결과만 올린다
+data/raw/*
+!data/raw/.gitkeep
+data/collected/naver_raw.jsonl
+data/collected/seoul_bath_license_geo.csv
 
 # Python
 __pycache__/

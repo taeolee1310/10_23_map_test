@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="185" height="195" viewBox="0 0 185 195" fill="none" xmlns="http://www.w3.org/2000/svg">
+<ellipse id="Sun_Glow_Mask / &#235;&#185;&#155; &#235;&#178;&#136;&#236;&#167;&#144; &#235;&#178;&#148;&#236;&#156;&#132;" cx="92.5" cy="97.5" rx="92.5" ry="97.5" fill="url(#paint0_radial_0_10)"/>
+<defs>
+<radialGradient id="paint0_radial_0_10" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(92.5 97.5) scale(92.5 97.5)">
+<stop stop-color="white"/>
+<stop offset="0.35" stop-color="white" stop-opacity="0.65"/>
+<stop offset="1" stop-color="white" stop-opacity="0"/>
+</radialGradient>
+</defs>
+</svg>

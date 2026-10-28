@@ -118,7 +118,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
   const kakao = d ? safeUrl(d.url) : ''
   const tel = d ? safeTel(d.tel) : ''
   return (
-    <article id="detail" ref={boxRef} className={open ? 'open' : ''} aria-hidden={!open} aria-label="온천 상세">
+    <article id="detail" ref={boxRef} className={open ? 'open' : ''} aria-hidden={!open} tabIndex={open ? 0 : -1} aria-label="온천 상세 (방향키로 스크롤)">
       {d && l && (
         <>
           <button className="back" ref={backRef} onClick={onClose}>← 목록으로</button>

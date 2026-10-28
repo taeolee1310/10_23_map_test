@@ -4,8 +4,8 @@
   position: fixed;
   inset: 0;
   overflow: hidden;
-  background: #1c1410;
-  color: #fff4e4;
+  background: var(--tb-bottle-brown);
+  color: var(--tb-cream-sun);
   font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   transition: opacity var(--leave) ease;
 }
@@ -24,23 +24,168 @@
   height: calc(var(--W) * 1024 / 1536);
   transform: translate(-50%, -50%);
 }
-.bh__scene {
+.bh__stage {
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+.bh__stage--ready {
+  opacity: 1;
+}
+/* 모든 레이어는 같은 무대(1536×1024)를 기준으로 놓는다. 위치·크기는 --u 단위라서 화면이 바뀌어도 어긋나지 않는다 */
+.bh__base,
+.bh__layer {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  pointer-events: none;
   user-select: none;
 }
-/* 해에서 비치는 빛. 컨테이너는 원본 좌표 (-330, -300)에서 1900×1500으로 장면 위·옆·아래 밖까지 덮고,
-   빛의 출발점은 해(1170, 278) = 컨테이너 안의 (0.789, 0.385). */
-.bh__rays {
+
+/* 01 구름: 창 안쪽 하늘의 구름을 한 덩어리로 만들어 ±4px 천천히 움직인다. 두 창(A·B)이 같은 박자로 같이 움직인다.
+   구름 마스크와 질감이 한 요소 안에 있어서 같이 움직이므로 질감 바깥의 창틀·스카이라인이 딸려 들어오지 않고,
+   움직여서 구름 모양이 창틀 쪽으로 4px 번지는 부분은 바로 위의 고정 '창틀' 레이어(.bh__piece--frame)가 가린다.
+   해는 하늘 바탕에 고정되어 있고, 구름 덩어리에는 해 둘레(반지름 34~56px)에 구멍을 내서 해가 구름과 같이 움직이지 않게 한다. */
+.bh__clouds {
   position: absolute;
-  left: calc(-330 * var(--u));
-  top: calc(-300 * var(--u));
-  width: calc(1900 * var(--u));
-  height: calc(1500 * var(--u));
+  left: calc(880.5 * var(--u));
+  top: calc(70.5 * var(--u));
+  width: calc(388 * var(--u));
+  height: calc(225 * var(--u));
+  pointer-events: none;
+  -webkit-mask-image: url('../../assets/bathhouse/mask-cloud-a.svg'), url('../../assets/bathhouse/mask-cloud-b.svg');
+  mask-image: url('../../assets/bathhouse/mask-cloud-a.svg'), url('../../assets/bathhouse/mask-cloud-b.svg');
+  -webkit-mask-position: 0 calc(28 * var(--u)), calc(178 * var(--u)) 0;
+  mask-position: 0 calc(28 * var(--u)), calc(178 * var(--u)) 0;
+  -webkit-mask-size: calc(161 * var(--u)) calc(184 * var(--u)), calc(210 * var(--u)) calc(225 * var(--u));
+  mask-size: calc(161 * var(--u)) calc(184 * var(--u)), calc(210 * var(--u)) calc(225 * var(--u));
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  animation: bh-cloud 12s ease-in-out infinite;
+}
+.bh__cloud-tex {
+  position: absolute;
+  left: calc(-880.5 * var(--u));
+  top: calc(-70.5 * var(--u));
+  width: calc(1536 * var(--u));
+  height: calc(1024 * var(--u));
+  background: url('../../assets/bathhouse/orig.webp') 0 0 / 100% 100% no-repeat;
+  -webkit-mask-image: radial-gradient(circle at calc(1170.5 * var(--u)) calc(278.5 * var(--u)), transparent calc(34 * var(--u)), #000 calc(56 * var(--u)));
+  mask-image: radial-gradient(circle at calc(1170.5 * var(--u)) calc(278.5 * var(--u)), transparent calc(34 * var(--u)), #000 calc(56 * var(--u)));
+}
+.bh__piece.bh__piece--frame {
+  mix-blend-mode: normal;
+}
+@keyframes bh-cloud {
+  0%,
+  100% {
+    transform: translateX(calc(-4 * var(--u)));
+  }
+  50% {
+    transform: translateX(calc(4 * var(--u)));
+  }
+}
+
+/* 02 햇빛 · 03 수면 반사광: 원본에 이미 있는 태양과 반사를 겹쳐서 밝기만 아주 조금, 천천히 바꾼다 (Figma 값: 햇빛 8%, 반사 6%) */
+.bh__piece {
+  position: absolute;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  mix-blend-mode: screen;
   pointer-events: none;
 }
+.bh__piece--sun {
+  animation: bh-sun 14s ease-in-out infinite;
+}
+.bh__piece--reflection {
+  animation: bh-reflection 12s ease-in-out infinite;
+}
+@keyframes bh-sun {
+  0%,
+  100% {
+    opacity: 0.05;
+  }
+  50% {
+    opacity: 0.11;
+  }
+}
+@keyframes bh-reflection {
+  0%,
+  100% {
+    opacity: 0.04;
+  }
+  50% {
+    opacity: 0.08;
+  }
+}
+
+/* 05 수증기: 앞·중간·뒤가 서로 다른 주기로 천천히 올라가며 조금 퍼지고 옅어진다. 완전히 사라진 뒤에 처음 자리로 돌아오고,
+   층마다 두 장을 반 주기 어긋나게 겹쳐서 비는 순간이 없다. 올라가는 거리는 위로 20~40px. 전체 불투명도는 Figma 값 88%. */
+.bh__steams {
+  position: absolute;
+  inset: 0;
+  opacity: 0.88;
+  pointer-events: none;
+}
+/* Figma 그대로: 투명 PNG를 층 마스크와 '전경 타일 뒤로' 경계 마스크(−1.5px, 1539×1027)로 오린다. 마스크가 레이어와 같이 움직인다. */
+.bh__steam {
+  background-image: url('../../assets/bathhouse/steam.webp');
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: 0 0, calc(-1.5 * var(--u)) calc(-1.5 * var(--u));
+  mask-position: 0 0, calc(-1.5 * var(--u)) calc(-1.5 * var(--u));
+  -webkit-mask-size: 100% 100%, calc(1539 * var(--u)) calc(1027 * var(--u));
+  mask-size: 100% 100%, calc(1539 * var(--u)) calc(1027 * var(--u));
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  transform-origin: 50% 70%;
+  opacity: 0;
+  animation: bh-steam var(--dur) linear infinite;
+  --peak: 1;
+}
+.bh__steam--late {
+  animation-delay: calc(var(--dur) / -2);
+}
+.bh__steam--back {
+  -webkit-mask-image: url('../../assets/bathhouse/steam-mask-back.svg'), url('../../assets/bathhouse/steam-fade.svg');
+  mask-image: url('../../assets/bathhouse/steam-mask-back.svg'), url('../../assets/bathhouse/steam-fade.svg');
+  --dur: 14s;
+  --rise: calc(20 * var(--u));
+  --dx: calc(6 * var(--u));
+}
+.bh__steam--mid {
+  -webkit-mask-image: url('../../assets/bathhouse/steam-mask-mid.svg'), url('../../assets/bathhouse/steam-fade.svg');
+  mask-image: url('../../assets/bathhouse/steam-mask-mid.svg'), url('../../assets/bathhouse/steam-fade.svg');
+  --dur: 11s;
+  --rise: calc(30 * var(--u));
+  --dx: calc(-8 * var(--u));
+}
+.bh__steam--front {
+  -webkit-mask-image: url('../../assets/bathhouse/steam-mask-front.svg'), url('../../assets/bathhouse/steam-fade.svg');
+  mask-image: url('../../assets/bathhouse/steam-mask-front.svg'), url('../../assets/bathhouse/steam-fade.svg');
+  --dur: 9s;
+  --rise: calc(40 * var(--u));
+  --dx: calc(10 * var(--u));
+}
+@keyframes bh-steam {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  28% {
+    opacity: var(--peak);
+  }
+  70% {
+    opacity: calc(var(--peak) * 0.55);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx), calc(-1 * var(--rise)), 0) scale(1.05);
+  }
+}
+
 /* 물줄기 캔버스: 원본 좌표 (1230, 484) 에서 306×276 (waterfall.ts의 CANVAS_BOX와 같게) */
 .bh__fall {
   position: absolute;
@@ -52,26 +197,28 @@
 }
 
 /* ---- 글자 ---- */
-.bh__scrim {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, rgba(34, 18, 10, 0.6) 0%, rgba(34, 18, 10, 0.26) 36%, rgba(34, 18, 10, 0) 62%),
-    linear-gradient(0deg, rgba(34, 18, 10, 0.32) 0%, rgba(34, 18, 10, 0) 38%);
-}
+/* 큰 글자 기준(굵은 19px 이상, 또는 24px 이상)이면 대비 3:1이면 충분하다. 어두운 막 대신 글자를 키우고 굵게 하고,
+   밝은 반사가 걱정되는 만큼만 장면 전체를 단색으로 살짝 어둡게 한다(아래 .bh__stage::after). */
 .bh__copy {
+  z-index: 2;
   position: absolute;
   left: clamp(24px, 6vw, 96px);
   bottom: clamp(36px, 10vh, 108px);
-  max-width: min(560px, calc(100% - 48px));
+  max-width: min(600px, calc(100% - 48px));
+  text-shadow: 0 1px 14px color-mix(in srgb, var(--tb-bottle-brown) 55%, transparent);
+}
+.bh__stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--tb-bottle-brown) 26%, transparent);
+  pointer-events: none;
 }
 .bh__brand {
   margin: 0 0 18px;
-  font-size: 15px;
+  font-size: 19px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  opacity: 0.9;
+  letter-spacing: 0.06em;
 }
 .bh__copy h1 {
   margin: 0;
@@ -79,12 +226,12 @@
   font-weight: 600;
   line-height: 1.22;
   letter-spacing: -0.02em;
-  text-shadow: 0 2px 24px rgba(34, 18, 10, 0.45);
+  text-shadow: 0 2px 24px color-mix(in srgb, var(--tb-bottle-brown) 45%, transparent);
 }
 .bh__sub {
   margin: 14px 0 0;
-  font-size: clamp(15px, 1.25vw, 18px);
-  opacity: 0.88;
+  font-size: clamp(19px, 1.7vw, 24px);
+  font-weight: 700;
 }
 .bh__link {
   margin-top: 28px;
@@ -92,20 +239,20 @@
   align-items: center;
   gap: 10px;
   padding: 12px 22px;
-  border: 1px solid rgba(255, 244, 228, 0.7);
+  border: 1px solid color-mix(in srgb, var(--tb-cream-sun) 70%, transparent);
   border-radius: 999px;
-  background: rgba(255, 244, 228, 0.12);
+  background: color-mix(in srgb, var(--tb-cream-sun) 12%, transparent);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   color: inherit;
   font: inherit;
-  font-size: clamp(15px, 1.25vw, 18px);
-  font-weight: 600;
+  font-size: clamp(19px, 1.6vw, 22px);
+  font-weight: 700;
   cursor: pointer;
   transition: background 200ms ease;
 }
 .bh__link:focus-visible {
-  outline: 2px solid #fff4e4;
+  outline: 2px solid var(--tb-cream-sun);
   outline-offset: 3px;
 }
 .bh__link:disabled {
@@ -113,7 +260,7 @@
 }
 @media (hover: hover) {
   .bh__link:hover {
-    background: rgba(255, 244, 228, 0.24);
+    background: color-mix(in srgb, var(--tb-cream-sun) 24%, transparent);
   }
 }
 .bh__brand,
@@ -150,6 +297,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .bh__clouds,
+  .bh__piece,
+  .bh__steam {
+    animation: none;
+  }
+  .bh__steam {
+    opacity: 0.4;
+  }
   .bh__brand,
   .bh__copy h1,
   .bh__sub,
@@ -157,3 +312,23 @@
     animation: none;
   }
 }
+
+.bh__volume {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 3;
+  width: 9.5rem;
+  color: inherit;
+}
+.bh__volume .elastic-slider {
+  width: 100%;
+}
+.bh__sound-icon {
+  width: 14px;
+  height: 14px;
+  background: currentColor;
+  -webkit-mask: var(--icon) center / contain no-repeat;
+  mask: var(--icon) center / contain no-repeat;
+}
+

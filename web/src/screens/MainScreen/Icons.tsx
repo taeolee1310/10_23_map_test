@@ -1,3 +1,6 @@
+import bananaOn from '../../assets/banana-milk/banana-milk-YELLOW-on.svg'
+import bananaOff from '../../assets/banana-milk/banana-milk-YELLOW-off.svg'
+
 const base = { fill: 'none', stroke: 'currentColor', strokeLinecap: 'round' as const, 'aria-hidden': true }
 
 export const IconPin = () => (
@@ -17,10 +20,9 @@ export const IconLeaf = () => (
     <path d="M5 19c3-4 6-6 9-8" />
   </svg>
 )
-export const IconHeart = ({ size = 14 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" strokeWidth={size > 14 ? 2 : 2.2} strokeLinejoin="round" {...base}>
-    <path d="M12 20s-7-4.6-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.4-7 10-7 10z" />
-  </svg>
+// 담아두기 버튼 아이콘. on=담아둔 상태(채움), off=아직 안 담음(윤곽)
+export const IconBanana = ({ on, size = 24 }: { on: boolean; size?: number }) => (
+  <img src={on ? bananaOn : bananaOff} width={size} height={size} alt="" aria-hidden="true" />
 )
 export const IconSearch = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" strokeWidth="2" {...base}>
@@ -37,6 +39,7 @@ export const IconLocate = () => (
 
 export const HintPin = () => (
   <span className="pin-static" aria-hidden="true">
+    <span className="pin__body" />
     <span className="pin__outline" />
     <span className="pin__tub" />
   </span>

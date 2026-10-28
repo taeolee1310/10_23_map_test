@@ -100,6 +100,7 @@ export type Waterfall = {
 /** strip: stream-strip.png를 읽은 픽셀(폭 w, 높이 h) */
 export function createWaterfall(strip: ImageData): Waterfall {
   const { data: tex, width: TW, height: TH } = strip
+  const ROWS_PER_PX = (TH - 1) / H // 띠의 세로 줄 수 ÷ 물줄기 높이(px)
 
   // --- 물줄기 안쪽 픽셀 ---
   const pw = BOX.w * SS
@@ -113,7 +114,7 @@ export function createWaterfall(strip: ImageData): Waterfall {
 
   const sample = (u: number, v: number, out: number[]) => {
     const x = clamp(u, 0, 1) * (TW - 1.001)
-    const y = clamp((fold(v) - STREAM_Y0) * 2, 0, TH - 1.001)
+    const y = clamp((fold(v) - STREAM_Y0) * ROWS_PER_PX, 0, TH - 1.001)
     const xi = x | 0
     const yi = y | 0
     const fx = x - xi

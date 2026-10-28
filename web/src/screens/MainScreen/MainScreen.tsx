@@ -14,13 +14,19 @@ import {
   type Place,
   type PlaceWithDist,
 } from '../../lib/onsen'
-import { IconHeart, IconDrop, IconLocate, IconPin, IconSearch } from './Icons'
+import GlideSelect from '../../components/GlideSelect'
+import { IconBanana, IconDrop, IconLocate, IconPin, IconSearch } from './Icons'
 import PlaceDetail from './PlaceDetail'
 import PlaceList from './PlaceList'
 import PlacePreview from './PlacePreview'
 import './MainScreen.css'
 
 const DATA_URL = '/data/onsen.json' // export_web_data.py가 만든다
+const SORTS = [
+  { value: 'auto', label: '추천순' },
+  { value: 'dist', label: '가까운 순' },
+  { value: 'name', label: '이름순' },
+]
 const PAGE = 60
 const FAV_KEY = 'onsen_fav'
 
@@ -279,10 +285,10 @@ function MainBody({ data }: { data: Loaded }) {
             <button
               className="qp"
               disabled={!favs.size}
-              style={filters.favOnly ? { background: '#F6E8DF' } : undefined}
+              style={filters.favOnly ? { background: 'var(--color-surface-warm)' } : undefined}
               onClick={() => updateFilters({ favOnly: !filters.favOnly })}
             >
-              <IconHeart />담아둔 곳{favs.size ? <b>{favs.size}</b> : null}
+              <IconBanana on={filters.favOnly} size={18} />담아둔 곳{favs.size ? <b>{favs.size}</b> : null}
             </button>
           </div>
           </div>
@@ -306,18 +312,24 @@ function MainBody({ data }: { data: Loaded }) {
           {note && <div className="note">{note}</div>}
           <div className="listhead">
             <span><b aria-live="polite">{count}</b></span>
-            <select
-              aria-label="정렬"
+            {/* 색은 기존 정렬 드롭다운 그대로: 글자·체크는 링크색(--secondary), 바탕은 카드 흰색, 고르는 알약은 칩 바탕(--soft) */}
+            <GlideSelect
+              ariaLabel="정렬"
+              options={SORTS}
               value={sort}
-              onChange={(e) => {
-                setSort(e.target.value)
-                if (e.target.value === 'dist' && !me) locate()
+              onChange={(v) => {
+                setSort(v)
+                if (v === 'dist' && !me) locate()
               }}
-            >
-              <option value="auto">추천순</option>
-              <option value="dist">가까운 순</option>
-              <option value="name">이름순</option>
-            </select>
+              size="sm"
+              radius={12}
+              menuWidth={128}
+              align="right"
+              accentColor="var(--secondary)"
+              surfaceColor="var(--card)"
+              highlightColor="var(--soft)"
+              textColor="var(--secondary)"
+            />
           </div>
           <PlaceList
             list={view}

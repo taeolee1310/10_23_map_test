@@ -6,7 +6,7 @@ const API = { sdk: 'https://dapi.kakao.com/v2/maps/sdk.js' } // 🔌 지도 SDK 
 const BUBBLE_OVER = 120 // 이보다 많으면, 멀리서 볼 때 구별 묶음 풍선으로 보여 준다
 const BUBBLE_LEVEL = 7 // 지도 단계가 이 이상(멀리)일 때만 풍선, 가까이 가면 핀
 const MAX_PINS = 200 // 핀은 최대 200개
-// 핀은 Figma 'Outline Pin'(304:2) 에셋 2장(윤곽 + 욕조)을 겹쳐 쓴다(MainScreen.css의 .pin__outline, .pin__tub). 고른 핀만 같은 모양을 코랄로 칠한다.
+// 핀은 Figma 'Outline Pin'(304:2) 에셋 3장(몸통 + 윤곽 + 욕조)을 겹쳐 쓴다(MainScreen.css의 .pin__body, .pin__outline, .pin__tub). 색은 컬러 시스템의 핀 토큰.
 
 export type MapBounds = { sw: LatLng; ne: LatLng }
 export type FitRequest = { n: number; pts: LatLng[] }
@@ -150,7 +150,7 @@ export default function KakaoMap(props: Props) {
       const el = document.createElement('button')
       el.className = 'pin' + (sel ? ' sel' : '')
       el.setAttribute('aria-label', d.name)
-      el.innerHTML = '<span class="pin__outline"></span><span class="pin__tub"></span>' + (sel ? '<i class="spl"><b></b><b></b><b></b></i>' : '')
+      el.innerHTML = '<span class="pin__body"></span><span class="pin__outline"></span><span class="pin__tub"></span>' + (sel ? '<i class="spl"><b></b><b></b><b></b></i>' : '')
       el.addEventListener('click', () => cb.current.onSelect(d.id))
       el.addEventListener('mouseenter', () => cb.current.onHover(d.id))
       el.addEventListener('mouseleave', () => cb.current.onHover(null))
@@ -216,5 +216,22 @@ export default function KakaoMap(props: Props) {
     })
   }, [me, mapReady])
 
-  return <div id="map" ref={boxRef} role="application" aria-label="온천 지도" />
+  // 핀치·드래그를 못 쓰는 사람도 확대·축소할 수 있게 누르는 버튼(위치 버튼과 같은 모양)
+  const zoomBy = (d: number) => {
+    const map = mapRef.current
+    if (map) map.setLevel(map.getLevel() + d, { animate: true })
+  }
+  return (
+    <>
+      <div id="map" ref={boxRef} role="application" aria-label="목욕탕 지도" />
+      <div className="zoomtools">
+        <button type="button" className="fab" aria-label="지도 확대" onClick={() => zoomBy(-1)}>
+          ＋
+        </button>
+        <button type="button" className="fab" aria-label="지도 축소" onClick={() => zoomBy(1)}>
+          －
+        </button>
+      </div>
+    </>
+  )
 }

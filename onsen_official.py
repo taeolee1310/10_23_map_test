@@ -1,4 +1,4 @@
-"""행정안전부 전국 온천이용업소 현황(원본 CSV)을 서비스에서 쓰기 좋게 정리해 data/onsen_official_clean.csv로 저장한다.
+"""행정안전부 전국 온천이용업소 현황(원본 CSV)을 서비스에서 쓰기 좋게 정리해 data/collected/onsen_official_clean.csv로 저장한다.
 
 좌표는 원본에 없다. 카카오로 채우는 일은 하루 30줄 한도 규칙이 있어 여기서 하지 않는다.
 """
@@ -6,8 +6,8 @@ import os
 
 import pandas as pd
 
-RAW = "data/행정안전부_전국 온천이용업소 현황_20260827.csv"
-OUT = "data/onsen_official_clean.csv"
+RAW = "data/raw/행정안전부_전국 온천이용업소 현황_20260827.csv"
+OUT = "data/collected/onsen_official_clean.csv"
 BASE_DATE = "2026-08-27"  # 파일 이름의 기준일 (20260827)
 
 # 약칭 → 정식 시·도 이름. ("남구" 같은 부분 일치를 막으려고 정식 이름으로 맞춘다)

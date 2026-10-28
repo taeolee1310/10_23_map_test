@@ -1,0 +1,61 @@
+/* 탕방 컬러 시스템 (라이트 모드 전용)
+   원천: 2D화한 탕 이미지(Figma 376:9650)에서 추출한 값
+   - primitive: 이미지에서 뽑은 원색값
+   - semantic: 서비스 역할별 토큰 (컴포넌트에서는 semantic만 사용) */
+
+:root {
+  /* ───────── Primitive (이미지 추출값) ───────── */
+  --tb-cream-sun: #FDF6D0;      /* 해/조명 — 바나나우유 크림 */
+  --tb-peach-sky: #FDBE91;      /* 노을 주황 */
+  --tb-amber-sky: #FDC789;      /* 노을 호박빛 */
+  --tb-rose-sky: #EDB59E;       /* 노을 분홍 */
+  --tb-steam: #DAB3A0;          /* 김 */
+  --tb-wood: #A47658;           /* 나무 물통 — 식혜 호박갈색 */
+  --tb-stone: #7A6964;          /* 석재 그림자 */
+  --tb-bottle-brown: #533E32;   /* 샴푸병 짙은 갈색 */
+  --tb-water: #7B9FA7;          /* 탕 물 (선택 사용, 물 일러스트 한정) */
+  --tb-white: #FFFFFF;
+  --tb-character-blue: #02A2EA; /* 기존 캐릭터 원본색 — 수정 금지 */
+
+  /* ───────── Semantic ───────── */
+  /* 배경·면 */
+  --color-bg: var(--tb-cream-sun);
+  --color-surface: var(--tb-white);
+  --color-surface-warm: var(--tb-amber-sky);
+
+  /* 텍스트 */
+  --color-text-primary: var(--tb-bottle-brown);
+  --color-text-secondary: var(--tb-stone);
+  --color-text-on-accent: var(--tb-bottle-brown);
+
+  /* 강조 */
+  --color-accent: var(--tb-peach-sky);
+  --color-accent-secondary: var(--tb-rose-sky);
+
+  /* 선 */
+  --color-outline: var(--tb-bottle-brown);  /* 새 일러스트 윤곽선 */
+  --color-border-strong: var(--tb-wood);    /* 입력창 등 인터랙티브 경계 */
+  --color-border-soft: var(--tb-steam);     /* 장식용 구분선 (대비 기준 미달, 정보 전달 금지) */
+
+  /* 지도 핀 */
+  --color-pin-default: var(--tb-wood);
+  --color-pin-default-outline: var(--tb-bottle-brown);
+  --color-pin-selected: var(--tb-cream-sun);
+  --color-pin-selected-outline: var(--tb-bottle-brown);
+
+  /* 요금 미확인 배지 */
+  --color-badge-unknown-bg: var(--tb-amber-sky);
+  --color-badge-unknown-text: var(--tb-bottle-brown);
+  --color-badge-unknown-border: var(--tb-wood);
+
+  /* 장식 */
+  --color-steam: var(--tb-steam);
+  --color-water: var(--tb-water);
+  --color-character: var(--tb-character-blue);
+
+  /* Axial Beam 전용 (그라데이션은 여기만 허용) */
+  --color-beam-core: var(--tb-cream-sun);
+  --color-beam-mid: var(--tb-amber-sky);
+  --color-beam-outer: var(--tb-peach-sky);
+  --color-beam-edge: var(--tb-rose-sky);
+}

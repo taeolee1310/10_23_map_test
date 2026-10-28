@@ -1,5 +1,5 @@
 import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, priceClass, priceLabel, priceState, type LatLng, type PlaceWithDist } from '../../lib/onsen'
-import { HintPin, IconHeart } from './Icons'
+import { HintPin, IconBanana } from './Icons'
 
 type Props = {
   place: PlaceWithDist | null
@@ -39,7 +39,7 @@ export default function PlacePreview({ place: d, total, pricedCount, unconfirmed
           <div className="ad">{d.addr}</div>
         </div>
         <button className="heart" style={{ position: 'static' }} aria-pressed={fav} aria-label="담아두기" onClick={() => onFav(d.id)}>
-          <IconHeart size={20} />
+          <IconBanana on={fav} size={24} />
         </button>
       </div>
       <div className="row">

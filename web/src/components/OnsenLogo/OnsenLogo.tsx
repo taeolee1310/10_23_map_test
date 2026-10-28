@@ -17,7 +17,7 @@ const STEAM_URLS = import.meta.glob<string>('../../assets/onsen-logo/steam/*.svg
 
 /**
  * 온천 캐릭터 로고. Figma 'image 5 [Vectorized]'(292:28)를 그대로 옮겼다.
- * 에셋은 Figma 원본 SVG이고, 모션은 OnsenLogo.css에 있다. 배경은 투명하고 선 색은 원본의 파랑이다.
+ * 에셋은 Figma 원본 SVG이고, 모션은 OnsenLogo.css에 있다. 배경은 투명하다. SVG는 모양(알파)만 쓰고 색은 CSS에서 컬러 시스템 토큰으로 칠한다(아래 --logo-* 참고).
  *
  * 모션은 계속 반복하지 않는다. 처음 나타날 때 한 번(cycle초) 보여 주고 멈추며,
  * playKey 값이 바뀔 때마다(예: 마우스를 올렸을 때) 다시 한 번 재생한다. 재생 중에 또 바뀌면 무시한다.
@@ -138,7 +138,7 @@ export default function OnsenLogo({ height = 64, title, className, playKey = 0, 
               height: pct(box.h, CROP.h),
             }}
           >
-            <img src={src} alt="" />
+            <i className="onsen-logo__fill" style={{ ['--mask' as string]: `url(${src})` }} />
           </span>
         ))}
         {STEAM_GROUPS.map((group) => (
@@ -149,7 +149,7 @@ export default function OnsenLogo({ height = 64, title, className, playKey = 0, 
                 className={`onsen-logo__curl onsen-logo__curl--${group}-${c.id}`}
                 style={{ left: pct(c.x, CROP.w, CROP.x), top: pct(c.y, CROP.h, CROP.y), width: pct(c.size, CROP.w), height: pct(c.size, CROP.h) }}
               >
-                <img src={STEAM_URLS[`../../assets/onsen-logo/steam/${group}-${c.id}.svg`]} alt="" />
+                <i className="onsen-logo__fill" style={{ ['--mask' as string]: `url(${STEAM_URLS[`../../assets/onsen-logo/steam/${group}-${c.id}.svg`]})` }} />
               </span>
             ))}
           </span>

@@ -9,10 +9,10 @@ import re
 
 import pandas as pd
 
-MERGED = "data/onsen_merged.csv"
-PARKING_FILE = "data/onsen_parking.csv"  # onsen_parking.py가 카카오 API로 만든다
-PRICE_FILE = "data/onsen_prices.csv"  # 확인된 가격만 사람이 적는다
-TANGBANG_PRICES = "data/tangbang_places_price_data.json"  # 요금 조사 자료(실측 확인 + 인근 평균 추정)
+MERGED = "data/merged/onsen_merged.csv"
+PARKING_FILE = "data/collected/onsen_parking.csv"  # 주차장 목록 (ego-lite로 수집)
+PRICE_FILE = "data/curated/onsen_prices.csv"  # 확인된 가격만 사람이 적는다
+TANGBANG_PRICES = "data/curated/tangbang_places_price_data.json"  # 요금 조사 자료(실측 확인 + 인근 평균 추정)
 # 한국소비자원 참가격 '목욕(성인 일반대중탕 1회)' 서울 값. 기준월 미표기·잠정치라 추정으로만 쓴다.
 SEOUL_REGION_PRICE = {"adult": 11000.0, "basis": "서울 일반 대중탕 지역 요금·참가격 잠정", "checked": "2026-10-24"}
 OUT = "web/public/data/onsen.json"

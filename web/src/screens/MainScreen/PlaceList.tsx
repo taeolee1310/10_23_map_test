@@ -1,5 +1,5 @@
 import { KIND_CLASS, PRICE_NOTE, fmtDist, priceClass, priceLabel, priceState, type PlaceWithDist } from '../../lib/onsen'
-import { IconHeart } from './Icons'
+import { IconBanana } from './Icons'
 
 type Props = {
   list: PlaceWithDist[]
@@ -33,7 +33,7 @@ export default function PlaceList({ list, total, shown, selId, hotId, favs, anim
     )
   }
   return (
-    <ol id="list" className="anim" key={animKey}>
+    <ol id="list" className="anim" key={animKey} tabIndex={0} aria-label="목록 (방향키로 스크롤)">
       {list.slice(0, shown).map((d, i) => (
         <li
           key={d.id}
@@ -60,7 +60,7 @@ export default function PlaceList({ list, total, shown, selId, hotId, favs, anim
             </div>
           )}
           <button className="heart" aria-pressed={favs.has(d.id)} aria-label={`${d.name} 담아두기`} onClick={() => onFav(d.id)}>
-            <IconHeart size={20} />
+            <IconBanana on={favs.has(d.id)} size={24} />
           </button>
           <i className="steamy" aria-hidden="true">
             <b />

@@ -1,4 +1,4 @@
-"""행안부 온천 목록(onsen_official_clean.csv)과 카카오 온천 목록(onsen_clean.csv)을 합쳐 data/onsen_merged.csv로 저장한다.
+"""행안부 온천 목록(onsen_official_clean.csv)과 카카오 온천 목록(onsen_clean.csv)을 합쳐 data/merged/onsen_merged.csv로 저장한다.
 
 같은 곳 판단: ① 주소(괄호·공백 뺀 글자)가 같거나 ② 시군구가 같고 이름(괄호·(주) 뺀 글자)이 같을 때.
 같은 곳이면 이름·주소·시도는 행안부 것, 좌표·구분·카카오 정보는 카카오 것을 쓴다.
@@ -11,12 +11,12 @@ import pandas as pd
 
 from onsen_official import SIDO, sigungu_of
 
-OFFICIAL = "data/onsen_official_clean.csv"
-KAKAO = "data/onsen_clean.csv"
-SEOUL_BATH = "data/seoul_bath_clean.csv"  # 선택. 없으면 온천만 합친다
-SEOUL_LICENSE = "data/seoul_bath_license_clean.csv"  # 선택. 서울시 인허가에만 있는 목욕탕 (seoul_bath_license.py)
-OUT = "data/onsen_merged.csv"
-EXCLUDE = "data/naver_notfound_exclude.csv"  # 네이버 플레이스에서 못 찾아 뺀 곳 (이름+주소로 맞춤)
+OFFICIAL = "data/collected/onsen_official_clean.csv"
+KAKAO = "data/collected/onsen_clean.csv"
+SEOUL_BATH = "data/collected/seoul_bath_clean.csv"  # 선택. 없으면 온천만 합친다
+SEOUL_LICENSE = "data/collected/seoul_bath_license_clean.csv"  # 선택. 서울시 인허가에만 있는 목욕탕 (seoul_bath_license.py)
+OUT = "data/merged/onsen_merged.csv"
+EXCLUDE = "data/curated/naver_notfound_exclude.csv"  # 네이버 플레이스에서 못 찾아 뺀 곳 (이름+주소로 맞춤)
 
 COLUMNS = ["이름", "시도", "시군구", "주소", "위도", "경도", "전화", "구분", "분류",
            "카카오ID", "카카오장소주소", "출처", "데이터기준일자"]

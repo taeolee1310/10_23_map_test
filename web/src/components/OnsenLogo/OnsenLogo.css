@@ -4,7 +4,12 @@
 .onsen-logo { position: relative; display: block; flex: none; container-type: inline-size; overflow: visible; }
 .onsen-logo__box { --u: calc(100cqw / 784); position: absolute; inset: 0; }
 .onsen-logo__part, .onsen-logo__curl { position: absolute; display: block; }
-.onsen-logo__part img, .onsen-logo__curl img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-width: none; }
+.onsen-logo__fill { position: absolute; inset: 0; display: block; width: 100%; height: 100%; background: var(--logo-line);
+  -webkit-mask: var(--mask) center / 100% 100% no-repeat; mask: var(--mask) center / 100% 100% no-repeat; }
+/* 색은 tangbang-colors.css 토큰: 캐릭터·욕조 = 일러스트 윤곽선, 물(물결·넘치는 물) = 물, 김 = 김 */
+.onsen-logo { --logo-line: var(--color-outline); --logo-water: var(--color-water); --logo-steam: var(--color-steam); }
+.onsen-logo__ripple .onsen-logo__fill, .onsen-logo__part[class*="onsen-logo__overflow"] .onsen-logo__fill { background: var(--logo-water); }
+.onsen-logo__curl .onsen-logo__fill { background: var(--logo-steam); }
 .onsen-logo__steam { position: absolute; inset: 0; pointer-events: none; }
 
 @keyframes ol-rip-o { 0% { opacity: 1; } 25.0% { opacity: 0.55; } 50.0% { opacity: 1; } 75.0% { opacity: 0.65; } 100% { opacity: 1; } }
