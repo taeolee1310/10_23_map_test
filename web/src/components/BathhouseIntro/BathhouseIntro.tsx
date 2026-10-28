@@ -223,8 +223,8 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
           ariaLabel="배경음악 볼륨"
           thickness={4}
           activeThickness={8}
-          leftIcon={<span className="bh__sound-icon" aria-hidden="true" style={{ '--icon': `url(${soundOff})` } as React.CSSProperties} />}
-          rightIcon={<span className="bh__sound-icon" aria-hidden="true" style={{ '--icon': `url(${soundOn})` } as React.CSSProperties} />}
+          leftIcon={<span className="bh__sound-icon" aria-hidden="true" style={{ '--icon': `url("${soundOff}")` } as React.CSSProperties} />}
+          rightIcon={<span className="bh__sound-icon" aria-hidden="true" style={{ '--icon': `url("${soundOn}")` } as React.CSSProperties} />}
         />
       </div>
 

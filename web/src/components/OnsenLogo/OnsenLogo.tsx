@@ -138,7 +138,7 @@ export default function OnsenLogo({ height = 64, title, className, playKey = 0, 
               height: pct(box.h, CROP.h),
             }}
           >
-            <i className="onsen-logo__fill" style={{ ['--mask' as string]: `url(${src})` }} />
+            <i className="onsen-logo__fill" style={{ ['--mask' as string]: `url("${src}")` }} />
           </span>
         ))}
         {STEAM_GROUPS.map((group) => (
@@ -149,7 +149,7 @@ export default function OnsenLogo({ height = 64, title, className, playKey = 0, 
                 className={`onsen-logo__curl onsen-logo__curl--${group}-${c.id}`}
                 style={{ left: pct(c.x, CROP.w, CROP.x), top: pct(c.y, CROP.h, CROP.y), width: pct(c.size, CROP.w), height: pct(c.size, CROP.h) }}
               >
-                <i className="onsen-logo__fill" style={{ ['--mask' as string]: `url(${STEAM_URLS[`../../assets/onsen-logo/steam/${group}-${c.id}.svg`]})` }} />
+                <i className="onsen-logo__fill" style={{ ['--mask' as string]: `url("${STEAM_URLS[`../../assets/onsen-logo/steam/${group}-${c.id}.svg`]}")` }} />
               </span>
             ))}
           </span>
