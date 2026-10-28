@@ -46,7 +46,7 @@ export default function MainScreen() {
   if (loadError) {
     return (
       <div className="onsen-main" id="shell">
-        <p className="note">⛔ 온천 목록을 불러오지 못했어요. 터미널에서 python export_web_data.py를 먼저 실행해 주세요</p>
+        <p className="note">⛔ 목욕탕 목록을 불러오지 못했어요. 터미널에서 python export_web_data.py를 먼저 실행해 주세요</p>
       </div>
     )
   }
@@ -60,7 +60,7 @@ export default function MainScreen() {
   if (!data.places.length) {
     return (
       <div className="onsen-main" id="shell">
-        <p className="note">온천 목록이 비어 있어요. python onsen_merge.py와 python export_web_data.py를 다시 실행해 주세요</p>
+        <p className="note">목욕탕 목록이 비어 있어요. python onsen_merge.py와 python export_web_data.py를 다시 실행해 주세요</p>
       </div>
     )
   }
@@ -183,15 +183,15 @@ function MainBody({ data }: { data: Loaded }) {
   }
   const locate = useCallback((after?: (p: LatLng) => void) => {
     if (!navigator.geolocation) {
-      setNote('이 브라우저에서는 위치를 쓸 수 없어요. 검색으로 온천을 찾아 보세요.')
+      setNote('이 브라우저에서는 위치를 쓸 수 없어요. 검색으로 목욕탕을 찾아 보세요.')
       return
     }
-    setNote('가까운 온천까지 직선거리를 보여 드리려고 지금 위치를 한 번만 사용해요. 저장하거나 서버로 보내지 않아요.')
+    setNote('가까운 목욕탕까지 직선거리를 보여 드리려고 지금 위치를 한 번만 사용해요. 저장하거나 서버로 보내지 않아요.')
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const p = { lat: pos.coords.latitude, lng: pos.coords.longitude }
         if (p.lat < 33 || p.lat > 39 || p.lng < 124 || p.lng > 132) {
-          setNote('한국 밖에 계신 것 같아요. 검색으로 온천을 찾아 보세요.')
+          setNote('한국 밖에 계신 것 같아요. 검색으로 목욕탕을 찾아 보세요.')
           setMe(null)
           return
         }
@@ -202,7 +202,7 @@ function MainBody({ data }: { data: Loaded }) {
       (err) =>
         setNote(
           err.code === 1
-            ? '위치 권한이 꺼져 있어요. 괜찮아요, 검색으로 온천을 찾을 수 있어요.'
+            ? '위치 권한이 꺼져 있어요. 괜찮아요, 검색으로 목욕탕을 찾을 수 있어요.'
             : '지금은 위치를 가져오지 못했어요. 검색으로 찾아 보세요.',
         ),
       { timeout: 10000, maximumAge: 60000 },
@@ -266,19 +266,19 @@ function MainBody({ data }: { data: Loaded }) {
               <OnsenLogo height="clamp(52px, 5.6vw, 72px)" title="탕방" playKey={logoRun} />
             </span>
             <div>
-              <p className="eyebrow"><b>탕방</b> · 서울의 온천·목욕탕을 찾아서</p>
+              <p className="eyebrow"><b>탕방</b> · 서울의 목욕탕을 찾아서</p>
               <h1>오늘, 어디서 몸을 담글까요?</h1>
-              <p className="sub">아직 몰랐던 서울의 온천·목욕탕을 발견하는 즐거움.</p>
+              <p className="sub">아직 몰랐던 서울의 목욕탕을 발견하는 즐거움.</p>
             </div>
           </div>
           <div>
           <label className="search">
             <IconSearch />
-            <span className="sr">온천 검색</span>
+            <span className="sr">목욕탕 검색</span>
             <input type="search" placeholder="이름이나 구로 찾기" autoComplete="off" value={query} onChange={(e) => onQuery(e.target.value)} />
           </label>
           <div className="quick">
-            <button className="qp" onClick={goNear}><IconPin />내 주변 온천</button>
+            <button className="qp" onClick={goNear}><IconPin />내 주변 목욕탕</button>
             <button className="qp" disabled={!pricedCount} title={pricedCount ? '' : '직접 확인한 곳이 생기면 열려요'} onClick={() => updateFilters({ priceOnly: true })}>
               <IconDrop />직접 확인한 곳{pricedCount ? <b>{pricedCount}</b> : null}
             </button>
@@ -296,7 +296,7 @@ function MainBody({ data }: { data: Loaded }) {
       </header>
 
       <div id="app">
-        <section id="panel" aria-label="온천 목록">
+        <section id="panel" aria-label="목욕탕 목록">
           <div className="filters">
             <div className="seg" role="group" aria-label="시설 유형">
               {KINDS.map(([v, l]) => (

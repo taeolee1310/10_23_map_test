@@ -22,7 +22,7 @@ export default function PlaceList({ list, total, shown, selId, hotId, favs, anim
     return (
       <ol id="list">
         <li className="empty">
-          <b>조건에 맞는 온천이 없어요</b>
+          <b>조건에 맞는 목욕탕이 없어요</b>
           {total ? "지도를 움직이거나 '지도 범위로 보기'를 꺼 보세요." : '필터를 바꿔 보세요.'}
           <br />
           <button className="btn ghost sm" style={{ marginTop: 12 }} onClick={onReset}>

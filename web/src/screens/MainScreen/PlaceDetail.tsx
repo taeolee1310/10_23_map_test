@@ -96,7 +96,7 @@ function ParkingBlock({ d }: { d: PlaceWithDist }) {
           <p className="small">주차 요금은 카카오 데이터에 없어요. 장소 페이지를 확인해 주세요.</p>
         </>
       )}
-      <p className="small">온천 시설 자체의 주차 정책이 아니라, 근처에 등록된 주차장이에요.</p>
+      <p className="small">목욕탕 시설 자체의 주차 정책이 아니라, 근처에 등록된 주차장이에요.</p>
     </section>
   )
 }
@@ -118,7 +118,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
   const kakao = d ? safeUrl(d.url) : ''
   const tel = d ? safeTel(d.tel) : ''
   return (
-    <article id="detail" ref={boxRef} className={open ? 'open' : ''} aria-hidden={!open} tabIndex={open ? 0 : -1} aria-label="온천 상세 (방향키로 스크롤)">
+    <article id="detail" ref={boxRef} className={open ? 'open' : ''} aria-hidden={!open} tabIndex={open ? 0 : -1} aria-label="목욕탕 상세 (방향키로 스크롤)">
       {d && l && (
         <>
           <button className="back" ref={backRef} onClick={onClose}>← 목록으로</button>

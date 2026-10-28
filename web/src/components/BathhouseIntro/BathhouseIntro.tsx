@@ -20,7 +20,7 @@ const SLOW_DRAW_MS = 12
 const SAMPLE_FRAMES = 30
 const MAX_LEVEL = 2
 const BGM_SRC = `${import.meta.env.BASE_URL}audio/intro.wav` // web/public/audio/intro.wav (인트로에서만 재생)
-const BGM_VOLUME = 50 // 처음 음량(0~100)
+const BGM_VOLUME = 30 // 처음 음량(0~100). 슬라이더 화면 값도 이 값에서 시작한다
 
 /** 무대(1536×1024) 안의 위치·크기를 화면 크기에 맞는 길이로 바꾼다 */
 const place = (b: { x: number; y: number; w: number; h: number }) => ({
@@ -207,7 +207,7 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
           <br />
           따뜻한 곳으로.
         </h1>
-        <p className="bh__sub">서울의 온천·목욕탕을 찾아서.</p>
+        <p className="bh__sub">서울의 목욕탕을 찾아서.</p>
         <button className="bh__link" type="button" onClick={handleEnter} disabled={isLeaving}>
           <span>목욕탕 찾아보기</span>
           <span aria-hidden="true">→</span>

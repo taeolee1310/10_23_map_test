@@ -21,7 +21,7 @@ export default function PlacePreview({ place: d, total, pricedCount, unconfirmed
         <div className="hint">
           <HintPin />
           <div>
-            <b>핀이나 목록의 온천을 눌러 보세요</b>
+            <b>핀이나 목록의 목욕탕을 눌러 보세요</b>
             서울 {total}곳 · 요금 확인 {pricedCount}곳 · 미확인 {unconfirmedCount}곳
             <br />
             요금은 직접 확인한 곳만 숫자로 보여 드려요. 이동 시간은 길찾기에서 볼 수 있어요.
