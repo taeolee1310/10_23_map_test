@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import stripUrl from '../../assets/bathhouse/stream-strip.png'
 import GhostCursor from '../GhostCursor'
+import OnsenLogo from '../OnsenLogo'
 import { buildScene, STAGE_H, STAGE_W, type Scene } from './scene'
 import { CANVAS_BOX, createWaterfall, LOOP_SECONDS } from './waterfall'
 import soundOn from '../../assets/sound/sound-on.svg'
@@ -46,6 +47,7 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
   const fallRef = useRef<HTMLCanvasElement>(null)
 
   const [volume, setVolume] = useState(BGM_VOLUME)
+  const [logoRun, setLogoRun] = useState(0) // 캐릭터를 누를 때마다 모션을 한 번 더
   const bgmRef = useRef<Bgm | null>(null)
   const volumeRef = useRef(volume)
   volumeRef.current = volume
@@ -198,7 +200,22 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
       </div>
 
       {/* 화면 전체에 깔리는 커서 연기. 그려 둔 에셋에 묶여 있지 않고 화면 위를 그대로 덮는다(마우스가 닿지 않는 장면 레이어는 그대로) */}
-      <GhostCursor color={smoke} size={72} trailLength={45} inertia={0.5} turbulence={0.5} drift={0.3} bloomStrength={0.5} bloomRadius={0.4} grainIntensity={0.04} brightness={0.7} zIndex={1} excludeSelector=".bh__link" excludeNearSelector=".bh__volume" excludeNearRatio={0.1} />
+      <GhostCursor color={smoke} size={72} trailLength={45} inertia={0.5} turbulence={0.5} drift={0.3} bloomStrength={0.5} bloomRadius={0.4} grainIntensity={0.04} brightness={0.7} zIndex={1} excludeSelector=".bh__link, .bh__mascot" excludeNearSelector=".bh__volume" excludeNearRatio={0.1} />
+
+      {/* 욕탕 왼쪽 모서리에 앉은 로고 캐릭터. 누르면 배경음악이 시작된다(브라우저는 첫 클릭 전에는 소리를 막는다) */}
+      <div className="bh__stage bh__stage--ui">
+        <button
+          type="button"
+          className="bh__mascot"
+          aria-label="배경음악 켜기"
+          onClick={() => {
+            bgmRef.current?.play()
+            setLogoRun((n) => n + 1)
+          }}
+        >
+          <OnsenLogo height="calc(200 * var(--u))" playKey={logoRun} loop calm />
+        </button>
+      </div>
 
       <div className="bh__copy">
         <p className="bh__brand">탕방</p>

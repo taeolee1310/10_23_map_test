@@ -313,6 +313,38 @@
   }
 }
 
+/* 클릭을 유도하는 캐릭터: 장면과 같은 1536×1024 무대 좌표(--u)로 욕탕 왼쪽 모서리에 놓는다 */
+.bh__stage--ui {
+  z-index: 2;
+  opacity: 1;
+  transition: none;
+  pointer-events: none;
+}
+.bh__mascot {
+  position: absolute;
+  left: calc(600 * var(--u));
+  top: calc(600 * var(--u));
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .bh__mascot:hover {
+    transform: translateY(-3px) scale(1.05);
+  }
+}
+.bh__mascot:active {
+  transform: scale(0.97);
+}
+.bh__mascot:focus-visible {
+  outline: 2px solid var(--tb-cream-sun);
+  outline-offset: 6px;
+  border-radius: 24px;
+}
+
 .bh__volume {
   position: absolute;
   top: 16px;
