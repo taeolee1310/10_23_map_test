@@ -62,9 +62,8 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
     const bgm = createBgm(BGM_SRC, volumeRef.current / 100)
     bgmRef.current = bgm
     bgm.play()
-    // 오리를 누를 때는 효과음만 난다. 배경음악은 오리 밖의 첫 클릭·키 입력에 시작한다
-    const start = (e: Event) => {
-      if (e.target instanceof Element && e.target.closest('.bh__duck-hit')) return
+    // 오리를 누를 때도 첫 클릭이라 배경음악이 함께 시작한다(오리 효과음은 따로 난다)
+    const start = () => {
       bgm.play()
       setSoundAsked(true)
     }
