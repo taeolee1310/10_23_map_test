@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
+import { FactsDetails, TopWorries, unknownList } from './PlaceFacts'
 
 type Props = {
   place: PlaceWithDist | null
@@ -126,7 +127,9 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
           <h2>{d.name}</h2>
           {d.women_only && <span className="pill women">여성전용</span>}
           <div className="small" style={{ margin: 0 }}>{d.addr}</div>
+          <TopWorries facts={d.facts} />
           <PriceBlock d={d} onReport={onReport} />
+          <FactsDetails facts={d.facts} />
           <ParkingBlock d={d} />
           <section className="sec">
             <h3>내 위치에서</h3>
@@ -151,7 +154,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
           <section className="sec">
             <h3>아직 모르는 정보</h3>
             <p className="small" style={{ margin: 0 }}>
-              운영시간·휴무일, 노천탕, 가족탕·개인탕, 주차·편의시설은 자료가 없어 비워 뒀어요. 카카오맵 장소 페이지에서 볼 수 있어요.
+              자료가 없어 비워 둔 항목: {unknownList(d.facts).join(', ')}. 카카오맵 장소 페이지에서 볼 수 있어요.
             </p>
             <div className="actions">
               {kakao && <a className="btn ghost sm" target="_blank" rel="noopener noreferrer" href={kakao}>카카오맵 장소 페이지</a>}

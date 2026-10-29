@@ -15,6 +15,7 @@ PRICE_FILE = "data/curated/onsen_prices.csv"  # 확인된 가격만 사람이 �
 TANGBANG_PRICES = "data/curated/tangbang_places_price_data.json"  # 요금 조사 자료(실측 확인 + 인근 평균 추정)
 # 한국소비자원 참가격 '목욕(성인 일반대중탕 1회)' 서울 값. 기준월 미표기·잠정치라 추정으로만 쓴다.
 SEOUL_REGION_PRICE = {"adult": 11000.0, "basis": "서울 일반 대중탕 지역 요금·참가격 잠정", "checked": "2026-10-24"}
+FACTS_FILE = "data/curated/place_facts.json"  # 사람이 직접 확인한 세부 정보(세신·수건·드라이기 등). 카카오ID가 열쇠
 OUT = "web/public/data/onsen.json"
 PRICE_COLS = ("성인_평일", "성인_주말", "수건", "주차", "어린이")
 
@@ -45,6 +46,13 @@ def load_prices():
             "checked": "" if pd.isna(r["확인일"]) else str(r["확인일"]),
         }
     return prices
+
+
+def load_facts():
+    """직접 확인한 곳의 세부 정보. 파일에 없는 곳은 facts 키를 아예 넣지 않는다(추측으로 채우지 않는다)."""
+    if not os.path.exists(FACTS_FILE):
+        return {}
+    return json.load(open(FACTS_FILE, encoding="utf-8-sig")).get("places", {})
 
 
 def load_parking():
@@ -106,6 +114,7 @@ def build():
     df = pd.read_csv(MERGED, encoding="utf-8-sig", keep_default_na=False, dtype=str)
     prices = load_prices()
     parking, radius = load_parking()
+    facts = load_facts()
     tb_addr, tb_sigungu = load_tangbang_prices()
     sigungu_count = {}
     for r in df.to_dict("records"):
@@ -147,6 +156,7 @@ def build():
             "price_estimate": estimate,
             "parking": parking.get(kid) if kid else None,  # None=조회 안 됨, []=반경 안에 없음
             "parking_radius": radius,
+            **({"facts": facts[kid]} if kid in facts else {}),
         })
     return places
 

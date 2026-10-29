@@ -155,6 +155,24 @@
 .onsen-main .pr b { font-weight: 700; white-space: nowrap; }
 .onsen-main .total { margin-top: 8px; padding-top: 10px; border-top: 1px dashed var(--stone); font-weight: 700; color: var(--secondary); }
 .onsen-main .unknown-box b { font-size: 16px; }
+/* 가기 전 걱정 TOP 3: 세로를 적게 쓰는 한 줄짜리 목록 */
+.onsen-main .sec.worry { margin-top: 10px; padding: 10px 14px; border: 2px solid var(--color-border-strong); background: var(--card); }
+.onsen-main .worry h3 { margin: 0 0 4px; color: var(--ink); font-weight: 800; }
+.onsen-main .worry ul { margin: 0; padding: 0; list-style: none; }
+.onsen-main .worry li { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; border-top: 1px solid var(--line); }
+.onsen-main .worry li:first-child { border-top: 0; }
+.onsen-main .worry li span { font-size: 12.5px; color: var(--muted); flex: none; }
+.onsen-main .worry li b { font-size: 15px; font-weight: 800; color: var(--ink); text-align: right; }
+/* 세부 정보 접이식 */
+.onsen-main .facts details { border-top: 1px solid var(--line); }
+.onsen-main .facts details:first-of-type { border-top: 0; }
+.onsen-main .facts summary { display: flex; justify-content: space-between; align-items: center; min-height: 44px; cursor: pointer; font-weight: 700; color: var(--ink); list-style: none; }
+.onsen-main .facts summary::-webkit-details-marker { display: none; }
+.onsen-main .facts summary::after { content: ""; width: 8px; height: 8px; margin-right: 4px; border-right: 2px solid var(--muted-strong); border-bottom: 2px solid var(--muted-strong); transform: rotate(45deg); transition: transform .2s; }
+.onsen-main .facts details[open] summary::after { transform: rotate(-135deg); }
+.onsen-main .facts .pr b { white-space: normal; text-align: right; }
+.onsen-main .facts details > .pr:last-child { margin-bottom: 8px; }
+@media (prefers-reduced-motion: reduce) { .onsen-main .facts summary::after { transition: none; } }
 .onsen-main .small { font-size: 12.5px; color: var(--muted); margin: 6px 0 0; }
 .onsen-main .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .onsen-main #side { min-height: 0; display: flex; flex-direction: column; gap: 12px; }

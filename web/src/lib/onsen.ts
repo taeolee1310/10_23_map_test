@@ -33,6 +33,20 @@ export type Place = {
   price_estimate: PriceEstimate | null
   parking: Parking[] | null // null=조회 안 됨, []=반경 안에 없음
   parking_radius: number | null
+  facts?: Facts
+}
+
+// 가기 전에 알고 싶은 세부 정보. 직접 확인한 곳에만 있고, 없는 칸은 키 자체가 없다(추측으로 채우지 않는다).
+export type TowelMode = { mode: 'unlimited' | 'limited'; count?: number }
+export type Facts = {
+  seshin?: { payment?: 'cash_only' | 'card_ok'; price_full?: number; price_mini?: number; beds?: number; reservation?: boolean }
+  towel?: { women?: TowelMode; men?: TowelMode } // 여탕·남탕이 다를 수 있다
+  hairdryer?: { paid: boolean }
+  facility?: { baths?: { name: string; temp_c?: number }[]; sauna?: string[]; open_air?: boolean; water?: string }
+  supplies?: { shampoo?: boolean; bodywash?: boolean }
+  convenience?: { parking_height_m?: number; open_24h?: boolean; sleeping_room?: boolean }
+  source?: string
+  checked?: string
 }
 
 export type PlaceWithDist = Place & { dist: number | null }
