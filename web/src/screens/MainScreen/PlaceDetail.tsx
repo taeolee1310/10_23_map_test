@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
-import { FactsDetails, TopWorries, unknownList } from './PlaceFacts'
+import { FactsDetails, TopWorries, unknownList, worries } from './PlaceFacts'
 
 type Props = {
   place: PlaceWithDist | null
@@ -16,9 +16,9 @@ function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string) 
   const est = d.price_estimate // 평균 추정값은 숫자로 보여 주지 않고 '미확인'으로만 쓴다
   if (!p && est) {
     return (
-      <section className="sec unknown-box">
+      <section className="sec core unknown-box">
         <h3>이용 요금</h3>
-        <b>요금 미확인</b>
+        <b className="price-hero unknown">요금 미확인</b>
         <div className="price-note">
           {PRICE_NOTE.estimate}
           <button className="linkbtn" onClick={() => onReport(d.id)}>요금 제보</button>
@@ -29,9 +29,9 @@ function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string) 
   }
   if (!p) {
     return (
-      <section className="sec unknown-box">
+      <section className="sec core unknown-box">
         <h3>이용 요금</h3>
-        <b>가격 정보 없음</b>
+        <b className="price-hero unknown">가격 정보 없음</b>
         <p className="small">입장료를 알 수 있는 자료가 아직 없어요. 가기 전에 카카오맵 장소 페이지나 공식 채널에서 찾아봐 주세요.</p>
       </section>
     )
@@ -43,10 +43,15 @@ function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string) 
     </div>
   )
   return (
-    <section className="sec">
+    <section className="sec core">
       <h3>이용 요금</h3>
+      {p.adult != null && (
+        <div className="price-hero">
+          <b>{won(p.adult)}</b>
+          <span>성인 1인 (평일)</span>
+        </div>
+      )}
       <div className="price-note" style={{ marginBottom: 6 }}>{PRICE_NOTE.confirmed}</div>
-      {p.adult != null && row('성인 1인 (평일)', won(p.adult))}
       {p.weekend != null && row('성인 1인 (주말)', won(p.weekend))}
       {p.towel != null && row('수건', p.towel === 0 ? '무료' : '별도 ' + won(p.towel))}
       {p.parking != null && row('주차', p.parking === 0 ? '무료' : won(p.parking))}
@@ -118,6 +123,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
   }, [open, d?.id, onClose])
 
   const l = d ? mapLinks(d, me) : null
+  const hasWorries = d ? worries(d.facts).length > 0 : false
   const kakao = d ? safeUrl(d.url) : ''
   const tel = d ? safeTel(d.tel) : ''
   return (
@@ -145,43 +151,59 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
           <h2>{d.name}</h2>
           {d.women_only && <span className="pill women">여성전용</span>}
           <div className="small" style={{ margin: 0 }}>{d.addr}</div>
-          <TopWorries facts={d.facts} onAsk={() => onReport(d.id)} />
+          {/* 바로 할 일: 길찾기·전화 */}
+          <div className="actions d-actions">
+            <a className="btn sm" target="_blank" rel="noopener noreferrer" href={l.car}>자동차 길찾기</a>
+            <a className="btn ghost sm" target="_blank" rel="noopener noreferrer" href={l.pt}>대중교통 길찾기</a>
+            {tel && <a className="btn ghost sm" href={`tel:${tel}`}>전화 {tel}</a>}
+          </div>
+
+          {/* 1. 이용 결정에 필요한 핵심: 가기 전 걱정, 요금 */}
+          {hasWorries && <TopWorries facts={d.facts} />}
           <PriceBlock d={d} onReport={onReport} />
-          <FactsDetails facts={d.facts} />
-          <ParkingBlock d={d} />
-          <section className="sec">
-            <h3>내 위치에서</h3>
-            {d.dist != null ? (
-              <>
-                <div className="pr"><span>직선거리</span><b>{fmtDist(d.dist)}</b></div>
-                <p className="small">지도에서 잰 직선거리예요. 실제 도로 거리와 이동 시간은 아래 길찾기에서 볼 수 있어요.</p>
-              </>
-            ) : (
-              <>
-                <p className="small" style={{ margin: '0 0 8px' }}>
-                  {d.lat == null ? '아직 지도에서 위치를 찾지 못해 직선거리를 알 수 없어요.' : '현재 위치를 허용하면 직선거리를 보여 드려요.'}
-                </p>
-                {d.lat != null && <button className="btn ghost sm" onClick={onLocate}>내 위치로 거리 보기</button>}
-              </>
-            )}
-            <div className="actions">
-              <a className="btn sm" target="_blank" rel="noopener noreferrer" href={l.car}>자동차 길찾기</a>
-              <a className="btn ghost sm" target="_blank" rel="noopener noreferrer" href={l.pt}>대중교통 길찾기</a>
-            </div>
-          </section>
-          <section className="sec">
-            <h3>아직 모르는 정보</h3>
-            <p className="small" style={{ margin: 0 }}>
-              자료가 없어 비워 둔 항목: {unknownList(d.facts).join(', ')}. 카카오맵 장소 페이지에서 볼 수 있어요.
-            </p>
-            <div className="actions">
-              {kakao && <a className="btn ghost sm" target="_blank" rel="noopener noreferrer" href={kakao}>카카오맵 장소 페이지</a>}
-              {tel && <a className="btn ghost sm" href={`tel:${tel}`}>{tel}</a>}
-            </div>
-          </section>
+
+          {/* 2. 이용 전에 확인할 정보 */}
+          <div className="grp">
+            <p className="grp-label">가기 전에 확인해요</p>
+            {!hasWorries && <TopWorries facts={d.facts} onAsk={() => onReport(d.id)} />}
+            <FactsDetails facts={d.facts} />
+            <ParkingBlock d={d} />
+            <section className="sec">
+              <h3>내 위치에서</h3>
+              {d.dist != null ? (
+                <>
+                  <div className="pr"><span>직선거리</span><b>{fmtDist(d.dist)}</b></div>
+                  <p className="small">지도에서 잰 직선거리예요. 실제 도로 거리와 이동 시간은 위 길찾기에서 볼 수 있어요.</p>
+                </>
+              ) : (
+                <>
+                  <p className="small" style={{ margin: '0 0 8px' }}>
+                    {d.lat == null ? '아직 지도에서 위치를 찾지 못해 직선거리를 알 수 없어요.' : '현재 위치를 허용하면 직선거리를 보여 드려요.'}
+                  </p>
+                  {d.lat != null && <button className="btn ghost sm" onClick={onLocate}>내 위치로 거리 보기</button>}
+                </>
+              )}
+            </section>
+          </div>
+
+          {/* 3. 참고(부가) 정보: 작고 옅게 */}
+          <div className="grp">
+            <p className="grp-label">참고</p>
+            <section className="sec more">
+              <h3>아직 모르는 정보</h3>
+              <p className="small" style={{ margin: 0 }}>
+                자료가 없어 비워 둔 항목: {unknownList(d.facts).join(', ')}. 카카오맵 장소 페이지에서 볼 수 있어요.
+              </p>
+              {kakao && (
+                <div className="actions">
+                  <a className="btn ghost sm" target="_blank" rel="noopener noreferrer" href={kakao}>카카오맵 장소 페이지</a>
+                </div>
+              )}
+            </section>
           <p className="small">
             출처: {d.source === '카카오' ? '카카오 로컬 API (장소 검색)' : d.source === '서울시 인허가' ? '서울시 목욕장업 인허가 정보(서울 열린데이터광장), 카카오 로컬 API(주소→좌표)' : '행정안전부 온천이용업소 현황' + (d.source === '행안부+카카오' ? ', 카카오 로컬 API' : '')} · 데이터 기준일 {d.checked_at}
           </p>
+          </div>
         </>
       )}
     </article>

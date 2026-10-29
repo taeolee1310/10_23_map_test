@@ -55,11 +55,12 @@ export type LatLng = { lat: number; lng: number }
 export type Filters = {
   q: string
   kind: string
+  gu: string // 서울 25개 구 중 하나(빈 값 = 전체 지역)
   priceOnly: boolean
   favOnly: boolean
 }
 
-export const DEFAULT_FILTERS: Filters = { q: '', kind: '', priceOnly: false, favOnly: false }
+export const DEFAULT_FILTERS: Filters = { q: '', kind: '', gu: '', priceOnly: false, favOnly: false }
 
 // 시설 유형 버튼. 값은 데이터의 '구분'이 아니라 묶음 이름이다(아래 kindGroup).
 export const KINDS: [string, string][] = [
@@ -130,6 +131,7 @@ export function filterPlaces<T extends Place>(places: T[], f: Filters, favs: Set
   return places.filter(
     (d) =>
       (!f.kind || kindGroup(d) === f.kind) &&
+      (!f.gu || d.gu === f.gu) &&
       (!f.priceOnly || d.price) &&
       (!f.favOnly || favs.has(d.id)) &&
       (!q || (d.name + ' ' + d.addr).toLowerCase().includes(q)),

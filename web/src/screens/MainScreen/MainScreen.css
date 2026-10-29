@@ -7,6 +7,7 @@
   --cta-strong: var(--button-primary-bg-hover);   /* 마우스를 올렸을 때 */
   --cta-press: var(--button-primary-bg-active);   /* 누르고 있을 때 */
   --on-cta: var(--button-primary-text);           /* 테라코타 위의 글자 */
+  --gut: 16px;                                    /* 패널 안 왼쪽·오른쪽 기준 여백: 필터·목록 제목·카드 바깥선이 모두 이 값에서 시작한다 */
   --selected: var(--chip-bg-selected);            /* 선택된 필터·스위치(Bath Teal) */
   --on-selected: var(--chip-text-selected);       /* 청록 위의 글자 */
   --band: var(--nav-bg);                          /* 머리말 바탕(Sand Beige) */
@@ -65,9 +66,13 @@
 .onsen-main #app { flex: 1 1 0; min-height: 420px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
 .onsen-main #panel { position: relative; display: flex; flex-direction: column; min-height: 0; background: var(--card); border: 1px solid var(--card-border);
   border-radius: var(--radius-lg); box-shadow: var(--shadow-card); overflow: hidden; }
-.onsen-main .filters { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; padding: 14px 16px 12px; border-bottom: 1px solid var(--line); }
-.onsen-main .sel select { appearance: none; border: 1px solid var(--input-border); background: var(--inset) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2357483B' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 12px center;
-  border-radius: 999px; padding: 7px 32px 7px 14px; font: inherit; font-weight: 600; color: var(--ink); }
+.onsen-main .filters { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; padding: 14px var(--gut) 12px; border-bottom: 1px solid var(--line); }
+.onsen-main .sel { display: inline-flex; }
+.onsen-main .sel select { appearance: none; -webkit-appearance: none; min-height: 36px; max-width: 100%; border: 1px solid var(--input-border); background: var(--input-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2357483B' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 12px center;
+  border-radius: 999px; padding: 0 32px 0 14px; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; }
+/* 지역을 골랐을 때는 선택 색(Bath Teal)으로 보여 지금 어느 구를 보는지 바로 알 수 있다 */
+.onsen-main .sel.on select { background-color: var(--card-bg-selected); border-color: var(--card-border-selected); color: var(--secondary); font-weight: 700; }
+.onsen-main .sel select:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
 .onsen-main .seg { display: inline-flex; background: var(--soft); border-radius: 999px; padding: 3px; }
 .onsen-main .seg button { position: relative; overflow: hidden; border: 0; background: transparent; border-radius: 999px; padding: 5px 12px; font-size: 13px; transition: background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out); }
 .onsen-main .seg button[aria-pressed="true"] { background: var(--selected); color: var(--on-selected); font-weight: 700; }
@@ -78,10 +83,10 @@
 .onsen-main .sw input:checked + i { background: var(--switch-track-on); }
 .onsen-main .sw input:checked + i::after { transform: translateX(14px); }
 .onsen-main .sw input:focus-visible + i { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
-.onsen-main .note { margin: 10px 16px 0; font-size: 13px; background: var(--info); border-radius: 12px; padding: 10px 12px; }
-.onsen-main .listhead { display: flex; justify-content: space-between; align-items: center; padding: 10px 18px 6px; font-size: 13px; color: var(--muted); }
+.onsen-main .note { margin: 10px var(--gut) 0; font-size: 13px; background: var(--info); border-radius: 12px; padding: 10px 12px; }
+.onsen-main .listhead { display: flex; justify-content: space-between; align-items: center; padding: 10px var(--gut) 6px; font-size: 13px; color: var(--muted); }
 .onsen-main .listhead b { color: var(--ink); font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
-.onsen-main #list { list-style: none; margin: 0; padding: 4px 12px 16px; overflow-y: auto; flex: 1; display: grid; gap: 8px; align-content: start; }
+.onsen-main #list { list-style: none; margin: 0; padding: 4px var(--gut) 16px; overflow-y: auto; flex: 1; display: grid; gap: 8px; align-content: start; }
 .onsen-main .item { position: relative; border-radius: 18px; border: 1px solid transparent; background: transparent; transition: background var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out); }
 .onsen-main .item.hot { background: var(--inset); box-shadow: var(--shadow-s); transform: translateY(-1px); }
 @media (hover: hover) and (pointer: fine) { .onsen-main .item:hover { background: var(--inset); box-shadow: var(--shadow-s); transform: translateY(-1px); } }
@@ -161,7 +166,7 @@
 .onsen-main .sec a.btn { text-decoration: none; }
 .onsen-main .sec a.btn:not(.ghost) { color: var(--button-primary-text); }
 .onsen-main .sec a.btn.ghost { color: var(--button-outline-text); }
-.onsen-main #detail { position: absolute; inset: 0; background: var(--card); overflow-y: auto; transform: translateX(102%); opacity: 0; visibility: hidden; z-index: 5; padding: 16px 18px 24px;
+.onsen-main #detail { position: absolute; inset: 0; background: var(--card); overflow-y: auto; transform: translateX(102%); opacity: 0; visibility: hidden; z-index: 5; padding: 16px var(--gut) 24px;
   transition: transform var(--dur-drawer) var(--ease-drawer), opacity var(--dur-base) var(--ease-out), visibility 0s linear var(--dur-drawer); }
 .onsen-main #detail.open { transform: none; opacity: 1; visibility: visible; transition-delay: 0s; }
 .onsen-main #detail h2 { margin: 8px 0 2px; font-size: 22px; line-height: 1.25; letter-spacing: -.02em; }
@@ -279,7 +284,8 @@
    닫는 동안에는 투명해지지 않고 다 나간 뒤에 숨긴다. */
 .onsen-main #detail { transition: transform 360ms var(--ease-drawer), opacity 0s linear 360ms, visibility 0s linear 360ms; }
 .onsen-main #detail.open { transition-delay: 0s; }
-.onsen-main .filters { padding: 12px; }
+.onsen-main { --gut: 12px; }
+.onsen-main .filters { padding: 12px var(--gut); }
 .onsen-main .item .item-actions { display: block; padding: 0 14px 12px; }
 .onsen-main .item .item-actions .btn { width: 100%; min-height: 44px; }
 }
@@ -305,3 +311,37 @@
 .onsen-main .loaderr { margin: auto; width: min(360px, calc(100% - 32px)); display: grid; gap: var(--space-2); justify-items: center; text-align: center; padding: var(--space-5); background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
 .onsen-main .loaderr b { font-size: 17px; line-height: 24px; color: var(--ink); word-break: keep-all; }
 .onsen-main .loaderr p { margin: 0 0 var(--space-2); font-size: 14px; line-height: 22px; color: var(--muted); word-break: keep-all; }
+
+/* 지도 사용 안내: 펼치면 설명, 접으면 한 줄. 저절로 사라지지 않는다 */
+.onsen-main .hintcard { padding: 14px var(--gut); }
+.onsen-main .hint-head { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 44px; padding: 0; background: none; border: 0; text-align: left; cursor: pointer; font: inherit; color: var(--muted); }
+.onsen-main .hint-head b { flex: 1; min-width: 0; color: var(--ink); font-size: 15px; }
+.onsen-main .hint-head svg, .onsen-main .hint-head .pin-static { flex: none; }
+.onsen-main .hint-chev { flex: none; width: 8px; height: 8px; margin-right: 4px; border-right: 2px solid var(--muted-strong); border-bottom: 2px solid var(--muted-strong); transform: rotate(-135deg); transition: transform var(--dur-base) var(--ease-out); }
+.onsen-main .hintcard.collapsed .hint-chev { transform: rotate(45deg); }
+.onsen-main .hint-body { margin: 4px 0 0 54px; font-size: 13px; line-height: 1.6; color: var(--muted); }
+.onsen-main .hintcard.collapsed { min-height: 0; padding: 4px var(--gut); }
+.onsen-main .hintcard.collapsed .pin-static { transform: scale(.5); margin: -14px -10px; }
+.onsen-main .hint-head:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; border-radius: 8px; }
+@media (prefers-reduced-motion: reduce) { .onsen-main .hint-chev { transition: none; } }
+
+/* 상세 화면의 정보 위계: 핵심(이용 결정) → 가기 전에 확인 → 참고 */
+.onsen-main #detail h2 { font-size: 24px; font-weight: 800; }
+.onsen-main .d-actions { margin-top: 14px; }
+.onsen-main .sec.core { margin-top: 12px; background: var(--card); border-color: var(--stone); box-shadow: var(--shadow-card); padding: 16px; }
+.onsen-main .sec.core h3 { margin-bottom: 6px; font-size: 14px; font-weight: 800; color: var(--ink); }
+.onsen-main .price-hero { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: 0 0 6px; }
+.onsen-main .price-hero b { font-size: 28px; line-height: 1.15; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
+.onsen-main .price-hero span { font-size: 13px; color: var(--muted-strong); font-weight: 600; }
+.onsen-main .price-hero.unknown { display: block; font-size: 22px; font-weight: 800; color: var(--muted); }
+.onsen-main .sec.core .pr { padding: 6px 0; border-top: 1px solid var(--line); }
+.onsen-main .sec.core .pr b { font-size: 15px; }
+.onsen-main .sec.worry { padding: 12px 16px; }
+.onsen-main .sec.worry h3 { font-size: 14px; }
+.onsen-main .grp { margin-top: 28px; }
+.onsen-main .grp-label { margin: 0 0 -4px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--muted); }
+.onsen-main .grp .sec { margin-top: 10px; }
+.onsen-main .grp .sec h3 { font-size: 13px; font-weight: 700; color: var(--ink); }
+.onsen-main .sec.more { background: transparent; border: 0; border-radius: 0; padding: 2px 0 0; }
+.onsen-main .sec.more h3 { font-size: 12px; font-weight: 600; color: var(--muted); }
+.onsen-main .sec.more .small { font-size: 12px; }

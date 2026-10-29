@@ -139,6 +139,12 @@ function MainBody({ data }: { data: Loaded }) {
     [places, me],
   )
   const filtered = useMemo(() => filterPlaces(withDist, filters, favs), [withDist, filters, favs])
+  // 지역 드롭다운 항목: 전체 목록에서 구별 곳 수를 센다(가나다순)
+  const guList = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const p of places) if (p.gu) m.set(p.gu, (m.get(p.gu) ?? 0) + 1)
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], 'ko'))
+  }, [places])
   // '지도 범위로 보기'가 꺼져 있으면 지도가 움직여도 같은 배열이라 핀을 다시 그리지 않는다
   const inside = useMemo(
     () =>
@@ -326,7 +332,7 @@ function MainBody({ data }: { data: Loaded }) {
     const p = places.find((d) => d.id === id)
     setReportFor({ id, name: p?.name ?? id })
   }
-  const count = inView && bounds ? `지도 안 ${view.length}곳` : `${view.length}곳`
+  const count = (filters.gu ? filters.gu + ' ' : '') + (inView && bounds ? `지도 안 ${view.length}곳` : `${view.length}곳`)
 
   return (
     <div className="onsen-main" id="shell">
@@ -374,6 +380,16 @@ function MainBody({ data }: { data: Loaded }) {
                 <button key={v} aria-pressed={filters.kind === v} onClick={() => updateFilters({ kind: v })}>{l}</button>
               ))}
             </div>
+            {/* 지역(구) 드롭다운: 고른 구는 선택 색으로 보이고, 목록 위 개수 앞에도 적힌다 */}
+            <label className={`sel${filters.gu ? ' on' : ''}`}>
+              <span className="sr">지역</span>
+              <select value={filters.gu} onChange={(e) => updateFilters({ gu: e.target.value })}>
+                <option value="">전체 지역</option>
+                {guList.map(([g, n]) => (
+                  <option key={g} value={g}>{g} ({n})</option>
+                ))}
+              </select>
+            </label>
             <div className="swrow">
               <label className="sw">
                 <input type="checkbox" checked={filters.priceOnly} onChange={(e) => updateFilters({ priceOnly: e.target.checked })} />
