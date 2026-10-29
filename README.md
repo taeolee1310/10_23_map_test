@@ -72,8 +72,8 @@ data/                           README.md 에 파일별 설명·출처·만드�
 
 ## 디자인 시스템
 
-- 색은 `tangbang-colors.css`의 semantic 토큰만 씁니다(primitive는 직접 쓰지 않음). 새 색 값을 직접 쓰지 않습니다. 그라데이션은 Axial Beam 한 곳만 허용하는 규칙이 있습니다.
-- 주요 색: 크림 `#FDF6D0`(바탕), 노을 주황 `#FDBE91`(주요 면), 노을 분홍 `#EDB59E`, 짙은 갈색 `#533E32`(글자·윤곽), 나무색 `#A47658`(핀·강한 경계), 물 `#7B9FA7`, 김 `#DAB3A0`.
+- 색은 `tangbang-colors.css`의 semantic·component 토큰만 씁니다(primitive는 화면 CSS에서 직접 쓰지 않음). 새 색 값을 직접 쓰지 않습니다. 구조·매핑·명암비 검증은 `docs/color-system.md`, 눈으로 보는 미리보기는 `docs/color-preview.html`(앱 밖 정적 파일)입니다.
+- 주요 색(기준 8색): Warm Cream `#FDF6D0`(페이지 배경), Clean Ivory `#FFFDF5`(카드), Deep Cocoa `#342C25`(글자), Mocha Brown `#57483B`(보조 글자), Bath Teal `#527C77`(선택·시설), Warm Terracotta `#A64B31`(주요 버튼), Sand Beige `#E8D9AE`(머리말·구분), Apricot `#E7A36E`(장식). 인트로 그림·로고·캐릭터 색은 이미지 원본에서 뽑은 별도 값입니다.
 - 지도 핀은 몸통(나무색) · 윤곽(갈색) · 욕조(크림) 세 겹 마스크, 선택하면 크림 몸통입니다.
 - 로고 캐릭터도 토큰으로 칠합니다(윤곽선 `--color-outline`, 물 `--color-water`, 김 `--color-steam`).
 - 담아두기 아이콘은 **바나나우유 SVG**이고 노란 색은 정체성이라 바꾸지 않습니다(카드, 미리보기, "담아둔 곳" 칩 모두 같은 아이콘).

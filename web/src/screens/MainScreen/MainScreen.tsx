@@ -285,7 +285,7 @@ function MainBody({ data }: { data: Loaded }) {
             <button
               className="qp"
               disabled={!favs.size}
-              style={filters.favOnly ? { background: 'var(--color-surface-warm)' } : undefined}
+              style={filters.favOnly ? { background: 'var(--color-accent-soft)' } : undefined}
               onClick={() => updateFilters({ favOnly: !filters.favOnly })}
             >
               <IconBanana on={filters.favOnly} size={18} />담아둔 곳{favs.size ? <b>{favs.size}</b> : null}
