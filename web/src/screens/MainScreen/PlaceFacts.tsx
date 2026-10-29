@@ -69,10 +69,22 @@ function groups(f: Facts): { title: string; rows: Row[] }[] {
   return all.filter((g) => g.rows.length) // 데이터가 하나라도 있는 그룹만
 }
 
-/** 가기 전 걱정 TOP 3. 값이 하나도 없으면 영역 자체를 그리지 않는다. */
-export function TopWorries({ facts }: { facts?: Facts }) {
+/** 가기 전 걱정 TOP 3. 값이 하나도 없으면 비워 두지 않고, 아직 모른다는 안내와 함께 알려 주기 버튼을 보여 준다. */
+export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: () => void }) {
   const list = worries(facts)
-  if (!list.length) return null
+  if (!list.length) {
+    return (
+      <section className="sec worry ask" aria-labelledby="worry-h">
+        <h3 id="worry-h">가기 전 걱정 TOP 3</h3>
+        <p className="small">세신 결제 방식, 수건, 드라이기 정보는 아직 확인하지 못했어요. 알고 계시면 알려 주세요.</p>
+        {onAsk && (
+          <button type="button" className="btn ghost sm" onClick={onAsk}>
+            알고 있는 정보 알려 주기
+          </button>
+        )}
+      </section>
+    )
+  }
   return (
     <section className="sec worry" aria-labelledby="worry-h">
       <h3 id="worry-h">가기 전 걱정 TOP 3</h3>

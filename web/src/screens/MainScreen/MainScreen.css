@@ -175,6 +175,8 @@
 .onsen-main .unknown-box b { font-size: 16px; }
 /* 가기 전 걱정 TOP 3: 세로를 적게 쓰는 한 줄짜리 목록 */
 .onsen-main .sec.worry { margin-top: 10px; padding: 10px 14px; border: 1px solid var(--card-border-selected); background: var(--card-bg-selected); }
+.onsen-main .sec.worry.ask { border-color: var(--line); background: var(--inset); }
+.onsen-main .worry.ask p { margin: 0 0 var(--space-3); }
 .onsen-main .worry h3 { margin: 0 0 4px; color: var(--ink); font-weight: 800; }
 .onsen-main .worry ul { margin: 0; padding: 0; list-style: none; }
 .onsen-main .worry li { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; border-top: 1px solid var(--line); }
@@ -273,8 +275,10 @@
 .onsen-main #panel { order: 2; flex: none; overflow: visible; }
 .onsen-main #list { overflow: visible; }
 .onsen-main #detail { position: fixed; z-index: 50; border-radius: 0; }
-/* 모바일: 상세는 옆에서 밀려 들어오거나 퍼지지 않고 바로 나타나고 사라진다 */
-.onsen-main #detail, .onsen-main #detail.open { transition: none; }
+/* 모바일: 상세는 화면 전체가 오른쪽에서 왼쪽으로 밀려 들어오고, 닫을 때는 오른쪽으로 밀려 나간다(화면 이동의 익숙한 방향).
+   닫는 동안에는 투명해지지 않고 다 나간 뒤에 숨긴다. */
+.onsen-main #detail { transition: transform 360ms var(--ease-drawer), opacity 0s linear 360ms, visibility 0s linear 360ms; }
+.onsen-main #detail.open { transition-delay: 0s; }
 .onsen-main .filters { padding: 12px; }
 .onsen-main .item .item-actions { display: block; padding: 0 14px 12px; }
 .onsen-main .item .item-actions .btn { width: 100%; min-height: 44px; }

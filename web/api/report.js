@@ -8,6 +8,10 @@ import { createHash } from 'node:crypto'
 
 const SOURCES = ['현장 가격표', '직접 냈어요', '공식 홈페이지·네이버', '기타']
 const LIMIT_PER_HOUR = 5
+const TOWEL = ['무제한', '1장', '2장', '3장 이상']
+const DRYER = ['무료', '유료']
+const PAY = ['현금만', '카드 가능']
+const pick = (list, v) => (list.includes(v) ? v : '') // 정해진 값만 받는다
 // 한 사람당 보낼 수 있는 횟수(시트에서 센다). 사람은 브라우저가 만든 익명 기기 ID로, 같은 접속 주소의 보조 한도는 시트 쪽(LIMIT_PER_IP)에 있다.
 const MAX_WON = 200000
 
@@ -67,10 +71,13 @@ export default async function handler(req, res) {
   const towel = won(b.towel)
   const scrub = won(b.scrub)
   const source = SOURCES.includes(b.source) ? b.source : ''
+  const towelInfo = pick(TOWEL, b.towelInfo)
+  const hairdryer = pick(DRYER, b.hairdryer)
+  const seshinPay = pick(PAY, b.seshinPay)
   let memo = text(b.memo, 100)
   if (!placeId || !placeName) return res.status(400).json({ ok: false, error: 'place' })
   if ([adult, towel, scrub].some(Number.isNaN)) return res.status(400).json({ ok: false, error: 'price' })
-  if (adult == null && towel == null && scrub == null) return res.status(400).json({ ok: false, error: 'empty' })
+  if (adult == null && towel == null && scrub == null && !towelInfo && !hairdryer && !seshinPay) return res.status(400).json({ ok: false, error: 'empty' })
   if (!source) return res.status(400).json({ ok: false, error: 'source' })
 
   const flags = []
@@ -102,7 +109,7 @@ export default async function handler(req, res) {
       method: 'POST',
       redirect: 'follow', // Apps Script는 결과를 다른 주소로 넘겨 준다
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ secret: process.env.REPORT_SHEET_SECRET, placeId, placeName, adult, towel, scrub, source, memo, flags: flags.join(', '), who, ip: ipHash }),
+      body: JSON.stringify({ secret: process.env.REPORT_SHEET_SECRET, placeId, placeName, adult, towel, scrub, source, memo, flags: flags.join(', '), who, ip: ipHash, towelInfo, hairdryer, seshinPay }),
     })
     const j = await r.json().catch(() => ({}))
     if (j.error === 'limit') return res.status(429).json({ ok: false, error: 'limit' }) // 한 사람이 보낼 수 있는 횟수를 넘음

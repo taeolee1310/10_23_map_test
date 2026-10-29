@@ -18,6 +18,14 @@ const FIELDS: { key: Field; label: string; hint: string }[] = [
   { key: 'scrub', label: '세신(때밀이)', hint: '20,000' },
 ]
 const MEMO_MAX = 100
+// 가기 전 걱정 정보(TOP 3): 요금과 따로, 알고 있는 것만 고른다. 남탕·여탕이 다르면 덧붙일 말에 적는다.
+const INFO: { key: 'towelInfo' | 'hairdryer' | 'seshinPay'; label: string; options: string[] }[] = [
+  { key: 'towelInfo', label: '수건', options: ['무제한', '1장', '2장', '3장 이상'] },
+  { key: 'hairdryer', label: '드라이기', options: ['무료', '유료'] },
+  { key: 'seshinPay', label: '세신 결제', options: ['현금만', '카드 가능'] },
+]
+type InfoState = { towelInfo: string; hairdryer: string; seshinPay: string }
+const NO_INFO: InfoState = { towelInfo: '', hairdryer: '', seshinPay: '' }
 
 const ERRORS: Record<string, string> = {
   'not-ready': '제보 창구를 준비 중이에요',
@@ -47,7 +55,8 @@ const comma = (digits: string) => (digits ? Number(digits).toLocaleString('ko-KR
 export default function PriceReport({ place, onClose, onMessage }: Props) {
   const [vals, setVals] = useState({ adult: '', towel: '', scrub: '', memo: '', hp: '' })
   const [source, setSource] = useState('')
-  const [err, setErr] = useState<{ msg: string; field?: 'price' | 'source' } | null>(null)
+  const [info, setInfo] = useState<InfoState>(NO_INFO)
+  const [err, setErr] = useState<{ msg: string; field?: 'price' | 'source' | 'any' } | null>(null)
   const [busy, setBusy] = useState(false)
   const boxRef = useRef<HTMLDivElement>(null)
   const returnFocus = useRef<HTMLElement | null>(null)
@@ -57,6 +66,7 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
     if (!open) return
     setVals({ adult: '', towel: '', scrub: '', memo: '', hp: '' })
     setSource('')
+    setInfo(NO_INFO)
     setErr(null)
     returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     const t = window.setTimeout(() => boxRef.current?.querySelector<HTMLElement>('.pr-modal__won input')?.focus(), 60)
@@ -94,7 +104,11 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
 
   const setPrice = (k: Field) => (e: { target: { value: string } }) => {
     setVals((s) => ({ ...s, [k]: e.target.value.replace(/[^0-9]/g, '').slice(0, 6) }))
-    if (err?.field === 'price') setErr(null)
+    if (err?.field === 'price' || err?.field === 'any') setErr(null)
+  }
+  const pickInfo = (k: keyof InfoState, v: string) => {
+    setInfo((s) => ({ ...s, [k]: s[k] === v ? '' : v })) // 같은 칩을 다시 누르면 선택을 푼다
+    if (err?.field === 'any') setErr(null)
   }
   const pickSource = (s: string) => {
     setSource(s)
@@ -104,7 +118,8 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (busy) return
-    if (!vals.adult && !vals.towel && !vals.scrub) return setErr({ msg: '알고 있는 요금을 하나 이상 적어 주세요', field: 'price' })
+    const hasInfo = !!(info.towelInfo || info.hairdryer || info.seshinPay)
+    if (!vals.adult && !vals.towel && !vals.scrub && !hasInfo) return setErr({ msg: '알고 있는 요금이나 정보를 하나 이상 적어 주세요', field: 'any' })
     if (!source) return setErr({ msg: '어떻게 알게 됐는지 골라 주세요', field: 'source' })
     setBusy(true)
     setErr(null)
@@ -112,7 +127,7 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
       const r = await fetch('/api/report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ placeId: place.id, placeName: place.name, ...vals, source, deviceId: deviceId() }),
+        body: JSON.stringify({ placeId: place.id, placeName: place.name, ...vals, ...info, source, deviceId: deviceId() }),
       })
       const j = await r.json().catch(() => ({}))
       if (r.ok && j.ok) {
@@ -135,7 +150,7 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
       <div className="pr-modal__card" role="dialog" aria-modal="true" aria-labelledby="pr-title" ref={boxRef}>
         <header className="pr-modal__head">
           <div>
-            <h2 id="pr-title" className="pr-modal__title">요금 제보</h2>
+            <h2 id="pr-title" className="pr-modal__title">정보 제보</h2>
             <p className="pr-modal__place">{place.name}</p>
           </div>
           <button type="button" className="pr-modal__x" aria-label="닫기" onClick={onClose}>
@@ -144,8 +159,8 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
         </header>
 
         <form onSubmit={submit} noValidate>
-          <section className={`pr-modal__sec${err?.field === 'price' ? ' bad' : ''}`} aria-labelledby="pr-prices">
-            <h3 id="pr-prices" className="pr-modal__sub">알고 있는 요금 <span>하나 이상</span></h3>
+          <section className={`pr-modal__sec${err?.field === 'price' || err?.field === 'any' ? ' bad' : ''}`} aria-labelledby="pr-prices">
+            <h3 id="pr-prices" className="pr-modal__sub">알고 있는 요금 <span>선택</span></h3>
             {FIELDS.map((f) => (
               <label key={f.key} className="pr-modal__row">
                 <span>{f.label}</span>
@@ -154,6 +169,22 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
                   <em aria-hidden="true">원</em>
                 </span>
               </label>
+            ))}
+          </section>
+
+          <section className={`pr-modal__sec${err?.field === 'any' ? ' bad' : ''}`} aria-labelledby="pr-info">
+            <h3 id="pr-info" className="pr-modal__sub">가기 전 걱정 정보 <span>선택</span></h3>
+            {INFO.map((g) => (
+              <div key={g.key} className="pr-modal__row pr-modal__row--chips" role="group" aria-label={g.label}>
+                <span>{g.label}</span>
+                <span className="pr-modal__chips">
+                  {g.options.map((o) => (
+                    <button key={o} type="button" className={info[g.key] === o ? 'on' : ''} aria-pressed={info[g.key] === o} onClick={() => pickInfo(g.key, o)}>
+                      {o}
+                    </button>
+                  ))}
+                </span>
+              </div>
             ))}
           </section>
 

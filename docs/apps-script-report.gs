@@ -9,7 +9,7 @@
  * - Vercel 쪽 REPORT_SHEET_SECRET 과 같은 값이어야 줄이 추가된다.
  */
 var SHEET_NAME = '제보';
-var HEADERS = ['시각', '업체ID', '업체', '성인 입장료', '수건', '세신', '확인 방법', '메모', '표시', '같은 값 횟수', '상태', '검토 메모', '제보자(해시)', '접속(해시)'];
+var HEADERS = ['시각', '업체ID', '업체', '성인 입장료', '수건', '세신', '확인 방법', '메모', '표시', '같은 값 횟수', '상태', '검토 메모', '제보자(해시)', '접속(해시)', '수건 안내', '드라이기', '세신 결제'];
 var LIMIT_PER_PERSON = 3;  // 한 사람(브라우저)당 제보 횟수
 var LIMIT_PER_IP = 10;     // 같은 접속 주소의 보조 한도(학교·회사처럼 여럿이 같은 주소를 쓰는 경우를 넉넉히 둔다)
 var STATUSES = ['새 제보', '확인함', '반영 완료', '반려'];
@@ -34,15 +34,17 @@ function doPost(e) {
       }
     }
     if (whoCount >= LIMIT_PER_PERSON || ipCount >= LIMIT_PER_IP) return out_({ ok: false, error: 'limit' });
-    // 같은 업체에 같은 값이 이미 몇 번 들어왔는지 센다(여러 사람이 같은 값을 말하면 믿을 근거가 된다)
+    // 같은 업체에 같은 값이 이미 몇 번 들어왔는지 센다(여러 사람이 같은 값을 말하면 믿을 근거가 된다). 요금과 가기 전 걱정 정보를 모두 비교한다
     var same = 1;
     if (last > 1) {
-      var rows = sheet.getRange(2, 2, last - 1, 5).getValues(); // 업체ID ~ 세신
+      var rows = sheet.getRange(2, 2, last - 1, 5).getValues(); // 업체ID ~ 세신(요금)
+      var infos = sheet.getRange(2, 15, last - 1, 3).getValues(); // 수건 안내 ~ 세신 결제
       for (var i = 0; i < rows.length; i++) {
-        if (String(rows[i][0]) === String(d.placeId) && n_(rows[i][2]) === n_(d.adult) && n_(rows[i][3]) === n_(d.towel) && n_(rows[i][4]) === n_(d.scrub)) same++;
+        if (String(rows[i][0]) === String(d.placeId) && n_(rows[i][2]) === n_(d.adult) && n_(rows[i][3]) === n_(d.towel) && n_(rows[i][4]) === n_(d.scrub) &&
+            String(infos[i][0]) === String(d.towelInfo || '') && String(infos[i][1]) === String(d.hairdryer || '') && String(infos[i][2]) === String(d.seshinPay || '')) same++;
       }
     }
-    sheet.appendRow([new Date(), String(d.placeId), d.placeName, d.adult, d.towel, d.scrub, d.source, d.memo, d.flags, same, '새 제보', '', String(d.who || ''), String(d.ip || '')]);
+    sheet.appendRow([new Date(), String(d.placeId), d.placeName, d.adult, d.towel, d.scrub, d.source, d.memo, d.flags, same, '새 제보', '', String(d.who || ''), String(d.ip || ''), String(d.towelInfo || ''), String(d.hairdryer || ''), String(d.seshinPay || '')]);
     return out_({ ok: true });
   } catch (err) {
     return out_({ ok: false, error: 'script' });
@@ -76,7 +78,7 @@ function sheet_() {
 function formatSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheet = ss.getSheetByName(SHEET_NAME) || sheet_();
-  var widths = [150, 150, 210, 90, 70, 80, 130, 240, 150, 90, 90, 240, 110, 110];
+  var widths = [150, 150, 210, 90, 70, 80, 130, 240, 150, 90, 90, 240, 110, 110, 100, 90, 100];
   for (var i = 0; i < widths.length; i++) sheet.setColumnWidth(i + 1, widths[i]);
 
   sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]); // 제목 줄을 항상 최신으로
@@ -92,6 +94,7 @@ function formatSheet() {
   sheet.getRange('B2:B').setFontColor('#8D7665').setFontSize(9);
   sheet.getRange('D2:F').setNumberFormat('#,##0').setHorizontalAlignment('right');
   sheet.getRange('J2:K').setHorizontalAlignment('center');
+  sheet.getRange('O2:Q').setHorizontalAlignment('center');
   sheet.getRange('H2:H').setWrap(true);
   sheet.getRange('I2:I').setWrap(true);
   sheet.getRange('L2:L').setWrap(true);
@@ -134,6 +137,7 @@ function readme_(ss) {
     ['업체ID · 업체', '서비스 목록과 같은 업체 번호와 이름(서버가 목록과 맞춰 적습니다)'],
     ['성인 입장료 · 수건 · 세신', '제보한 요금(원). 모르는 칸은 비어 있습니다'],
     ['확인 방법', '제보자가 고른 근거: 현장 가격표 / 직접 냈어요 / 공식 홈페이지·네이버 / 기타'],
+    ['수건 안내 · 드라이기 · 세신 결제', '가기 전 걱정 정보(TOP 3)를 제보자가 고른 값. 수건: 무제한/1장/2장/3장 이상, 드라이기: 무료/유료, 세신 결제: 현금만/카드 가능. 비어 있으면 모른다는 뜻(숨김 칸 뒤에 있어요)'],
     ['메모', '제보자가 덧붙인 말(100자). 연락처가 의심되면 가려서 적힙니다'],
     ['제보자(해시)·접속(해시)', '(숨김 칸) 한 사람당 3번 제한을 세는 데 쓰는 익명 값. 누구인지 알 수 없고 원래 값은 저장하지 않습니다'],
     ['표시', '이름 불일치, 입장료·수건·세신 이상값, 연락처 의심 등 검토할 때 먼저 볼 것. 비어 있으면 특이점 없음'],
@@ -147,7 +151,7 @@ function readme_(ss) {
   sh.setColumnWidth(1, 190); sh.setColumnWidth(2, 560);
   sh.getRange('A1').setFontSize(14).setFontWeight('bold');
   sh.getRange('A5:B5').setFontWeight('bold').setBackground('#E8D9AE');
-  sh.getRange('A3').setFontWeight('bold'); sh.getRange('A17').setFontWeight('bold');
+  sh.getRange('A3').setFontWeight('bold'); sh.getRange('A18').setFontWeight('bold');
   sh.setHiddenGridlines(true);
   ss.setActiveSheet(ss.getSheetByName(SHEET_NAME));
 }

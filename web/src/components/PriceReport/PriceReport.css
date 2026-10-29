@@ -83,3 +83,11 @@
   .pr-modal, .pr-modal__card { animation: none; }
   .pr-modal__btn, .pr-modal__src label, .pr-modal__x, .pr-modal input, .pr-modal textarea { transition: none; }
 }
+
+/* 가기 전 걱정 정보: 줄마다 이름과 고르는 칩(다시 누르면 선택이 풀린다) */
+.pr-modal__row--chips { align-items: flex-start; flex-direction: column; gap: var(--space-2); }
+.pr-modal__chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.pr-modal__chips button { min-height: 36px; padding: 0 var(--space-4); border: 1px solid var(--chip-border); border-radius: var(--radius-pill); background: var(--chip-bg); color: var(--chip-text); font: inherit; font-size: 14px; line-height: 20px; font-weight: 500; cursor: pointer; transition: background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out); }
+.pr-modal__chips button.on { background: var(--chip-bg-selected); border-color: var(--chip-border-selected); color: var(--chip-text-selected); font-weight: 600; }
+@media (hover: hover) and (pointer: fine) { .pr-modal__chips button:not(.on):hover { background: var(--chip-bg-hover); } }
+@media (prefers-reduced-motion: reduce) { .pr-modal__chips button { transition: none; } }

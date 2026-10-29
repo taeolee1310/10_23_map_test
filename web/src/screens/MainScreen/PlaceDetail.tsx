@@ -145,7 +145,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
           <h2>{d.name}</h2>
           {d.women_only && <span className="pill women">여성전용</span>}
           <div className="small" style={{ margin: 0 }}>{d.addr}</div>
-          <TopWorries facts={d.facts} />
+          <TopWorries facts={d.facts} onAsk={() => onReport(d.id)} />
           <PriceBlock d={d} onReport={onReport} />
           <FactsDetails facts={d.facts} />
           <ParkingBlock d={d} />
