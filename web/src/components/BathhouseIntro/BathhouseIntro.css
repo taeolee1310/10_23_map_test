@@ -278,17 +278,34 @@
 .bh__brand,
 .bh__copy h1,
 .bh__sub,
-.bh__link {
+.bh__link,
+.bh__volume {
+  opacity: 0; /* 장면이 준비되기 전에는 글·버튼을 보이지 않는다 */
+}
+/* 장면이 준비된 뒤(.bh--ready)에 장면이 나타나는 시간(600ms)에 맞춰 차례로 올라온다 */
+.bh--ready .bh__brand,
+.bh--ready .bh__copy h1,
+.bh--ready .bh__sub,
+.bh--ready .bh__link {
   animation: bh-rise 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.bh__copy h1 {
-  animation-delay: 500ms;
+.bh--ready .bh__brand {
+  animation-delay: 300ms;
 }
-.bh__sub {
-  animation-delay: 800ms;
+.bh--ready .bh__copy h1 {
+  animation-delay: 600ms;
 }
-.bh__link {
-  animation-delay: 1100ms;
+.bh--ready .bh__sub {
+  animation-delay: 900ms;
+}
+.bh--ready .bh__link {
+  animation-delay: 1200ms;
+}
+.bh__volume {
+  transition: opacity 600ms ease;
+}
+.bh--ready .bh__volume {
+  opacity: 1;
 }
 @keyframes bh-rise {
   from {
@@ -317,11 +334,12 @@
   .bh__steam {
     opacity: 0.4;
   }
-  .bh__brand,
-  .bh__copy h1,
-  .bh__sub,
-  .bh__link {
+  .bh--ready .bh__brand,
+  .bh--ready .bh__copy h1,
+  .bh--ready .bh__sub,
+  .bh--ready .bh__link {
     animation: none;
+    opacity: 1;
   }
 }
 

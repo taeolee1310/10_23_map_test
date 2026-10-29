@@ -55,6 +55,8 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
   const [duckPressed, setDuckPressed] = useState(false) // 오리를 한 번 눌렀는지(오리 위 안내는 그때까지만)
   // iOS는 수증기를 마스크 없이 미리 구운 그림으로 쓴다(steamBake.ts)
   const [steamBaked, setSteamBaked] = useState<Record<SteamGroup, string> | null>(null)
+  // 글·버튼은 장면이 준비된 뒤에 나타난다(그림보다 글이 먼저 보이는 어색함을 막는다). 장면 만들기가 실패하거나 너무 오래 걸리면 글부터 보여 준다.
+  const [loadGaveUp, setLoadGaveUp] = useState(false)
   const [soundAsked, setSoundAsked] = useState(false) // 첫 클릭·키 입력이 있었는지(오리 위 안내를 그때까지만 보여 준다)
   const bgmRef = useRef<Bgm | null>(null)
   const sfxRef = useRef<Sfx | null>(null)
@@ -91,6 +93,11 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
     return () => {
       dead = true
     }
+  }, [])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setLoadGaveUp(true), 6000)
+    return () => window.clearTimeout(timer)
   }, [])
 
   // 오리 효과음
@@ -193,7 +200,10 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
         }
         raf = requestAnimationFrame(tick)
       })
-      .catch((e) => console.error(e))
+      .catch((e) => {
+        console.error(e)
+        setLoadGaveUp(true)
+      })
 
     return () => {
       dead = true
@@ -203,7 +213,7 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
   }, [])
 
   return (
-    <main className={`bh${isLeaving ? ' bh--leaving' : ''}`} aria-labelledby="bh-title">
+    <main className={`bh${isLeaving ? ' bh--leaving' : ''}${scene || !SCENE_ON || loadGaveUp ? ' bh--ready' : ''}`} aria-labelledby="bh-title">
       <div className={`bh__stage${scene || !SCENE_ON ? ' bh__stage--ready' : ''}`} ref={stageRef} aria-hidden="true">
         {!SCENE_ON && <div className="bh__lite-bg" style={{ backgroundImage: `url(${origUrl})` }} />}
         {SCENE_ON && <canvas className="bh__base" ref={baseRef} />}
