@@ -1,42 +1,328 @@
 {
-  "_설명": "직접 확인한 세부 정보. 키는 카카오ID, 값은 web/src/lib/onsen.ts의 Facts 모양. 없는 칸은 적지 않는다(추측 금지). 샘플로 넣은 값에는 \"sample\": true를 붙이고 확인한 값으로 교체한다.",
-  "_예시": {"seshin": {"payment": "cash_only"}, "towel": {"women": {"mode": "limited", "count": 2}, "men": {"mode": "unlimited"}}, "hairdryer": {"paid": true}, "checked": "YYYY-MM-DD", "source": "출처"},
-  "_기준": "2026-10-29 네이버 플레이스 수집분(data/collected/naver_places.csv)에서 글로 분명히 적힌 것만 옮김. 가격표는 가게가 올린 값, 수건·드라이기는 방문자 후기 문장. 남녀 가격이 다른 곳은 값이 하나뿐인 칸에 담을 수 없어 뺐고, 결제수단(제로페이 등)은 세신 현금 여부를 알려 주지 않아 뺐다.",
-  "places": {
-    "23889155": {
-      "seshin": {"price_full": 12000},
-      "checked": "2026-10-28",
-      "source": "네이버 플레이스 가격표(때밀이)"
-    },
-    "15244123": {
-      "towel": {"women": {"mode": "limited", "count": 2}},
-      "checked": "2026-10-28",
-      "source": "네이버 방문자 후기"
-    },
-    "10158172": {
-      "towel": {"women": {"mode": "limited", "count": 2}},
-      "checked": "2026-10-28",
-      "source": "네이버 방문자 후기"
-    },
-    "1951728354": {
-      "hairdryer": {"paid": false},
-      "checked": "2026-10-28",
-      "source": "네이버 방문자 후기(후기 2건 일치)"
-    },
-    "8079875": {
-      "towel": {"women": {"mode": "limited", "count": 2}, "men": {"mode": "limited", "count": 2}},
-      "checked": "2026-10-28",
-      "source": "네이버 플레이스 사진(입장요금표 '수건 1인 2장씩')"
-    },
-    "193353819": {
-      "seshin": {"price_full": 20000},
-      "checked": "2026-10-28",
-      "source": "네이버 플레이스 사진(세신 요금표, 대인)"
-    },
-    "16735633": {
-      "hairdryer": {"paid": true},
-      "checked": "2026-10-28",
-      "source": "네이버 방문자 후기"
+ "_설명": "직접 확인한 세부 정보. 키는 카카오ID, 값은 web/src/lib/onsen.ts의 Facts 모양. 없는 칸은 적지 않는다(추측 금지). 샘플로 넣은 값에는 \"sample\": true를 붙이고 확인한 값으로 교체한다.",
+ "_예시": {
+  "seshin": {
+   "payment": "cash_only"
+  },
+  "towel": {
+   "women": {
+    "mode": "limited",
+    "count": 2
+   },
+   "men": {
+    "mode": "unlimited"
+   }
+  },
+  "hairdryer": {
+   "paid": true
+  },
+  "checked": "YYYY-MM-DD",
+  "source": "출처"
+ },
+ "_기준": "2026-10-29 네이버 플레이스 수집분(data/collected/naver_places.csv)에서 글로 분명히 적힌 것만 옮김. 가격표는 가게가 올린 값, 수건·드라이기는 방문자 후기 문장. 남녀 가격이 다른 곳은 값이 하나뿐인 칸에 담을 수 없어 뺐고, 결제수단(제로페이 등)은 세신 현금 여부를 알려 주지 않아 뺐다. 2026-10-29 2차 수집(소식·후기 글)에서 값이 글로 분명히 적힌 것만 추가: 드라이기 유무료(금액·동전 언급), 수건(남녀 구분 없이 장수 언급), 세신 전신 금액(같은 값이 둘 이상 또는 업체 공지). 남탕·여탕 값이 다르거나 후기끼리 엇갈리거나 한쪽 성별만 말한 것, 모호한 문장은 뺐다. 2026-10-29 2차 수집 사진(업체가 올린 요금표·안내문)을 직접 보고 확인한 세신 금액·수건 장수를 추가했다.",
+ "places": {
+  "23889155": {
+   "seshin": {
+    "price_full": 12000
+   },
+   "checked": "2026-10-28",
+   "source": "네이버 플레이스 가격표(때밀이)"
+  },
+  "15244123": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
     }
+   },
+   "checked": "2026-10-28",
+   "source": "네이버 방문자 후기 / 네이버 방문자 후기(후기 2건 일치)",
+   "seshin": {
+    "price_full": 30000
+   }
+  },
+  "10158172": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "checked": "2026-10-28",
+   "source": "네이버 방문자 후기"
+  },
+  "1951728354": {
+   "hairdryer": {
+    "paid": false
+   },
+   "checked": "2026-10-28",
+   "source": "네이버 방문자 후기(후기 2건 일치) / 네이버 방문자 후기",
+   "towel": {
+    "women": {
+     "mode": "unlimited"
+    },
+    "men": {
+     "mode": "unlimited"
+    }
+   }
+  },
+  "8079875": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    },
+    "men": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "checked": "2026-10-28",
+   "source": "네이버 플레이스 사진(입장요금표 '수건 1인 2장씩')"
+  },
+  "193353819": {
+   "seshin": {
+    "price_full": 20000
+   },
+   "checked": "2026-10-28",
+   "source": "네이버 플레이스 사진(세신 요금표, 대인)"
+  },
+  "16735633": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-28",
+   "source": "네이버 방문자 후기"
+  },
+  "19213088": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 방문자 후기"
+  },
+  "10052061": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 방문자 후기(후기 2건 일치)"
+  },
+  "17103308": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 방문자 후기(후기 2건 일치)"
+  },
+  "23399231": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 방문자 후기"
+  },
+  "14517034": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 방문자 후기"
+  },
+  "1222007254": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 방문자 후기"
+  },
+  "8086592": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 방문자 후기(후기 2건 일치)"
+  },
+  "20742780": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 방문자 후기"
+  },
+  "16273034": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 방문자 후기"
+  },
+  "7976015": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 방문자 후기(후기 2건 일치) / 네이버 소식(업체 공지)",
+   "seshin": {
+    "price_full": 25000
+   }
+  },
+  "19143257": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 방문자 후기"
+  },
+  "16705862": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 소식"
+  },
+  "9103007": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 소식"
+  },
+  "20740919": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 소식"
+  },
+  "24375482": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 방문자 후기"
+  },
+  "9761522": {
+   "hairdryer": {
+    "paid": false
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 방문자 후기"
+  },
+  "9118313": {
+   "hairdryer": {
+    "paid": false
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 소식"
+  },
+  "9632747": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    },
+    "men": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 방문자 후기"
+  },
+  "151470386": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    },
+    "men": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 방문자 후기 / 네이버 플레이스 세신 요금표 사진(업체 등록): 세신 25,000원",
+   "seshin": {
+    "price_full": 25000
+   }
+  },
+  "16416397": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    },
+    "men": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 소식"
+  },
+  "16414120": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 1
+    },
+    "men": {
+     "mode": "limited",
+     "count": 1
+    }
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 소식"
+  },
+  "11022448": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    },
+    "men": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 소식"
+  },
+  "753705161": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    },
+    "men": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 소식(업체 공지): 사우나·찜질방 이용객 2장"
+  },
+  "26242049": {
+   "seshin": {
+    "price_full": 18000
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 소식(2건 일치)"
+  },
+  "1723669414": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    },
+    "men": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "checked": "2026-10-29",
+   "source": "네이버 플레이스 카운터 안내문 사진(업체 등록): 수건은 1인당 2장"
   }
+ }
 }
