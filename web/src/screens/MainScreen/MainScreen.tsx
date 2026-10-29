@@ -247,22 +247,6 @@ function MainBody({ data }: { data: Loaded }) {
   }
 
   // 눌렀을 때 퍼지는 물결
-  useEffect(() => {
-    const onDown = (e: PointerEvent) => {
-      const t = (e.target as HTMLElement).closest<HTMLElement>('.onsen-main .open, .onsen-main .qp, .onsen-main .seg button, .onsen-main .btn')
-      if (!t || (t as HTMLButtonElement).disabled) return
-      const r = t.getBoundingClientRect()
-      const s = Math.max(r.width, r.height) * 2
-      const span = document.createElement('span')
-      span.className = 'rip'
-      span.style.cssText = `width:${s}px;height:${s}px;left:${e.clientX - r.left - s / 2}px;top:${e.clientY - r.top - s / 2}px`
-      t.appendChild(span)
-      window.setTimeout(() => span.remove(), 700)
-    }
-    document.addEventListener('pointerdown', onDown)
-    return () => document.removeEventListener('pointerdown', onDown)
-  }, [])
-
   const closeDetail = useCallback(() => setDetailOpen(false), [])
 
   // 온보딩: 처음 들어왔을 때 한 번만 자동으로 열고, '직접 확인한 곳만' 옆 '?' 사용법 버튼으로 다시 볼 수 있다.

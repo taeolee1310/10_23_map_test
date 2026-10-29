@@ -160,9 +160,6 @@
 .onsen-main .sec a.btn { text-decoration: none; }
 .onsen-main .sec a.btn:not(.ghost) { color: var(--button-primary-text); }
 .onsen-main .sec a.btn.ghost { color: var(--button-outline-text); }
-.onsen-main .rip { position: absolute; border-radius: 50%; background: color-mix(in srgb, var(--accent) 45%, transparent); transform: scale(0); animation: om-ripple .65s ease-out forwards; pointer-events: none; }
-.onsen-main .btn .rip { background: color-mix(in srgb, var(--color-text-on-action) 35%, transparent); }
-@keyframes om-ripple { to { transform: scale(1); opacity: 0; } }
 .onsen-main #detail { position: absolute; inset: 0; background: var(--card); overflow-y: auto; transform: translateX(102%); opacity: 0; visibility: hidden; z-index: 5; padding: 16px 18px 24px;
   transition: transform var(--dur-drawer) var(--ease-drawer), opacity var(--dur-base) var(--ease-out), visibility 0s linear var(--dur-drawer); }
 .onsen-main #detail.open { transform: none; opacity: 1; visibility: visible; transition-delay: 0s; }
@@ -275,6 +272,8 @@
 .onsen-main #panel { order: 2; flex: none; overflow: visible; }
 .onsen-main #list { overflow: visible; }
 .onsen-main #detail { position: fixed; z-index: 50; border-radius: 0; }
+/* 모바일: 상세는 옆에서 밀려 들어오거나 퍼지지 않고 바로 나타나고 사라진다 */
+.onsen-main #detail, .onsen-main #detail.open { transition: none; }
 .onsen-main .filters { padding: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
