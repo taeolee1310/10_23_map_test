@@ -26,17 +26,20 @@
 .onsen-main :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .onsen-main [hidden] { display: none !important; }
 .onsen-main .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.onsen-main { display: flex; flex-direction: column; height: 100dvh; padding: 0 14px 14px; gap: 14px; background: var(--page); }
+.onsen-main { display: flex; flex-direction: column; height: 100dvh; padding: 0 14px 14px; gap: 14px; background: var(--page);
+  /* 세로가 모자라면(확대·낮은 창) 아래를 자르지 않고 화면 전체가 스크롤된다 */
+  overflow-x: hidden; overflow-y: auto; }
 /* 1단계: 물빛 머리말. 제목과 검색이 화면에서 가장 먼저 보이는 층 */
 .onsen-main .hero { position: relative; flex: none; margin: 0 -14px; padding: 18px 32px 40px; color: var(--on-primary);
   background: var(--primary); }
 .onsen-main .hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 24px; pointer-events: none;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 24' preserveAspectRatio='none'%3E%3Cpath d='M0 24V13C240 -1 480 3 720 12s480 13 720 1V24Z' fill='%23FDF6D0'/%3E%3C/svg%3E") center bottom / 100% 100% no-repeat; }
-.onsen-main .hero-copy { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 560px); gap: 8px 40px; align-items: end; max-width: 1360px; margin: 0 auto; }
+.onsen-main .hero-copy { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, clamp(280px, 50%, 560px)); gap: 8px 40px; align-items: end; max-width: 1360px; margin: 0 auto; }
 .onsen-main .brand { display: flex; align-items: center; gap: 18px; min-width: 0; }
 .onsen-main .brand-badge { flex: none; display: grid; place-items: center; padding: 10px 12px; border-radius: 24px; background: var(--color-surface); box-shadow: 0 6px 18px rgba(var(--brown-rgb),.28); }
 .onsen-main .eyebrow b { font-size: 15px; font-weight: 800; letter-spacing: -.01em; margin-right: 2px; }
 .onsen-main .eyebrow { margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: .18em; color: var(--ink); }
+.onsen-main .hero h1, .onsen-main .hero .sub { word-break: keep-all; overflow-wrap: break-word; }
 .onsen-main .hero h1 { margin: 0; font-size: 28px; line-height: 1.2; letter-spacing: -.04em; font-weight: 800; }
 .onsen-main .hero .sub { margin: 6px 0 0; color: var(--ink); font-size: 13px; }
 .onsen-main .search { display: flex; align-items: center; gap: 8px; background: #fff; color: var(--ink); border: 2px solid transparent; border-radius: 16px;
@@ -52,7 +55,8 @@
 .onsen-main .qp:disabled { opacity: .5; cursor: default; }
 .onsen-main .qp svg { color: inherit; }
 .onsen-main .qp b { background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 0 7px; font-size: 11px; }
-.onsen-main #app { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+/* min-height: 지도(240)+간격+미리보기가 들어갈 만큼은 항상 확보한다. 그 아래로 줄어들면 위 .onsen-main이 스크롤된다 */
+.onsen-main #app { flex: 1 1 0; min-height: 420px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
 .onsen-main #panel { position: relative; display: flex; flex-direction: column; min-height: 0; background: var(--card); border: 1px solid var(--line);
   border-radius: 24px; box-shadow: var(--shadow-s); overflow: hidden; }
 .onsen-main .filters { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; padding: 14px 16px 12px; border-bottom: 1px solid var(--line); }
@@ -218,7 +222,7 @@
 .onsen-main .hero-copy { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .onsen-main .hero h1 { font-size: 22px; }
 .onsen-main .brand { gap: 12px; }
-.onsen-main #app { display: flex; flex-direction: column; flex: none; gap: 12px; }
+.onsen-main #app { display: flex; flex-direction: column; flex: none; min-height: 0; gap: 12px; }
 .onsen-main #side { order: 1; flex: none; }
 .onsen-main .mapcard { flex: none; height: 250px; min-height: 0; }
 .onsen-main .preview { flex: none; min-height: 0; }
