@@ -1,0 +1,17 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="709.758" height="195" viewBox="0 0 709.758 195" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="03 &#234;&#176;&#128;&#236;&#154;&#180;&#235;&#141;&#176; &#235;&#143;&#140;&#236;&#182;&#156; &#235;&#157;&#160;">
+<path id="Band-bottom-shadow" opacity="0.22" d="M23.4516 106C131.452 172 537.452 195 686.452 107L679.452 144C547.452 211 156.452 214 31.4516 141L23.4516 106Z" fill="#EAB957"/>
+<path id="Raised-band" d="M11.4516 29C13.4516 16 20.4516 7 28.4516 3C43.4516 43 172.452 70 347.452 75C525.452 77 660.452 50 684.452 4C695.452 11 699.452 23 701.452 37L706.452 76C710.452 104 674.452 124 631.452 137C482.452 184 184.452 172 56.4516 132C22.4516 121 -0.548369 104 3.45163 77L11.4516 29Z" fill="url(#paint0_linear_0_35)" stroke-width="6" stroke-linejoin="round" stroke="#F8D991"/>
+<path id="Band-top-highlight" opacity="0.83" d="M28.4516 21C65.4516 62 224.452 83 357.452 83C501.452 85 657.452 61 683.452 24" stroke-width="15" stroke-linecap="round" stroke="#FFFAE7"/>
+<path id="Band-upper-glint" opacity="0.78" d="M50.4516 14C66.4516 29 83.4516 37 112.452 45" stroke-width="12" stroke-linecap="round" stroke="white"/>
+<path id="Band-right-edge" opacity="0.62" d="M687.452 43L693.452 80C696.452 96 678.452 106 667.452 112C680.452 91 681.452 72 679.452 48L687.452 43Z" fill="#FFF7D8"/>
+<path id="Band-lower-edge" opacity="0.8" d="M30.4516 109C148.452 171 539.452 192 680.452 114" stroke-width="10" stroke-linecap="round" stroke="#FFE5A3"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_35" x1="17.4516" y1="44" x2="692.452" y2="120" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FFF5D3"/>
+<stop offset="0.46" stop-color="#FFF0BE"/>
+<stop offset="1" stop-color="#F9D789"/>
+</linearGradient>
+</defs>
+</svg>

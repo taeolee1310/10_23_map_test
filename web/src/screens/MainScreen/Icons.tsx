@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import bananaOn from '../../assets/banana-milk/banana-milk-YELLOW-on.svg'
 import bananaOff from '../../assets/banana-milk/banana-milk-YELLOW-off.svg'
 
@@ -20,10 +21,29 @@ export const IconLeaf = () => (
     <path d="M5 19c3-4 6-6 9-8" />
   </svg>
 )
-// 담아두기 버튼 아이콘. on=담아둔 상태(채움), off=아직 안 담음(윤곽)
-export const IconBanana = ({ on, size = 24 }: { on: boolean; size?: number }) => (
-  <img src={on ? bananaOn : bananaOff} width={size} height={size} alt="" aria-hidden="true" />
-)
+// 담아두기 버튼 아이콘. on=담아둔 상태(채움), off=아직 안 담음(윤곽).
+// 채운 병(on)을 윤곽 병(off) 위에 겹쳐 두고, 아래에서부터 드러내며 차오른다. 사용자가 눌러서 담을 때만 한 번 재생한다
+// (목록을 다시 그릴 때 이미 담긴 곳은 움직이지 않는다).
+export const IconBanana = ({ on, size = 24 }: { on: boolean; size?: number }) => {
+  const [pops, setPops] = useState(0)
+  const was = useRef(on)
+  useEffect(() => {
+    if (on && !was.current) setPops((n) => n + 1)
+    was.current = on
+  }, [on])
+  return (
+    <span
+      key={pops} // 다시 담을 때마다 새로 그려서 모션을 처음부터 재생
+      className={`banana${on && pops ? ' banana--pop' : ''}`}
+      data-on={on}
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    >
+      <img className="banana__off" src={bananaOff} alt="" />
+      <img className="banana__on" src={bananaOn} alt="" />
+    </span>
+  )
+}
 export const IconSearch = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" strokeWidth="2" {...base}>
     <circle cx="11" cy="11" r="7" />

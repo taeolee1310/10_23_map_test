@@ -109,8 +109,22 @@
 .onsen-main .heart { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: transparent; display: grid; place-items: center; color: var(--muted); transition: transform var(--dur-press) var(--ease-out), background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out); }
 @media (hover: hover) and (pointer: fine) { .onsen-main .heart:hover { background: var(--soft); } }
 .onsen-main .heart:active { transform: scale(.9); }
-.onsen-main .heart[aria-pressed="true"] img { animation: om-pop var(--dur-slow) var(--ease-out); }
-@keyframes om-pop { 40% { transform: scale(1.22); } }
+/* 바나나우유 담아두기: 차오르는 동안(--dur) 병이 비틀리며 쫀득하게 출렁이고, 다 찼을 때 제자리로 돌아온다. 모션 줄이기에서는 바로 채워진다 */
+.onsen-main .banana { --dur: 640ms; position: relative; display: inline-grid; flex: none; transform-origin: 50% 90%; }
+.onsen-main .banana img { grid-area: 1 / 1; width: 100%; height: 100%; }
+/* 취소: 비틀림 없이 수위만 위에서 아래로 내려가며 비워진다 */
+.onsen-main .banana__on { clip-path: inset(100% 0 0 0); transition: clip-path 420ms cubic-bezier(.4, .1, .45, 1); }
+.onsen-main .banana[data-on="true"] .banana__on { clip-path: inset(0); }
+.onsen-main .banana--pop .banana__on { animation: om-fill var(--dur) cubic-bezier(.4, .1, .45, 1) both; }
+.onsen-main .banana--pop { animation: om-jelly var(--dur) both; }
+@keyframes om-fill { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0); } }
+@keyframes om-jelly {
+  0%   { transform: none; animation-timing-function: ease-out; }
+  22%  { transform: rotate(-15deg) scale(1.1, .9); animation-timing-function: ease-in-out; }
+  50%  { transform: rotate(10deg) scale(.93, 1.1); animation-timing-function: ease-in-out; }
+  76%  { transform: rotate(-3deg) scale(1.03, .98); animation-timing-function: ease-out; }
+  100% { transform: none; }
+}
 .onsen-main .steamy { position: absolute; right: 16px; top: 44px; width: 22px; height: 26px; pointer-events: none; }
 .onsen-main .steamy b { position: absolute; bottom: 0; width: 3px; height: 14px; border-radius: 3px; background: linear-gradient(var(--stone), transparent); opacity: 0; }
 .onsen-main .steamy b:nth-child(1) { left: 3px; }

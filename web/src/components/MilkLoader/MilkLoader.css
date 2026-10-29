@@ -1,0 +1,51 @@
+/* 로딩 화면. 색은 tangbang-colors.css 토큰만 쓴다. */
+.milk-loader {
+  --ml-fade: 240ms;
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px;
+  background: var(--color-bg-band); /* 옅은 유리 병이 보이도록 페이지 바탕보다 한 단계 짙은 면 */
+  color: var(--color-text-primary);
+  font-family: 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif;
+  transition: opacity var(--ml-fade) var(--ease-out);
+}
+.milk-loader--out {
+  opacity: 0;
+  pointer-events: none;
+}
+.milk-loader--calm {
+  --ml-fade: 160ms;
+}
+.milk-loader__bottle {
+  display: block;
+  width: min(320px, 70vw, 46vh);
+  height: auto;
+  aspect-ratio: 1;
+  overflow: visible;
+}
+.milk-loader__glass {
+  opacity: 0.34;
+}
+.milk-loader__straw-base {
+  fill: var(--color-bg-surface);
+}
+.milk-loader__straw-stripe {
+  fill: var(--color-state-success);
+}
+.milk-loader__straw {
+  stroke: var(--color-text-secondary);
+  stroke-opacity: 0.45;
+  stroke-width: 1.5;
+}
+.milk-loader__text {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
