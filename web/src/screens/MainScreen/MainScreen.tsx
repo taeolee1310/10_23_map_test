@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import KakaoMap, { type FitRequest, type MapBounds } from '../../components/KakaoMap'
 import OnsenLogo from '../../components/OnsenLogo'
+import MilkLoader from '../../components/MilkLoader'
 import {
   DEFAULT_FILTERS,
   KINDS,
@@ -23,6 +24,7 @@ import PlacePreview from './PlacePreview'
 import './MainScreen.css'
 
 const DATA_URL = '/data/onsen.json' // export_web_data.py가 만든다
+const LOAD_TIMEOUT = 15000 // 이보다 오래 걸리면 실패로 보고 로딩 화면에서 풀어 준다
 const SORTS = [
   { value: 'auto', label: '추천순' },
   { value: 'dist', label: '가까운 순' },
@@ -40,15 +42,16 @@ export default function MainScreen() {
 
   const loadData = useCallback(() => {
     setLoadError(false)
-    fetch(DATA_URL)
+    fetch(DATA_URL, { signal: AbortSignal.timeout(LOAD_TIMEOUT) })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('data'))))
       .then((j: Loaded) => setData(j))
       .catch(() => setLoadError(true))
   }, [])
   useEffect(() => loadData(), [loadData])
 
+  let body
   if (loadError) {
-    return (
+    body = (
       <div className="onsen-main" id="shell">
         <div className="loaderr" role="alert">
           <b>목욕탕 목록을 불러오지 못했어요</b>
@@ -57,22 +60,28 @@ export default function MainScreen() {
         </div>
       </div>
     )
-  }
-  if (!data) {
-    return (
+  } else if (!data) {
+    body = (
       <div className="onsen-main" id="shell">
         <div className="sk" />
       </div>
     )
-  }
-  if (!data.places.length) {
-    return (
+  } else if (!data.places.length) {
+    body = (
       <div className="onsen-main" id="shell">
         <p className="note">목욕탕 목록이 비어 있어요. python onsen_merge.py와 python export_web_data.py를 다시 실행해 주세요</p>
       </div>
     )
+  } else {
+    body = <MainBody data={data} />
   }
-  return <MainBody data={data} />
+  // 로더는 실제 데이터 요청이 진행 중일 때만 켜진다(성공·실패·시간 초과 모두 loading이 꺼지며 로더가 나간다)
+  return (
+    <>
+      <MilkLoader loading={!data && !loadError} />
+      {body}
+    </>
+  )
 }
 
 function MainBody({ data }: { data: Loaded }) {
