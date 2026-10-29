@@ -245,13 +245,15 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 22px;
-  border: 1px solid color-mix(in srgb, var(--tb-cream-sun) 70%, transparent);
+  min-height: 52px;
+  padding: 12px 28px;
+  /* 처음 눌러야 할 곳이 이 버튼이라는 게 보이도록 채운 주요 버튼(CTA)으로 둔다 */
+  border: 2px solid var(--tb-cream-sun);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--tb-cream-sun) 12%, transparent);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-  color: inherit;
+  background: var(--button-primary-bg);
+  color: var(--button-primary-text);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--tb-bottle-brown) 55%, transparent);
+  text-shadow: none;
   font: inherit;
   font-size: clamp(19px, 1.6vw, 22px);
   font-weight: 700;
@@ -259,16 +261,19 @@
   transition: background 200ms ease;
 }
 .bh__link:focus-visible {
-  outline: 2px solid var(--tb-cream-sun);
-  outline-offset: 3px;
+  outline: 3px solid var(--tb-cream-sun);
+  outline-offset: 4px;
 }
 .bh__link:disabled {
   cursor: default;
 }
 @media (hover: hover) {
   .bh__link:hover {
-    background: color-mix(in srgb, var(--tb-cream-sun) 24%, transparent);
+    background: var(--button-primary-bg-hover);
   }
+}
+.bh__link:active:not(:disabled) {
+  background: var(--button-primary-bg-active);
 }
 .bh__brand,
 .bh__copy h1,
@@ -320,45 +325,6 @@
   }
 }
 
-/* 클릭을 유도하는 캐릭터: 장면과 같은 1536×1024 무대 좌표(--u)로 욕탕 왼쪽 모서리에 놓는다 */
-.bh__stage--ui {
-  z-index: 2;
-  opacity: 1;
-  transition: none;
-  pointer-events: none;
-}
-.bh__mascot {
-  color: inherit; /* 버튼은 글자색을 물려받지 않으므로 인트로 글자색(.bh)을 그대로 받게 한다 */
-  position: absolute;
-  left: calc(600 * var(--u));
-  top: calc(600 * var(--u));
-  padding: 0;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  pointer-events: auto;
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-/* 인트로에서만: 로고 캐릭터의 선·물·김을 모두 인트로 글자색과 같게 칠한다(메인 화면 로고는 컬러 시스템 토큰 그대로) */
-.bh__mascot .onsen-logo {
-  --logo-line: currentColor;
-  --logo-water: currentColor;
-  --logo-steam: currentColor;
-}
-@media (hover: hover) and (pointer: fine) {
-  .bh__mascot:hover {
-    transform: translateY(-3px) scale(1.05);
-  }
-}
-.bh__mascot:active {
-  transform: scale(0.97);
-}
-.bh__mascot:focus-visible {
-  outline: 2px solid var(--tb-cream-sun);
-  outline-offset: 6px;
-  border-radius: 24px;
-}
-
 .bh__volume {
   position: absolute;
   top: 16px;
@@ -378,3 +344,149 @@
   mask: var(--icon) center / contain no-repeat;
 }
 
+
+/* ---- 수면을 떠다니는 오리(장식) ---- */
+/* 위치·크기는 Duck.tsx가 정한다(--dw = 오리 가로 크기). 오리 몸 말고는 클릭을 가로막지 않는다. */
+.bh__duck {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.bh__duck-hit {
+  position: absolute;
+  left: calc(var(--dw) / -2);
+  bottom: 0;
+  width: var(--dw);
+  height: calc(var(--dw) * 0.92);
+  min-width: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.bh__duck-hit:focus-visible {
+  outline: 2px solid var(--tb-cream-sun);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+/* 오리 위의 작은 안내: 첫 클릭·키 입력 전까지만 보인다 */
+.bh__duck-hint {
+  position: absolute;
+  left: 0;
+  bottom: calc(var(--dw) * 0.92 + 10px);
+  transform: translateX(calc(-50% + var(--shift, 0px)));
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--tb-cream-sun) 92%, transparent);
+  color: var(--tb-bottle-brown);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+.bh__duck-hint.is-on {
+  opacity: 1;
+}
+/* 말풍선 꼬리: 보정으로 말풍선이 옆으로 밀려도 오리를 가리킨다 */
+.bh__duck-hint::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: calc(50% - var(--shift, 0px));
+  margin-left: -5px;
+  border: 5px solid transparent;
+  border-top-color: color-mix(in srgb, var(--tb-cream-sun) 92%, transparent);
+}
+.bh__duck-wake {
+  position: absolute;
+  inset: 0;
+}
+/* 지나간 자리에 남는 잔상 물결(JS가 하나씩 만들고 퍼지며 사라지게 한다) */
+.bh__duck-wake i {
+  position: absolute;
+  border: 1.5px solid color-mix(in srgb, var(--tb-cream-sun) 85%, transparent);
+  background: color-mix(in srgb, var(--tb-cream-sun) 8%, transparent);
+  border-radius: 50%;
+  opacity: 0;
+}
+.bh__duck-rig {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  will-change: transform;
+}
+.bh__duck-body {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0;
+  /* 무대 전체에 깔린 어두운 막(.bh__stage::after) 때문에 오리가 흐려 보이지 않도록 살짝 밝게 */
+  filter: brightness(1.1) saturate(1.05) hue-rotate(-8deg);
+}
+/* 프레임마다 크기가 조금 달라서, JSON의 실제 영역을 같은 가로 크기로 맞추고 아래 가운데 기준점에 붙인다 */
+.bh__duck-frame {
+  position: absolute;
+  left: calc(var(--dw) / -2);
+  bottom: 0;
+  width: var(--dw);
+  height: calc(var(--dw) * var(--fh) / var(--fw));
+  background-image: var(--sheet);
+  background-repeat: no-repeat;
+  background-size: calc(var(--dw) * var(--sw) / var(--fw)) auto;
+  background-position: calc(var(--dw) * var(--fx) / var(--fw) * -1) calc(var(--dw) * var(--fy) / var(--fw) * -1);
+}
+.bh__duck-frame--blink {
+  visibility: hidden;
+}
+/* 오리 아래의 옅고 작은 타원형 물결(별도 레이어): 오리를 따라 움직이되 떠오름과는 따로 퍼진다 */
+.bh__duck-ripple {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+}
+.bh__duck-ripple i {
+  position: absolute;
+  left: calc(var(--dw) * -0.6);
+  top: calc(var(--dw) * -0.1);
+  width: calc(var(--dw) * 1.2);
+  height: calc(var(--dw) * 0.22);
+  border: 1.5px solid color-mix(in srgb, var(--tb-cream-sun) 80%, transparent);
+  border-radius: 50%;
+  opacity: 0;
+  animation: bh-duck-ripple 4.2s ease-out infinite;
+}
+.bh__duck-ripple i:nth-child(2) {
+  animation-delay: 2.1s;
+}
+.bh__duck.is-paused .bh__duck-ripple i {
+  animation-play-state: paused;
+}
+@keyframes bh-duck-ripple {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bh__duck-ripple i {
+    animation: none;
+    opacity: 0.4;
+  }
+  .bh__duck-ripple i:nth-child(2) {
+    display: none;
+  }
+}

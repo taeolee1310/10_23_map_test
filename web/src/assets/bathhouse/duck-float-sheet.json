@@ -1,0 +1,141 @@
+{
+  "image": "duck-float-sheet.png",
+  "size": {
+    "w": 1254,
+    "h": 1254
+  },
+  "layout": {
+    "columns": 4,
+    "rows": 2
+  },
+  "loop": true,
+  "direction": "left",
+  "frames": [
+    {
+      "name": "float-01",
+      "frame": {
+        "x": 15,
+        "y": 347,
+        "w": 299,
+        "h": 275
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "displayWidth": 72,
+      "durationMs": 180
+    },
+    {
+      "name": "float-02",
+      "frame": {
+        "x": 328,
+        "y": 340,
+        "w": 299,
+        "h": 277
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "displayWidth": 72,
+      "durationMs": 180
+    },
+    {
+      "name": "float-03",
+      "frame": {
+        "x": 638,
+        "y": 346,
+        "w": 300,
+        "h": 274
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "displayWidth": 72,
+      "durationMs": 120
+    },
+    {
+      "name": "float-04",
+      "frame": {
+        "x": 950,
+        "y": 349,
+        "w": 299,
+        "h": 275
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "displayWidth": 72,
+      "durationMs": 180
+    },
+    {
+      "name": "float-05",
+      "frame": {
+        "x": 17,
+        "y": 741,
+        "w": 297,
+        "h": 271
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "displayWidth": 72,
+      "durationMs": 180
+    },
+    {
+      "name": "float-06",
+      "frame": {
+        "x": 329,
+        "y": 755,
+        "w": 298,
+        "h": 266
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "displayWidth": 72,
+      "durationMs": 180
+    },
+    {
+      "name": "float-07",
+      "frame": {
+        "x": 638,
+        "y": 767,
+        "w": 301,
+        "h": 257
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "displayWidth": 72,
+      "durationMs": 180
+    },
+    {
+      "name": "float-08",
+      "frame": {
+        "x": 950,
+        "y": 741,
+        "w": 299,
+        "h": 274
+      },
+      "anchor": {
+        "x": 0.5,
+        "y": 1
+      },
+      "displayWidth": 72,
+      "durationMs": 180
+    }
+  ],
+  "rendering": {
+    "note": "Crop each frame using its explicit rectangle, then draw at fixed width with bottom-center anchor. Use separate gentle vertical bob and horizontal travel. Mirror the duck only when moving right.",
+    "suggestedDisplayWidthPx": 72,
+    "suggestedBobPx": 2,
+    "suggestedTravelCycleSeconds": 24
+  }
+}
