@@ -6,7 +6,7 @@
 //   3 = 커서 연기(WebGL)
 //   4 = 오리
 // iOS가 아니면 항상 전부 켠다.
-export const IOS_LEVEL = 1
+export const IOS_LEVEL = 2
 
 export const isIOS = () =>
   typeof navigator !== 'undefined' && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
