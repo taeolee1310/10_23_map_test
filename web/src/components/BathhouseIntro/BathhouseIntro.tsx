@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import stripUrl from '../../assets/bathhouse/stream-strip.png'
 import Duck from './Duck'
 import origUrl from '../../assets/bathhouse/orig.webp'
-import { DUCK_ON, GHOST_ON, SCENE_ON, STEAM_ON } from './iosLite'
+import { DUCK_ON, GHOST_ON, SCENE_ON, STEAM_ON, isIOS } from './iosLite'
+import { bakeSteam, type SteamGroup } from './steamBake'
 import GhostCursor from '../GhostCursor'
 import { buildScene, STAGE_H, STAGE_W, type Scene } from './scene'
 import { CANVAS_BOX, createWaterfall, LOOP_SECONDS } from './waterfall'
@@ -52,6 +53,8 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
 
   const [volume, setVolume] = useState(BGM_VOLUME)
   const [duckPressed, setDuckPressed] = useState(false) // 오리를 한 번 눌렀는지(오리 위 안내는 그때까지만)
+  // iOS는 수증기를 마스크 없이 미리 구운 그림으로 쓴다(steamBake.ts)
+  const [steamBaked, setSteamBaked] = useState<Record<SteamGroup, string> | null>(null)
   const [soundAsked, setSoundAsked] = useState(false) // 첫 클릭·키 입력이 있었는지(오리 위 안내를 그때까지만 보여 준다)
   const bgmRef = useRef<Bgm | null>(null)
   const sfxRef = useRef<Sfx | null>(null)
@@ -76,6 +79,17 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
       window.removeEventListener('keydown', start)
       bgm.release()
       bgmRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isIOS() || !STEAM_ON) return
+    let dead = false
+    bakeSteam()
+      .then((b) => !dead && setSteamBaked(b))
+      .catch((e) => console.error(e))
+    return () => {
+      dead = true
     }
   }, [])
 
@@ -221,12 +235,18 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
           />
         )}
 
-        {STEAM_ON && scene && (
+        {STEAM_ON && scene && (!isIOS() || steamBaked) && (
           <div className="bh__steams">
             {(['back', 'mid', 'front'] as const).map((name) =>
-              [0, 1].map((copy) => (
-                <div key={`${name}${copy}`} className={`bh__layer bh__steam bh__steam--${name}${copy ? ' bh__steam--late' : ''}`} />
-              )),
+              [0, 1].map((copy) =>
+                steamBaked && copy ? null : ( // iOS는 층마다 한 장만(메모리). 구워 둔 그림을 쓰고 마스크는 쓰지 않는다
+                  <div
+                    key={`${name}${copy}`}
+                    className={`bh__layer bh__steam bh__steam--${name}${copy ? ' bh__steam--late' : ''}${steamBaked ? ' bh__steam--baked' : ''}`}
+                    style={steamBaked ? { backgroundImage: `url(${steamBaked[name]})` } : undefined}
+                  />
+                ),
+              ),
             )}
           </div>
         )}

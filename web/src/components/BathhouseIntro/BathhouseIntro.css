@@ -498,3 +498,10 @@
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
+
+/* iOS: 마스크를 미리 구워 둔 그림을 쓰는 수증기(steamBake.ts). CSS 마스크 없이 이동·투명도만 움직인다 */
+.bh__steam--baked {
+  -webkit-mask: none;
+  mask: none;
+  background-size: 100% 100%;
+}
