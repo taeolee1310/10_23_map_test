@@ -247,7 +247,33 @@ function MainBody({ data }: { data: Loaded }) {
   }
 
   // 눌렀을 때 퍼지는 물결
-  const closeDetail = useCallback(() => setDetailOpen(false), [])
+  // 상세를 열 때 브라우저 기록에 한 단계를 쌓는다: 모바일의 뒤로가기(iPhone 가장자리 스와이프, 안드로이드 뒤로 제스처)가 곧 '목록으로'가 된다.
+  const detailPushed = useRef(false)
+  const openDetail = useCallback(() => {
+    setDetailOpen(true)
+    if (detailPushed.current) return
+    try {
+      history.pushState({ tbDetail: true }, '')
+      detailPushed.current = true
+    } catch {
+      /* 기록을 쓸 수 없는 환경: 상세만 열고 뒤로가기는 쓰지 않는다 */
+    }
+  }, [])
+  const closeDetail = useCallback(() => {
+    if (!detailPushed.current) {
+      setDetailOpen(false)
+      return
+    }
+    history.back() // 실제로 닫는 건 아래 popstate가 한다(쌓아 둔 기록 한 단계도 함께 사라진다)
+  }, [])
+  useEffect(() => {
+    const onPop = () => {
+      detailPushed.current = false
+      setDetailOpen(false)
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   // 온보딩: 처음 들어왔을 때 한 번만 자동으로 열고, '직접 확인한 곳만' 옆 '?' 사용법 버튼으로 다시 볼 수 있다.
   // 저장소를 못 쓰는 브라우저에서는 매번 띄우지 않는다.
@@ -274,7 +300,7 @@ function MainBody({ data }: { data: Loaded }) {
       title: '내 위치 먼저 확인',
       body: '내 주변 목욕탕 버튼을 누르면 가까운 곳부터 볼 수 있어요. 위치는 거리 계산에만 쓰고 저장하거나 보내지 않아요.',
       action: { label: '내 위치 확인하기', run: goNear },
-      onEnter: () => setDetailOpen(false),
+      onEnter: () => closeDetail(),
     },
     {
       target: '#list .item',
@@ -360,7 +386,7 @@ function MainBody({ data }: { data: Loaded }) {
                 aria-label="탕방 사용법 보기"
                 title="탕방 사용법"
                 onClick={() => {
-                  setDetailOpen(false)
+                  closeDetail()
                   setTourOpen(true)
                 }}
               >
@@ -401,7 +427,7 @@ function MainBody({ data }: { data: Loaded }) {
             onSelect={(id) => select(id, 'list')}
             onDetail={(id) => {
               select(id, 'list')
-              setDetailOpen(true)
+              openDetail()
             }}
             onFav={toggleFav}
             onHover={setHotId}
@@ -455,7 +481,7 @@ function MainBody({ data }: { data: Loaded }) {
             fav={!!selected && favs.has(selected.id)}
             swapKey={selected?.id ?? ''}
             onFav={toggleFav}
-            onDetail={() => setDetailOpen(true)}
+            onDetail={openDetail}
             onReport={reportPrice}
           />
         </aside>

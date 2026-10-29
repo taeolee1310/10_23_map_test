@@ -103,6 +103,8 @@ function ParkingBlock({ d }: { d: PlaceWithDist }) {
 }
 
 export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onReport }: Props) {
+  // 손가락으로 오른쪽으로 밀면 '목록으로'(모바일의 뒤로 가기 제스처). 세로 스크롤과 구분하려고 가로로 충분히 길고 빠를 때만 본다.
+  const swipe = useRef<{ x: number; y: number; t: number } | null>(null)
   const backRef = useRef<HTMLButtonElement>(null)
   const boxRef = useRef<HTMLElement>(null)
 
@@ -119,7 +121,23 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
   const kakao = d ? safeUrl(d.url) : ''
   const tel = d ? safeTel(d.tel) : ''
   return (
-    <article id="detail" ref={boxRef} className={open ? 'open' : ''} aria-hidden={!open} tabIndex={open ? 0 : -1} aria-label="목욕탕 상세 (방향키로 스크롤)">
+    <article
+      id="detail"
+      ref={boxRef}
+      onTouchStart={(e) => {
+        const p = e.touches[0]
+        swipe.current = { x: p.clientX, y: p.clientY, t: Date.now() }
+      }}
+      onTouchEnd={(e) => {
+        const s = swipe.current
+        swipe.current = null
+        if (!s || !open) return
+        const p = e.changedTouches[0]
+        const dx = p.clientX - s.x
+        const dy = p.clientY - s.y
+        if (dx > 80 && Math.abs(dy) < dx * 0.5 && Date.now() - s.t < 700) onClose()
+      }}
+      onTouchCancel={() => (swipe.current = null)} className={open ? 'open' : ''} aria-hidden={!open} tabIndex={open ? 0 : -1} aria-label="목욕탕 상세 (방향키로 스크롤)">
       {d && l && (
         <>
           <button className="back" ref={backRef} onClick={onClose}>← 목록으로</button>
