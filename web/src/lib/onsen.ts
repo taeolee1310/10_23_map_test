@@ -107,8 +107,6 @@ export function priceLabel(p: Place) {
 // 요금은 직접 확인한 곳만 숫자로 보여 준다. 확인 못 한 곳(평균 추정 포함)은 '요금 미확인'으로 두고 아래에 한 줄을 덧붙인다.
 export const priceState = (p: Place): 'confirmed' | 'estimate' | 'none' => (p.price ? 'confirmed' : p.price_estimate ? 'estimate' : 'none')
 export const PRICE_NOTE = { confirmed: '직접 확인한 요금', estimate: '아직 확인하지 못한 요금이에요' } as const
-// 요금 제보를 받을 주소(구글 폼 등). 비워 두면 화면에서 '곧 열릴 예정'이라고 알려 준다.
-export const REPORT_URL: string = ''
 
 // 요금 칩은 확인한 요금만 진하게, 미확인은 옅은 회색
 export const priceClass = (p: Place) => (p.price ? '' : ' unknown')

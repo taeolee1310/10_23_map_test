@@ -4,7 +4,6 @@ import OnsenLogo from '../../components/OnsenLogo'
 import {
   DEFAULT_FILTERS,
   KINDS,
-  REPORT_URL,
   filterPlaces,
   hasXY,
   km,
@@ -15,6 +14,7 @@ import {
   type PlaceWithDist,
 } from '../../lib/onsen'
 import GlideSelect from '../../components/GlideSelect'
+import PriceReport from '../../components/PriceReport'
 import Onboarding, { type TourStep } from '../../components/Onboarding'
 import { IconBanana, IconDrop, IconHelp, IconLocate, IconPin, IconSearch } from './Icons'
 import PlaceDetail from './PlaceDetail'
@@ -38,17 +38,23 @@ export default function MainScreen() {
   const [data, setData] = useState<Loaded | null>(null)
   const [loadError, setLoadError] = useState(false)
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
+    setLoadError(false)
     fetch(DATA_URL)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('data'))))
       .then((j: Loaded) => setData(j))
       .catch(() => setLoadError(true))
   }, [])
+  useEffect(() => loadData(), [loadData])
 
   if (loadError) {
     return (
       <div className="onsen-main" id="shell">
-        <p className="note">⛔ 목욕탕 목록을 불러오지 못했어요. 터미널에서 python export_web_data.py를 먼저 실행해 주세요</p>
+        <div className="loaderr" role="alert">
+          <b>목욕탕 목록을 불러오지 못했어요</b>
+          <p>인터넷 연결을 확인한 뒤 다시 불러와 주세요. 계속 안 되면 잠시 뒤에 다시 들어와 주세요.</p>
+          <button className="btn" onClick={loadData}>다시 불러오기</button>
+        </div>
       </div>
     )
   }
@@ -295,14 +301,11 @@ function MainBody({ data }: { data: Loaded }) {
       },
     },
   ]
-  // 요금 제보: 제보 받을 주소(REPORT_URL)가 정해지면 그곳으로, 아직이면 안내만 한다
+  // 요금 제보: 제보 창을 열고, 보낸 결과는 알림으로 알려 준다
+  const [reportFor, setReportFor] = useState<{ id: string; name: string } | null>(null)
   const reportPrice = (id: string) => {
     const p = places.find((d) => d.id === id)
-    if (!REPORT_URL) {
-      showToast('요금 제보 창구를 준비 중이에요')
-      return
-    }
-    window.open(`${REPORT_URL}${REPORT_URL.includes('?') ? '&' : '?'}place=${encodeURIComponent(p?.name ?? id)}`, '_blank', 'noopener')
+    setReportFor({ id, name: p?.name ?? id })
   }
   const count = inView && bounds ? `지도 안 ${view.length}곳` : `${view.length}곳`
 
@@ -464,6 +467,7 @@ function MainBody({ data }: { data: Loaded }) {
         출처: 행정안전부 온천이용업소 현황, 서울시 목욕장업 인허가 정보, 카카오 로컬 API(장소·주차장 검색), 요금: 업체 가격표(네이버 플레이스)·행안부 착한가격업소, 지도: 카카오맵. 데이터 기준일 {data.baseDate}.
         위치는 이 브라우저에서 거리 계산에만 쓰고 저장하거나 보내지 않아요. 지도 위치를 못 찾은 곳은 목록에만 나와요.
       </p>
+      <PriceReport place={reportFor} onClose={() => setReportFor(null)} onMessage={showToast} />
       <Onboarding steps={tourSteps} open={tourOpen} onClose={closeTour} />
     </div>
   )

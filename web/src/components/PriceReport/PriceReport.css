@@ -1,0 +1,85 @@
+/* 요금 제보 창. 색·모서리·간격은 styles/tangbang-colors.css 토큰만 쓴다. 모양은 메인 화면 카드와 같은 규칙. */
+.pr-modal { position: fixed; inset: 0; z-index: 1100; display: grid; place-items: center; padding: var(--space-4); background: var(--modal-overlay); overflow-y: auto;
+  font-family: 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif; animation: pr-fade var(--dur-base) var(--ease-out) both; }
+.pr-modal__card { width: min(420px, 100%); box-sizing: border-box; padding: var(--space-5); background: var(--modal-bg); border: 1px solid var(--modal-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); color: var(--modal-text);
+  animation: pr-rise var(--dur-base) var(--ease-out) both; }
+
+.pr-modal__head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-4); }
+.pr-modal__title { margin: 0; font-size: 18px; line-height: 26px; font-weight: 700; letter-spacing: -.02em; color: var(--modal-title); }
+.pr-modal__place { margin: 2px 0 0; font-size: 14px; line-height: 20px; color: var(--modal-text); word-break: keep-all; }
+.pr-modal__x { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin: -10px -10px 0 0; padding: 0; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--modal-text); cursor: pointer; transition: background var(--dur-base) var(--ease-out); }
+
+/* 소제목: 본문보다 한 단계 작고 굵게, 오른쪽에 '하나 이상·필수·선택'을 작게 */
+.pr-modal__sub { margin: 0; padding: 0; font-size: 13px; line-height: 18px; font-weight: 700; color: var(--modal-title); }
+.pr-modal__sub span { margin-left: var(--space-1); font-weight: 500; color: var(--color-text-muted); }
+
+/* 요금 묶음: 메인 화면 카드 안쪽 바탕(inset)과 같은 면 */
+.pr-modal__sec { display: grid; gap: var(--space-2); padding: var(--space-4); margin-bottom: var(--space-4); background: var(--card-bg-inset); border: 1px solid var(--card-border); border-radius: var(--radius-lg); }
+.pr-modal__sec.bad { border-color: var(--input-border-error); }
+.pr-modal__row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); font-size: 14px; line-height: 20px; color: var(--modal-title); }
+.pr-modal__won { position: relative; display: inline-flex; align-items: center; }
+.pr-modal__won input { width: 136px; height: 44px; box-sizing: border-box; padding: 0 34px 0 var(--space-3); text-align: right; }
+.pr-modal__won em { position: absolute; right: var(--space-3); font-style: normal; font-size: 14px; color: var(--modal-text); pointer-events: none; }
+
+.pr-modal input:not([type='radio']), .pr-modal textarea { font: inherit; font-size: 15px; color: var(--input-text); background: var(--input-bg); border: 1px solid var(--input-border); border-radius: var(--radius-md); transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out); }
+@media (hover: hover) and (pointer: fine) { .pr-modal input:not([type='radio']):hover, .pr-modal textarea:hover { border-color: var(--input-border-hover); } }
+.pr-modal input::placeholder, .pr-modal textarea::placeholder { color: var(--input-placeholder); opacity: 1; }
+.pr-modal input:not([type='radio']):focus, .pr-modal textarea:focus { outline: none; border-color: var(--input-border-focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--input-border-focus) 25%, transparent); }
+.pr-modal input[aria-invalid='true'] { border-color: var(--input-border-error); }
+
+/* 확인한 방법: 메인 화면 칩과 같은 알약. 고르면 Bath Teal */
+.pr-modal__src { margin: 0 0 var(--space-4); padding: 0; border: 0; min-width: 0; }
+.pr-modal__src legend { margin-bottom: var(--space-2); }
+.pr-modal__src div { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.pr-modal__src label { position: relative; display: inline-flex; align-items: center; justify-content: center; min-height: 36px; padding: 0 var(--space-4); border: 1px solid var(--chip-border); border-radius: var(--radius-pill); background: var(--chip-bg); color: var(--chip-text); font-size: 14px; line-height: 20px; font-weight: 500; cursor: pointer; transition: background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out); }
+.pr-modal__src input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.pr-modal__src label.on { background: var(--chip-bg-selected); border-color: var(--chip-border-selected); color: var(--chip-text-selected); font-weight: 600; }
+.pr-modal__src label:focus-within { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+.pr-modal__src.bad label:not(.on) { border-color: var(--input-border-error); }
+@media (hover: hover) and (pointer: fine) { .pr-modal__src label:not(.on):hover { background: var(--chip-bg-hover); } }
+
+.pr-modal__memo { position: relative; display: grid; gap: var(--space-2); margin-bottom: var(--space-3); }
+.pr-modal textarea { box-sizing: border-box; width: 100%; padding: var(--space-3); line-height: 22px; resize: none; }
+.pr-modal__memo small { position: absolute; right: var(--space-3); bottom: var(--space-2); font-size: 12px; line-height: 16px; color: var(--color-text-muted); pointer-events: none; }
+
+/* 안내 한 줄: 메인 화면 알림과 같은 Info 면 + 'i' 아이콘 */
+.pr-modal__note { display: flex; align-items: flex-start; gap: var(--space-2); margin: 0 0 var(--space-3); padding: var(--space-3); background: var(--toast-info-bg); border-radius: var(--radius-md); font-size: 13px; line-height: 19px; color: var(--toast-text); word-break: keep-all; }
+.pr-modal__note::before { content: "i"; flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--toast-info-icon); color: var(--color-text-on-action); font-size: 12px; font-weight: 600; }
+
+/* 오류: 글자는 본문색, 오류는 '!' 아이콘 색으로 알린다(Figma 알림과 같은 방식) */
+.pr-modal__err { display: none; align-items: center; gap: var(--space-2); margin: 0 0 var(--space-3); font-size: 13px; line-height: 18px; font-weight: 600; color: var(--toast-text); }
+.pr-modal__err.show { display: flex; }
+.pr-modal__err.show::before { content: "!"; flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--toast-error-icon); color: var(--color-text-on-action); font-size: 12px; font-weight: 700; }
+
+.pr-modal__actions { display: flex; gap: var(--space-2); }
+.pr-modal__btn { flex: 1; min-height: 44px; padding: 0 var(--space-4); border: 1px solid transparent; border-radius: var(--radius-md); cursor: pointer; font: inherit; font-size: 14px; line-height: 20px; font-weight: 600; transition: background var(--dur-base) var(--ease-out), transform var(--dur-press) var(--ease-out); }
+.pr-modal__btn--outline { flex: 0 0 auto; background: var(--button-outline-bg); color: var(--button-outline-text); border-color: var(--button-outline-border); }
+.pr-modal__btn--primary { background: var(--button-primary-bg); color: var(--button-primary-text); }
+.pr-modal__btn:disabled { background: var(--button-primary-bg-disabled); cursor: default; }
+.pr-modal__btn:active:not(:disabled) { transform: scale(.98); }
+@media (hover: hover) and (pointer: fine) {
+  .pr-modal__btn--primary:hover:not(:disabled) { background: var(--button-primary-bg-hover); }
+  .pr-modal__btn--outline:hover { background: var(--button-outline-bg-hover); }
+  .pr-modal__x:hover { background: var(--chip-bg-hover); }
+}
+.pr-modal__btn--primary:active:not(:disabled) { background: var(--button-primary-bg-active); }
+.pr-modal__btn--outline:active { background: var(--button-outline-bg-active); }
+.pr-modal :focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+
+/* 자동 입력을 걸러내는 숨은 칸: 사람 눈과 화면 읽기 프로그램에는 보이지 않는다 */
+.pr-modal__hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+
+/* 좁은 화면: 키보드가 올라와도 쓰기 편하게 아래에서 올라오는 시트 */
+@media (max-width: 560px) {
+  .pr-modal { place-items: end center; padding: 0; }
+  .pr-modal__card { width: 100%; max-height: 94dvh; overflow-y: auto; border-radius: var(--radius-lg) var(--radius-lg) 0 0; padding: var(--space-4) var(--space-4) var(--space-5); animation-name: pr-sheet; }
+  .pr-modal__won input { width: 148px; }
+}
+
+@keyframes pr-fade { from { opacity: 0; } }
+@keyframes pr-rise { from { opacity: 0; transform: translateY(8px); } }
+@keyframes pr-sheet { from { transform: translateY(24px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .pr-modal, .pr-modal__card { animation: none; }
+  .pr-modal__btn, .pr-modal__src label, .pr-modal__x, .pr-modal input, .pr-modal textarea { transition: none; }
+}

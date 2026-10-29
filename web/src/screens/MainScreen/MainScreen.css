@@ -153,7 +153,7 @@
   transition: transform var(--dur-drawer) var(--ease-drawer), opacity var(--dur-base) var(--ease-out), visibility 0s linear var(--dur-drawer); }
 .onsen-main #detail.open { transform: none; opacity: 1; visibility: visible; transition-delay: 0s; }
 .onsen-main #detail h2 { margin: 8px 0 2px; font-size: 22px; line-height: 1.25; letter-spacing: -.02em; }
-.onsen-main .back { display: inline-flex; align-items: center; gap: 4px; background: none; border: 0; padding: 4px 0; color: var(--secondary); font-weight: 600; }
+.onsen-main .back { display: inline-flex; align-items: center; gap: 4px; background: none; border: 0; padding: 4px 0; margin-right: 12px; color: var(--secondary); font-weight: 600; }
 .onsen-main .sec { margin-top: 14px; background: var(--inset); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 14px 16px; }
 .onsen-main .sec h3 { margin: 0 0 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
 .onsen-main .sec a { color: var(--secondary); font-weight: 600; }
@@ -277,3 +277,11 @@
 .onsen-main .help::before { content: ""; position: absolute; inset: -10px; }
 .onsen-main .help svg { width: 18px; height: 18px; }
 @media (hover: hover) and (pointer: fine) { .onsen-main .help:hover { color: var(--selected); } }
+
+/* 메인 화면 로고: 기준 색 토큰으로 칠한다(인트로의 로고 색은 그대로) */
+.onsen-main .onsen-logo { --logo-line: var(--color-text-secondary); --logo-water: var(--color-action-secondary); --logo-steam: var(--color-accent-decor); }
+
+/* 목록을 못 불러왔을 때: 가운데 카드 한 장 + 다시 불러오기 */
+.onsen-main .loaderr { margin: auto; width: min(360px, calc(100% - 32px)); display: grid; gap: var(--space-2); justify-items: center; text-align: center; padding: var(--space-5); background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+.onsen-main .loaderr b { font-size: 17px; line-height: 24px; color: var(--ink); word-break: keep-all; }
+.onsen-main .loaderr p { margin: 0 0 var(--space-2); font-size: 14px; line-height: 22px; color: var(--muted); word-break: keep-all; }
