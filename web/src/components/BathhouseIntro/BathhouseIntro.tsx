@@ -258,9 +258,9 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
       <div className="bh__copy">
         <p className="bh__brand">탕방</p>
         <h1 id="bh-title">
-          오늘은,
+          일은 안 풀려도,
           <br />
-          따뜻한 곳으로.
+          몸은 풀려야죠.
         </h1>
         <p className="bh__sub">서울의 목욕탕을 찾아서.</p>
         <button className="bh__link" type="button" onClick={handleEnter} disabled={isLeaving}>
