@@ -10,6 +10,7 @@ type Props = {
   favs: Set<string>
   animKey: number
   onSelect: (id: string) => void
+  onDetail: (id: string) => void // 모바일: 카드에서 바로 상세를 연다
   onFav: (id: string) => void
   onHover: (id: string | null) => void
   onMore: () => void
@@ -17,7 +18,7 @@ type Props = {
   onReport: (id: string) => void
 }
 
-export default function PlaceList({ list, total, shown, selId, hotId, favs, animKey, onSelect, onFav, onHover, onMore, onReset, onReport }: Props) {
+export default function PlaceList({ list, total, shown, selId, hotId, favs, animKey, onSelect, onDetail, onFav, onHover, onMore, onReset, onReport }: Props) {
   if (!list.length) {
     return (
       <ol id="list">
@@ -59,6 +60,12 @@ export default function PlaceList({ list, total, shown, selId, hotId, favs, anim
               {priceState(d) === 'estimate' && <button className="linkbtn" onClick={() => onReport(d.id)}>요금 제보</button>}
             </div>
           )}
+          {/* 모바일에서는 미리보기 카드가 위쪽 지도 아래에 있어서, 카드에서 바로 상세로 들어가는 버튼을 둔다(데스크톱에서는 숨김) */}
+          <div className="item-actions">
+            <button className="btn ghost sm" aria-label={`${d.name} 자세히 보기`} onClick={() => onDetail(d.id)}>
+              자세히 보기
+            </button>
+          </div>
           <button className="heart" aria-pressed={favs.has(d.id)} aria-label={`${d.name} 담아두기`} onClick={() => onFav(d.id)}>
             <IconBanana on={favs.has(d.id)} size={24} />
           </button>

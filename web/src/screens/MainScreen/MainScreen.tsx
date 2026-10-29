@@ -399,6 +399,10 @@ function MainBody({ data }: { data: Loaded }) {
             favs={favs}
             animKey={animKey}
             onSelect={(id) => select(id, 'list')}
+            onDetail={(id) => {
+              select(id, 'list')
+              setDetailOpen(true)
+            }}
             onFav={toggleFav}
             onHover={setHotId}
             onMore={() => setShown((s) => s + PAGE)}
