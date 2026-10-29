@@ -67,7 +67,15 @@ export function createBgm(src: string, initialVolume: number): Bgm {
     play() {
       if (disposed || (to === 1 && !audio.paused)) return // 이미 커지는 중이거나 켜져 있으면 다시 시작하지 않는다
       audio.play().then(
-        () => go(1, FADE_IN_MS * (1 - level)),
+        () => {
+          if (disposed) {
+            // 재생이 시작되기 전에 정리된 경우(개발 모드의 효과 재실행): 소리를 켜지 않고 멈춘다
+            audio.pause()
+            audio.src = ''
+            return
+          }
+          go(1, FADE_IN_MS * (1 - level))
+        },
         () => {},
       )
     },

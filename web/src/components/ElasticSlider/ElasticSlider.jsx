@@ -407,7 +407,10 @@ function ElasticSlider({
 
   useEffect(() => {
     const m = motion.current;
-    return () => cancelAnimationFrame(m.raf);
+    return () => {
+      cancelAnimationFrame(m.raf);
+      m.raf = 0; // 개발 모드(StrictMode)는 효과를 한 번 껐다 켠다. 0으로 되돌려야 다시 켜질 때 애니메이션이 시작된다
+    };
   }, []);
 
   const along = event => {
