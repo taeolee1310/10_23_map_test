@@ -3,10 +3,10 @@
 //   0 = 정지한 그림만(캔버스·애니메이션 없음)
 //   1 = 장면 합성(캔버스)·구름·물줄기·햇빛·수면 반사
 //   2 = 수증기
-//   3 = 커서 연기(WebGL)
+//   3 = (건너뜀) 커서 연기: 마우스를 따라 움직이는 효과라 손가락이 주 입력인 기기에서는 항상 끈다
 //   4 = 오리
-// iOS가 아니면 항상 전부 켠다.
-export const IOS_LEVEL = 2
+// iOS가 아니면 전부 켠다(커서 연기만 마우스 기기에서).
+export const IOS_LEVEL = 4
 
 export const isIOS = () =>
   typeof navigator !== 'undefined' && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
@@ -16,5 +16,6 @@ const on = (rank: number) => !ios || IOS_LEVEL >= rank
 
 export const SCENE_ON = on(1)
 export const STEAM_ON = on(2)
-export const GHOST_ON = on(3)
+// 커서 연기(WebGL)는 마우스가 주 입력인 기기에서만 켠다. iOS와 손가락이 주 입력인 기기(pointer: coarse)에서는 끈다.
+export const GHOST_ON = !ios && !(typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches)
 export const DUCK_ON = on(4)
