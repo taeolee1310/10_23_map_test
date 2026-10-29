@@ -1,126 +1,132 @@
-/* 탕방 컬러 시스템 v2 (라이트 전용)
+/* 탕방 컬러 시스템 v3 (라이트 전용)
+   원천: Figma '원티드 커리어캠프' 파일의 '탕방 디자인 시스템'(노드 418:131) — Foundations/Color, 컴포넌트 변수
    키워드: Warm · Calm · Clean · Cozy · Trustworthy · Nostalgic but Modern
-   3단계 토큰: 1) Primitive(원색 스케일) → 2) Semantic(의미) → 3) Component(컴포넌트·상태)
+   3단계 토큰: 1) Primitive(Figma 스케일) → 2) Semantic(의미) → 3) Component(컴포넌트·상태)
    - 화면 CSS는 Semantic·Component 토큰만 쓴다. Primitive(--tb-*)를 화면에서 직접 쓰지 않는다.
-   - 기준 8색(#FDF6D0 #FFFDF5 #342C25 #57483B #527C77 #A64B31 #E8D9AE #E7A36E)은 값을 바꾸지 않는다.
-   - 명암비는 docs/color-system.md 의 표로 검증했다(WCAG 2.2 AA).
-   - 다크 모드는 이번 범위 밖. 아래 Semantic 블록만 [data-theme="dark"]에서 다시 정의하면 된다. */
+   - Bath Teal은 '선택'과 '포인트'(포커스·시설 정보·링크·내 위치)에 쓴다. 주요 액션(CTA)만 Terracotta.
+   - Figma 값을 그대로 따르되, 글자 4.5:1에 못 미치는 조합만 같은 계열의 더 짙은 단계로 바꿨다(아래 ※ 표시).
+   - 명암비 검증표와 매핑은 docs/color-system.md. 다크 모드는 범위 밖: Semantic 블록만 다시 정의하면 확장된다. */
 
 :root {
-  /* ═════════ Level 1. Primitive ═════════ */
-  /* 기준값은 ★ 표시 */
-  --tb-cream-100: #FEFAE8;
-  --tb-cream-200: #FDF6D0;   /* ★ Warm Cream — 브랜드 배경 */
-  --tb-cream-300: #F4E9B8;
+  /* ═════════ Level 1. Primitive (Figma 값) ═════════ */
+  /* 브랜드 8색 */
+  --tb-brand-warm-cream: #FDF6D0;
+  --tb-brand-clean-ivory: #FFFDF5;
+  --tb-brand-deep-cocoa: #342C25;
+  --tb-brand-mocha-brown: #57483B;
+  --tb-brand-bath-teal: #527C77;
+  --tb-brand-warm-terracotta: #A64B31;
+  --tb-brand-sand-beige: #E8D9AE;
+  --tb-brand-apricot: #E7A36E;
 
-  --tb-ivory-50: #FFFDF5;    /* ★ Clean Ivory — 카드·콘텐츠 표면 */
-  --tb-ivory-100: #F9F4E3;
+  /* 스케일 */
+  --tb-cream-50: #FFFCEB;  --tb-cream-100: #FEF6D0;  --tb-cream-200: #F7EBA1;  --tb-cream-300: #F3E8C9;  --tb-cream-400: #E2CF86;
+  --tb-ivory-50: #FFFFFF;  --tb-ivory-100: #FFF8E9;  --tb-ivory-200: #FBEDD3;  --tb-ivory-400: #EADFB8;
+  --tb-cocoa-50: #F5F0EC;  --tb-cocoa-100: #D8CFC7;  --tb-cocoa-200: #9B8E7F;  --tb-cocoa-300: #8D7665;  --tb-cocoa-500: #57483B;  --tb-cocoa-700: #342C25;
+  --tb-cocoa-700-rgb: 52, 44, 37; /* 그림자·투명 겹침용 */
+  --tb-teal-50: #EBF1EF;   --tb-teal-100: #D3E0DB;   --tb-teal-200: #C8D8D6;   --tb-teal-500: #527C77;   --tb-teal-600: #3E615D;   --tb-teal-700: #2F5A56;
+  --tb-terracotta-50: #FCEDE7;  --tb-terracotta-100: #F6D7CC;  --tb-terracotta-200: #E9C7B6;  --tb-terracotta-300: #D77A5D;
+  --tb-terracotta-500: #A64B31; --tb-terracotta-600: #8C3C24;  --tb-terracotta-650: #7F3F27;  --tb-terracotta-700: #773A27;
+  --tb-sand-50: #FAF6E7;   --tb-sand-75: #F0EBD8;    --tb-sand-100: #F3EBC9;   --tb-sand-300: #E8D9AE;   --tb-sand-500: #D4C26A;   --tb-sand-700: #B9A257;
+  --tb-apricot-50: #FDF2E8; --tb-apricot-100: #FBD7BA; --tb-apricot-500: #D9844D; --tb-apricot-700: #B86B33;
 
-  --tb-sand-200: #F1E7C6;
-  --tb-sand-300: #E8D9AE;    /* ★ Sand Beige — 보조 배경·구분 */
-  --tb-sand-500: #CDBB86;
+  /* 선·면(Figma의 border-default·border-subtle·input-bg-disabled 값에 이름을 붙임) */
+  --tb-stone-50: #F7F3EA;
+  --tb-stone-100: #EFE8DC;
+  --tb-stone-200: #E4DCD3;
 
-  --tb-apricot-100: #FAE6D3;
-  --tb-apricot-300: #E7A36E; /* ★ Apricot — 장식·강조(글자·경계로 쓰지 않는다: 대비 부족) */
+  /* ※ 파생: Figma muted(#8D7665)는 흰 바탕 4.28:1·크림 3.92:1이라 글자용으로 한 단계 짙게 */
+  --tb-cocoa-400: #6B5B4D;
 
-  --tb-cocoa-100: #EDE6DA;
-  --tb-cocoa-300: #C4B8A8;
-  --tb-cocoa-500: #877767;   /* 입력창 경계 */
-  --tb-cocoa-600: #6B5B4D;   /* 흐린 글자 */
-  --tb-cocoa-700: #57483B;   /* ★ Mocha Brown — 보조 텍스트 */
-  --tb-cocoa-900: #342C25;   /* ★ Deep Cocoa — 주요 텍스트·헤딩 */
-  --tb-cocoa-900-rgb: 52, 44, 37; /* 그림자·투명 겹침용 (rgba(var(--tb-cocoa-900-rgb), .2)) */
-
-  --tb-teal-50: #E5EFED;
-  --tb-teal-100: #CFE2DF;
-  --tb-teal-500: #527C77;    /* ★ Bath Teal — 필터·시설·보조 인터랙션 */
-  --tb-teal-600: #446A66;
-  --tb-teal-700: #385753;
-
-  --tb-terracotta-50: #F8E3DC;
-  --tb-terracotta-500: #A64B31; /* ★ Warm Terracotta — Primary CTA */
-  --tb-terracotta-600: #8F3F28;
-  --tb-terracotta-700: #7A3522;
-
-  /* 상태색(성공·경고·오류). 정보(info)는 Bath Teal을 쓴다 */
-  --tb-green-50: #E5F0E1;
-  --tb-green-500: #4F7F49;
-  --tb-green-700: #2F5A2B;
-  --tb-amber-50: #FBEFCB;
-  --tb-amber-500: #B07A12;
-  --tb-amber-800: #6B4A0A;
-  --tb-red-50: #FBE3E0;
-  --tb-red-500: #B8322A;
-  --tb-red-700: #8E1F1A;
+  /* 상태색 (Figma toast 값. 경고는 Figma에 없어 따뜻한 호박색으로 파생) */
+  --tb-green-50: #E8F3EA;  --tb-green-500: #2E8B3D;
+  --tb-red-50: #FBE3DD;    --tb-red-500: #D1433C;
+  --tb-blue-50: #DCE9F2;   --tb-blue-500: #2F7FBF;
+  --tb-amber-50: #FBEFCB;  --tb-amber-500: #B07A12;  --tb-amber-800: #6B4A0A;
 
   --tb-white: #FFFFFF;
 
   /* ───────── 일러스트 전용 (UI 팔레트 아님) ─────────
-     인트로 그림·로고·캐릭터·지도 핀 윤곽처럼 이미지 원본에서 뽑은 값. 화면 UI에는 쓰지 않는다. */
-  --tb-cream-sun: #FDF6D0;      /* 인트로 글자·조명 (= cream-200) */
+     인트로 그림·로고·캐릭터처럼 이미지 원본에서 뽑은 값. 화면 UI에는 쓰지 않는다. */
+  --tb-cream-sun: #FDF6D0;      /* 인트로 글자·조명 (= brand-warm-cream) */
   --tb-bottle-brown: #533E32;   /* 인트로 바탕·로고 윤곽 — 인트로 그림 가장자리와 맞춘 값 */
   --tb-steam: #DAB3A0;          /* 로고 김 */
   --tb-water: #7B9FA7;          /* 로고 물 */
   --tb-character-blue: #02A2EA; /* 기존 캐릭터 원본색 — 수정 금지 */
 
+  /* ═════════ 모양 (Figma 변수) ═════════ */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --shadow-card: 0 4px 12px rgba(var(--tb-cocoa-700-rgb), 0.06), 0 1px 2px rgba(var(--tb-cocoa-700-rgb), 0.06);
+
   /* ═════════ Level 2. Semantic ═════════ */
   /* Background */
-  --color-bg-page: var(--tb-cream-200);
-  --color-bg-surface: var(--tb-ivory-50);
+  --color-bg-page: var(--tb-brand-warm-cream);
+  --color-bg-surface: var(--tb-brand-clean-ivory);
   --color-bg-surface-muted: var(--tb-ivory-100);
-  --color-bg-brand: var(--tb-cream-200);
-  --color-bg-band: var(--tb-sand-300);        /* 머리말·보조 구분 영역 */
-  --color-bg-inverse: var(--tb-cocoa-900);
+  --color-bg-brand: var(--tb-brand-sand-beige);
+  --color-bg-band: var(--tb-brand-sand-beige);   /* 머리말·보조 구분 영역 */
+  --color-bg-inverse: var(--tb-cocoa-700);
 
   /* Text */
-  --color-text-primary: var(--tb-cocoa-900);
-  --color-text-secondary: var(--tb-cocoa-700);
-  --color-text-muted: var(--tb-cocoa-600);
-  --color-text-inverse: var(--tb-ivory-50);   /* 짙은 바탕 위 */
-  --color-text-brand: var(--tb-terracotta-500);
-  --color-text-link: var(--tb-teal-600);      /* teal-500은 크림 위 글자 4.27:1(미달)이라 글자는 600 */
-  --color-text-on-action: var(--tb-white);    /* 테라코타·청록 면 위 글자 */
+  --color-text-primary: var(--tb-cocoa-700);
+  --color-text-secondary: var(--tb-cocoa-500);
+  --color-text-muted: var(--tb-cocoa-400);       /* ※ Figma muted보다 한 단계 짙음(4.5:1 이상) */
+  --color-text-subtle: var(--tb-cocoa-300);      /* Figma text-muted. 큰 글자·장식에만(4.28:1) */
+  --color-text-disabled: var(--tb-cocoa-200);    /* 비활성 글자. 대비 기준 제외 */
+  --color-text-inverse: var(--tb-white);
+  --color-text-brand: var(--tb-brand-warm-terracotta);
+  --color-text-link: var(--tb-teal-600);         /* 포인트 색 글자. teal-500은 크림 위 4.27:1이라 글자는 600 */
+  --color-text-on-action: var(--tb-white);       /* 테라코타·청록 면 위 글자 */
 
-  /* Border */
-  --color-border-default: var(--tb-cocoa-500);  /* 입력창 등 경계(≥3:1) */
-  --color-border-subtle: var(--tb-sand-300);    /* 장식용 구분선. 정보 전달 금지(1.29:1) */
-  --color-border-strong: var(--tb-cocoa-700);
-  --color-border-focus: var(--tb-cocoa-900);    /* 포커스 링은 2px 띄워서 쓴다(CTA에 맞닿으면 2.4:1) */
+  /* Border (Figma 선은 가늘고 연하다. 입력창·칩의 기본선은 3:1 미만 — 아래 --color-border-contrast로 바꿀 수 있다) */
+  --color-border-default: var(--tb-stone-200);
+  --color-border-subtle: var(--tb-stone-100);
+  --color-border-strong: var(--tb-cocoa-500);
+  --color-border-focus: var(--tb-brand-bath-teal);   /* 포커스·선택의 포인트 선 */
+  --color-border-contrast: var(--tb-cocoa-300);      /* 3:1 이상이 꼭 필요한 경계용(크림 위 3.92:1) */
 
   /* Action */
-  --color-action-primary: var(--tb-terracotta-500);
-  --color-action-primary-hover: var(--tb-terracotta-600);
-  --color-action-primary-active: var(--tb-terracotta-700);
-  --color-action-primary-disabled: var(--tb-cocoa-100);
-  --color-action-secondary: var(--tb-teal-500);
+  --color-action-primary: var(--tb-brand-warm-terracotta);
+  --color-action-primary-hover: var(--tb-terracotta-650);
+  --color-action-primary-active: var(--tb-terracotta-600);
+  --color-action-primary-disabled: var(--tb-terracotta-200);
+  --color-action-secondary: var(--tb-brand-bath-teal);
   --color-action-secondary-hover: var(--tb-teal-600);
   --color-action-secondary-active: var(--tb-teal-700);
-  --color-action-disabled-text: var(--tb-cocoa-600);
+  --color-action-secondary-disabled: var(--tb-teal-200);
+  --color-action-outline-hover: var(--tb-sand-75);
+  --color-action-outline-active: var(--tb-stone-200);
+  --color-action-disabled-text: var(--tb-cocoa-200);
 
-  /* State (배경·글자·테두리 한 벌). 색만으로 전달하지 않도록 화면에서 아이콘·글자를 함께 쓴다 */
+  /* State (강한 색 = 아이콘·테두리, bg = 면). 글자는 --color-text-primary를 쓴다(Figma 토스트와 같음) */
+  --color-state-success: var(--tb-green-500);
   --color-state-success-bg: var(--tb-green-50);
-  --color-state-success-text: var(--tb-green-700);
-  --color-state-success-border: var(--tb-green-500);
+  --color-state-error: var(--tb-red-500);
+  --color-state-error-bg: var(--tb-red-50);
+  --color-state-info: var(--tb-blue-500);
+  --color-state-info-bg: var(--tb-blue-50);
+  --color-state-warning: var(--tb-amber-500);
   --color-state-warning-bg: var(--tb-amber-50);
   --color-state-warning-text: var(--tb-amber-800);
-  --color-state-warning-border: var(--tb-amber-500);
-  --color-state-error-bg: var(--tb-red-50);
-  --color-state-error-text: var(--tb-red-700);
-  --color-state-error-border: var(--tb-red-500);
-  --color-state-info-bg: var(--tb-teal-50);
-  --color-state-info-text: var(--tb-teal-700);
-  --color-state-info-border: var(--tb-teal-500);
 
   /* 장식·강조 */
-  --color-accent-decor: var(--tb-apricot-300);
-  --color-accent-soft: var(--tb-apricot-100);
+  --color-accent-decor: var(--tb-brand-apricot);
+  --color-accent-soft: var(--tb-apricot-50);
 
-  /* 지도 핀 */
-  --color-pin-default: var(--tb-terracotta-500);
-  --color-pin-default-outline: var(--tb-cocoa-900);
-  --color-pin-tub: var(--tb-cream-200);
-  --color-pin-selected: var(--tb-cream-200);
-  --color-pin-selected-outline: var(--tb-cocoa-900);
+  /* 지도 핀: 기본은 Terracotta, 선택된 핀은 Bath Teal(선택 = 포인트 색) */
+  --color-pin-default: var(--tb-brand-warm-terracotta);
+  --color-pin-default-outline: var(--tb-cocoa-700);
+  --color-pin-tub: var(--tb-brand-warm-cream);
+  --color-pin-selected: var(--tb-brand-bath-teal);
+  --color-pin-selected-outline: var(--tb-cocoa-700);
 
   /* 일러스트(로고·캐릭터) */
   --color-outline: var(--tb-bottle-brown);
@@ -129,106 +135,122 @@
   --color-character: var(--tb-character-blue);
 
   /* ═════════ Level 3. Component ═════════ */
-  /* Button */
+  /* Button — Primary(Terracotta) / Secondary(Bath Teal) / Outline */
   --button-primary-bg: var(--color-action-primary);
   --button-primary-bg-hover: var(--color-action-primary-hover);
   --button-primary-bg-active: var(--color-action-primary-active);
   --button-primary-bg-disabled: var(--color-action-primary-disabled);
   --button-primary-text: var(--color-text-on-action);
-  --button-primary-text-disabled: var(--color-action-disabled-text);
-  --button-primary-border-focus: var(--color-border-focus);
+  --button-primary-text-disabled: var(--color-text-on-action);
   --button-secondary-bg: var(--color-action-secondary);
   --button-secondary-bg-hover: var(--color-action-secondary-hover);
   --button-secondary-bg-active: var(--color-action-secondary-active);
+  --button-secondary-bg-disabled: var(--color-action-secondary-disabled);
   --button-secondary-text: var(--color-text-on-action);
-  --button-ghost-text: var(--color-text-link);
-  --button-ghost-bg-hover: var(--tb-sand-200);
+  --button-outline-bg: var(--tb-white);
+  --button-outline-bg-hover: var(--color-action-outline-hover);
+  --button-outline-bg-active: var(--color-action-outline-active);
+  --button-outline-bg-disabled: var(--color-action-outline-active);
+  --button-outline-border: var(--color-border-default);
+  --button-outline-text: var(--color-text-primary);
+  --button-outline-text-disabled: var(--color-text-muted);
 
   /* Input */
-  --input-bg: var(--color-bg-surface);
+  --input-bg: var(--tb-white);
   --input-text: var(--color-text-primary);
   --input-placeholder: var(--color-text-muted);
   --input-border: var(--color-border-default);
   --input-border-hover: var(--color-border-strong);
-  --input-border-focus: var(--color-border-focus);
-  --input-border-error: var(--color-state-error-border);
-  --input-text-error: var(--color-state-error-text);
-  --input-bg-disabled: var(--tb-cocoa-100);
-  --input-text-disabled: var(--color-action-disabled-text);
+  --input-border-focus: var(--color-border-focus);    /* Bath Teal */
+  --input-border-error: var(--color-state-error);
+  --input-text-error: var(--color-state-error);
+  --input-bg-disabled: var(--tb-stone-50);
+  --input-text-disabled: var(--color-text-disabled);
 
   /* Search Bar */
-  --search-bg: var(--color-bg-surface);
+  --search-bg: var(--input-bg);
   --search-text: var(--color-text-primary);
-  --search-placeholder: var(--color-text-muted);
+  --search-placeholder: var(--input-placeholder);
   --search-icon: var(--color-text-link);
-  --search-border-focus: var(--color-border-focus);
+  --search-border: var(--input-border);
+  --search-border-focus: var(--input-border-focus);
 
   /* Card */
   --card-bg: var(--color-bg-surface);
   --card-bg-inset: var(--color-bg-surface-muted);
   --card-bg-hover: var(--color-bg-surface-muted);
-  --card-bg-selected: var(--color-state-info-bg);
-  --card-border: var(--color-border-subtle);
-  --card-border-selected: var(--color-border-strong);
+  --card-bg-selected: var(--tb-teal-50);             /* 선택된 카드 = Bath Teal 옅은 면 + 청록 선 */
+  --card-border: var(--color-border-default);
+  --card-border-selected: var(--color-action-secondary);
   --card-title: var(--color-text-primary);
   --card-text: var(--color-text-secondary);
   --card-facility: var(--color-text-link);
+  --card-media-bg: var(--color-bg-brand);
 
   /* Navigation (머리말·상단 영역) */
   --nav-bg: var(--color-bg-band);
   --nav-text: var(--color-text-primary);
   --nav-text-muted: var(--color-text-secondary);
-  --nav-border: var(--color-border-subtle);
+  --nav-border: var(--color-border-default);
 
   /* Tab */
   --tab-text: var(--color-text-secondary);
   --tab-text-hover: var(--color-text-primary);
   --tab-text-selected: var(--color-text-primary);
-  --tab-indicator-selected: var(--color-action-primary);  /* 선택은 색 + 굵은 밑줄 */
-  --tab-bg-hover: var(--tb-sand-200);
-  --tab-text-disabled: var(--color-action-disabled-text);
+  --tab-indicator-selected: var(--color-action-secondary);  /* 선택은 청록 + 굵은 밑줄 */
+  --tab-bg-hover: var(--tb-sand-75);
+  --tab-text-disabled: var(--color-text-disabled);
 
   /* Filter Chip */
   --chip-bg: var(--color-bg-surface);
-  --chip-bg-hover: var(--tb-sand-200);
-  --chip-bg-selected: var(--color-action-secondary);
-  --chip-bg-disabled: var(--tb-cocoa-100);
-  --chip-text: var(--color-text-primary);
-  --chip-text-selected: var(--color-text-on-action);
-  --chip-text-disabled: var(--color-action-disabled-text);
+  --chip-bg-hover: var(--tb-cream-300);
+  --chip-bg-selected: var(--color-action-secondary);       /* 선택 = Bath Teal */
+  --chip-bg-disabled: var(--tb-stone-50);
+  --chip-text: var(--color-text-secondary);
+  --chip-text-selected: var(--color-text-inverse);
+  --chip-text-disabled: var(--color-text-disabled);
   --chip-border: var(--color-border-default);
+  --chip-border-disabled: var(--color-border-subtle);
   --chip-border-selected: var(--color-action-secondary-active);
 
-  /* Badge */
-  --badge-neutral-bg: var(--tb-sand-200);
+  /* Badge (Figma: Facility / Hours / Open / Outline) */
+  --badge-neutral-bg: var(--tb-sand-75);
   --badge-neutral-text: var(--color-text-primary);
-  --badge-facility-bg: var(--color-state-info-bg);
-  --badge-facility-text: var(--color-state-info-text);
-  --badge-facility-border: var(--color-state-info-border);
-  --badge-price-bg: var(--color-accent-soft);
-  --badge-price-text: var(--color-text-primary);
-  --badge-unknown-bg: var(--color-accent-soft);
-  --badge-unknown-text: var(--color-text-primary);
-  --badge-unknown-border: var(--color-border-strong);
+  --badge-facility-bg: var(--tb-teal-50);
+  --badge-facility-text: var(--tb-teal-600);              /* ※ Figma는 teal-500(4.07:1) → 600(5.98:1) */
+  --badge-facility-border: var(--color-border-focus);
+  --badge-hours-bg: var(--tb-terracotta-50);
+  --badge-hours-text: var(--color-text-brand);
+  --badge-open-bg: var(--tb-apricot-50);
+  --badge-open-text: var(--tb-apricot-700);               /* Figma 값 그대로. 3.67:1이라 작은 글자에는 쓰지 않는다 */
+  --badge-price-bg: var(--badge-hours-bg);
+  --badge-price-text: var(--badge-hours-text);
+  --badge-unknown-bg: var(--tb-sand-75);
+  --badge-unknown-text: var(--color-text-secondary);
+  --badge-unknown-border: var(--color-border-default);
 
   /* Modal */
   --modal-bg: var(--color-bg-surface);
-  --modal-overlay: rgba(var(--tb-cocoa-900-rgb), 0.55);
-  --modal-border: var(--color-border-subtle);
+  --modal-overlay: rgba(var(--tb-cocoa-700-rgb), 0.55);
+  --modal-border: var(--color-border-default);
   --modal-title: var(--color-text-primary);
   --modal-text: var(--color-text-secondary);
 
-  /* Toast */
-  --toast-bg: var(--color-bg-inverse);
-  --toast-text: var(--color-text-inverse);
-  --toast-success-border: var(--tb-green-500);
-  --toast-error-border: var(--tb-red-500);
+  /* Toast (Figma: 옅은 면 + 색 원 아이콘) */
+  --toast-success-bg: var(--color-state-success-bg);
+  --toast-success-icon: var(--color-state-success);
+  --toast-error-bg: var(--color-state-error-bg);
+  --toast-error-icon: var(--color-state-error);
+  --toast-info-bg: var(--color-state-info-bg);
+  --toast-info-icon: var(--color-state-info);
+  --toast-text: var(--color-text-primary);
+  --toast-close: var(--color-text-secondary);
 
   /* Bottom Navigation */
   --bottom-nav-bg: var(--color-bg-surface);
-  --bottom-nav-border: var(--color-border-subtle);
+  --bottom-nav-border: var(--color-border-default);
   --bottom-nav-text: var(--color-text-secondary);
   --bottom-nav-text-selected: var(--color-text-primary);
-  --bottom-nav-indicator-selected: var(--color-action-primary); /* 선택은 색 + 윗줄 표시 */
-  --bottom-nav-text-disabled: var(--color-action-disabled-text);
+  --bottom-nav-indicator-selected: var(--color-action-secondary); /* 선택은 청록 + 윗줄 표시 */
+  --bottom-nav-text-disabled: var(--color-text-disabled);
 }

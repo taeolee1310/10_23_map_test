@@ -7,110 +7,109 @@
 <!-- 개발자 확인용 정적 파일. 앱(web/) 밖에 있어 서비스에는 배포되지 않는다. 파일을 더블클릭해서 열면 된다. -->
 <link rel="stylesheet" href="../web/src/styles/tangbang-colors.css">
 <style>
-  body { margin: 0; padding: 24px 16px 48px; background: var(--color-bg-page); color: var(--color-text-primary); font: 15px/1.5 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif; }
+  body { margin: 0; padding: 24px 16px 48px; background: var(--color-bg-page); color: var(--color-text-primary); font: 15px/22px 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif; }
   main { max-width: 960px; margin: 0 auto; }
   h1 { font-size: 24px; margin: 0 0 4px; } h2 { font-size: 17px; margin: 32px 0 10px; }
   p.note { margin: 0 0 8px; color: var(--color-text-secondary); font-size: 13px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-  .sw { border: 1px solid var(--color-border-subtle); border-radius: 12px; overflow: hidden; background: var(--color-bg-surface); font-size: 12px; }
+  .sw { border: 1px solid var(--color-border-default); border-radius: var(--radius-md); overflow: hidden; background: var(--color-bg-surface); font-size: 12px; }
   .sw i { display: block; height: 52px; } .sw span { display: block; padding: 6px 8px; } .sw b { display: block; }
+  .scale { display: flex; align-items: center; gap: 4px; margin: 6px 0; font-size: 11px; }
+  .scale em { width: 78px; font-style: normal; font-weight: 600; } .scale i { display: block; width: 56px; height: 28px; border-radius: 6px; border: 1px solid var(--color-border-default); }
   .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-  .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 14px; padding: 14px 16px; }
+  .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); overflow: hidden; }
+  .card .media { height: 72px; background: var(--card-media-bg); } .card .body { padding: var(--space-4); display: grid; gap: var(--space-2); }
   .card.sel { background: var(--card-bg-selected); border-color: var(--card-border-selected); box-shadow: inset 4px 0 0 var(--card-border-selected); }
-  button, .btn { font: inherit; min-height: 44px; padding: 0 18px; border-radius: 12px; border: 1px solid transparent; cursor: pointer; }
-  .btn-p { background: var(--button-primary-bg); color: var(--button-primary-text); }
-  .btn-p.hover { background: var(--button-primary-bg-hover); } .btn-p.active { background: var(--button-primary-bg-active); }
-  .btn-p[disabled] { background: var(--button-primary-bg-disabled); color: var(--button-primary-text-disabled); cursor: not-allowed; }
-  .btn-g { background: transparent; color: var(--button-ghost-text); border-color: var(--color-action-primary); }
-  .btn-s { background: var(--button-secondary-bg); color: var(--button-secondary-text); }
-  .btn-p.focus, .chip.focus, .btn-g.focus { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
-  .chip { background: var(--chip-bg); color: var(--chip-text); border: 1px solid var(--chip-border); border-radius: 999px; }
-  .chip.hover { background: var(--chip-bg-hover); }
-  .chip.on { background: var(--chip-bg-selected); color: var(--chip-text-selected); border-color: var(--chip-border-selected); font-weight: 700; box-shadow: inset 0 0 0 2px var(--chip-border-selected); }
-  .chip[disabled] { background: var(--chip-bg-disabled); color: var(--chip-text-disabled); border-color: transparent; }
-  input { font: inherit; min-height: 44px; padding: 0 14px; border-radius: 12px; background: var(--input-bg); color: var(--input-text); border: 2px solid var(--input-border); }
-  input.focus { border-color: var(--input-border-focus); } input.err { border-color: var(--input-border-error); }
-  input::placeholder { color: var(--input-placeholder); } input[disabled] { background: var(--input-bg-disabled); color: var(--input-text-disabled); border-color: transparent; }
-  .badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-  .b-n { background: var(--badge-neutral-bg); color: var(--badge-neutral-text); }
-  .b-f { background: var(--badge-facility-bg); color: var(--badge-facility-text); border: 1px solid var(--badge-facility-border); }
-  .b-p { background: var(--badge-price-bg); color: var(--badge-price-text); }
-  .b-u { background: var(--badge-unknown-bg); color: var(--badge-unknown-text); border: 1px solid var(--badge-unknown-border); }
-  .state { padding: 10px 14px; border-radius: 12px; font-size: 14px; border: 1px solid; }
-  .s-ok { background: var(--color-state-success-bg); color: var(--color-state-success-text); border-color: var(--color-state-success-border); }
-  .s-wa { background: var(--color-state-warning-bg); color: var(--color-state-warning-text); border-color: var(--color-state-warning-border); }
-  .s-er { background: var(--color-state-error-bg); color: var(--color-state-error-text); border-color: var(--color-state-error-border); }
-  .s-in { background: var(--color-state-info-bg); color: var(--color-state-info-text); border-color: var(--color-state-info-border); }
-  .band { background: var(--nav-bg); color: var(--nav-text); border-radius: 14px; padding: 16px; }
-  .toast { display: inline-block; background: var(--toast-bg); color: var(--toast-text); padding: 8px 14px; border-radius: 12px; }
-  .bnav { display: flex; background: var(--bottom-nav-bg); border-top: 1px solid var(--bottom-nav-border); border-radius: 12px; overflow: hidden; }
-  .bnav span { flex: 1; text-align: center; padding: 10px 4px 8px; color: var(--bottom-nav-text); font-size: 13px; border-top: 3px solid transparent; }
-  .bnav span.on { color: var(--bottom-nav-text-selected); font-weight: 700; border-top-color: var(--bottom-nav-indicator-selected); }
+  button { font: inherit; cursor: pointer; }
+  .btn { min-height: 44px; padding: 0 var(--space-5); border-radius: var(--radius-md); border: 1px solid transparent; font-size: 15px; font-weight: 600; }
+  .p { background: var(--button-primary-bg); color: var(--button-primary-text); }
+  .p.hover { background: var(--button-primary-bg-hover); } .p.active { background: var(--button-primary-bg-active); } .p[disabled] { background: var(--button-primary-bg-disabled); cursor: not-allowed; }
+  .s { background: var(--button-secondary-bg); color: var(--button-secondary-text); }
+  .s.hover { background: var(--button-secondary-bg-hover); } .s.active { background: var(--button-secondary-bg-active); } .s[disabled] { background: var(--button-secondary-bg-disabled); cursor: not-allowed; }
+  .o { background: var(--button-outline-bg); color: var(--button-outline-text); border-color: var(--button-outline-border); }
+  .o.hover { background: var(--button-outline-bg-hover); } .o.active { background: var(--button-outline-bg-active); } .o[disabled] { background: var(--button-outline-bg-disabled); color: var(--button-outline-text-disabled); cursor: not-allowed; }
+  .chip { min-height: 36px; padding: 0 var(--space-4); border-radius: var(--radius-pill); background: var(--chip-bg); color: var(--chip-text); border: 1px solid var(--chip-border); font-size: 14px; font-weight: 500; }
+  .chip.hover { background: var(--chip-bg-hover); } .chip.on { background: var(--chip-bg-selected); color: var(--chip-text-selected); border-color: var(--chip-bg-selected); }
+  .chip[disabled] { background: var(--chip-bg-disabled); color: var(--chip-text-disabled); border-color: var(--chip-border-disabled); cursor: not-allowed; }
+  input { font: inherit; min-height: 44px; width: 220px; padding: 0 var(--space-4); border-radius: var(--radius-md); background: var(--input-bg); color: var(--input-text); border: 1px solid var(--input-border); }
+  input.focus { border-color: var(--input-border-focus); box-shadow: 0 0 0 3px color-mix(in srgb, var(--input-border-focus) 25%, transparent); }
+  input.err { border-color: var(--input-border-error); color: var(--input-text-error); }
+  input::placeholder { color: var(--input-placeholder); } input[disabled] { background: var(--input-bg-disabled); color: var(--input-text-disabled); }
+  .badge { display: inline-block; padding: var(--space-1) var(--space-3); border-radius: var(--radius-pill); font-size: 12px; line-height: 16px; font-weight: 600; }
+  .b-f { background: var(--badge-facility-bg); color: var(--badge-facility-text); }
+  .b-h { background: var(--badge-hours-bg); color: var(--badge-hours-text); }
+  .b-o { background: var(--badge-open-bg); color: var(--badge-open-text); }
+  .b-l { border: 1px solid var(--badge-facility-border); color: var(--badge-facility-text); }
+  .toast { display: flex; align-items: center; gap: var(--space-3); width: 320px; padding: var(--space-3) var(--space-4); border-radius: var(--radius-md); font-size: 13px; line-height: 18px; color: var(--toast-text); }
+  .toast::before { flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; color: var(--color-text-on-action); font-size: 12px; font-weight: 600; }
+  .t-s { background: var(--toast-success-bg); } .t-s::before { content: "✓"; background: var(--toast-success-icon); }
+  .t-e { background: var(--toast-error-bg); } .t-e::before { content: "!"; background: var(--toast-error-icon); }
+  .t-i { background: var(--toast-info-bg); } .t-i::before { content: "i"; background: var(--toast-info-icon); }
+  .band { background: var(--nav-bg); color: var(--nav-text); border-radius: var(--radius-lg); padding: 16px; }
   .tabs { display: flex; gap: 4px; } .tabs span { padding: 8px 14px; color: var(--tab-text); border-bottom: 3px solid transparent; }
   .tabs span.on { color: var(--tab-text-selected); font-weight: 700; border-bottom-color: var(--tab-indicator-selected); }
-  .modal { background: var(--modal-bg); border: 1px solid var(--modal-border); border-radius: 16px; padding: 16px; box-shadow: 0 12px 32px var(--modal-overlay); max-width: 360px; }
-  .modal h3 { margin: 0 0 6px; color: var(--modal-title); font-size: 16px; } .modal p { margin: 0; color: var(--modal-text); font-size: 14px; }
+  .bnav { display: flex; background: var(--bottom-nav-bg); border: 1px solid var(--bottom-nav-border); border-radius: var(--radius-md); overflow: hidden; }
+  .bnav span { flex: 1; text-align: center; padding: 10px 4px 8px; color: var(--bottom-nav-text); font-size: 13px; border-top: 3px solid transparent; }
+  .bnav span.on { color: var(--bottom-nav-text-selected); font-weight: 700; border-top-color: var(--bottom-nav-indicator-selected); }
+  .modal { background: var(--modal-bg); border: 1px solid var(--modal-border); border-radius: var(--radius-lg); padding: var(--space-4); box-shadow: var(--shadow-card); width: 320px; display: grid; gap: var(--space-3); }
+  .modal h3 { margin: 0; color: var(--modal-title); font-size: 17px; } .modal p { margin: 0; color: var(--modal-text); }
 </style>
 </head>
 <body>
 <main>
-  <h1>탕방 컬러 시스템 v2</h1>
-  <p class="note">기준 색과 컴포넌트 상태를 한 화면에서 확인하는 개발자용 미리보기입니다. 정의는 web/src/styles/tangbang-colors.css 입니다.</p>
+  <h1>탕방 컬러 시스템 v3</h1>
+  <p class="note">Figma '탕방 디자인 시스템'(418:131) 기준. 정의는 web/src/styles/tangbang-colors.css 입니다. Bath Teal은 선택·포인트, Terracotta는 주요 버튼.</p>
 
-  <h2>기준 8색</h2>
+  <h2>브랜드 8색</h2>
   <div class="grid">
-    <div class="sw"><i style="background:var(--tb-cream-200)"></i><span><b>Warm Cream</b>#FDF6D0</span></div>
-    <div class="sw"><i style="background:var(--tb-ivory-50)"></i><span><b>Clean Ivory</b>#FFFDF5</span></div>
-    <div class="sw"><i style="background:var(--tb-cocoa-900)"></i><span><b>Deep Cocoa</b>#342C25</span></div>
-    <div class="sw"><i style="background:var(--tb-cocoa-700)"></i><span><b>Mocha Brown</b>#57483B</span></div>
-    <div class="sw"><i style="background:var(--tb-teal-500)"></i><span><b>Bath Teal</b>#527C77</span></div>
-    <div class="sw"><i style="background:var(--tb-terracotta-500)"></i><span><b>Warm Terracotta</b>#A64B31</span></div>
-    <div class="sw"><i style="background:var(--tb-sand-300)"></i><span><b>Sand Beige</b>#E8D9AE</span></div>
-    <div class="sw"><i style="background:var(--tb-apricot-300)"></i><span><b>Apricot</b>#E7A36E (장식 전용)</span></div>
+    <div class="sw"><i style="background:var(--tb-brand-warm-cream)"></i><span><b>Warm Cream</b>#FDF6D0</span></div>
+    <div class="sw"><i style="background:var(--tb-brand-clean-ivory)"></i><span><b>Clean Ivory</b>#FFFDF5</span></div>
+    <div class="sw"><i style="background:var(--tb-brand-deep-cocoa)"></i><span><b>Deep Cocoa</b>#342C25</span></div>
+    <div class="sw"><i style="background:var(--tb-brand-mocha-brown)"></i><span><b>Mocha Brown</b>#57483B</span></div>
+    <div class="sw"><i style="background:var(--tb-brand-bath-teal)"></i><span><b>Bath Teal</b>#527C77 · 선택·포인트</span></div>
+    <div class="sw"><i style="background:var(--tb-brand-warm-terracotta)"></i><span><b>Warm Terracotta</b>#A64B31 · CTA</span></div>
+    <div class="sw"><i style="background:var(--tb-brand-sand-beige)"></i><span><b>Sand Beige</b>#E8D9AE</span></div>
+    <div class="sw"><i style="background:var(--tb-brand-apricot)"></i><span><b>Apricot</b>#E7A36E · 장식</span></div>
   </div>
+
+  <h2>스케일 (teal · terracotta)</h2>
+  <div class="scale"><em>teal</em><i style="background:var(--tb-teal-50)"></i><i style="background:var(--tb-teal-100)"></i><i style="background:var(--tb-teal-200)"></i><i style="background:var(--tb-teal-500)"></i><i style="background:var(--tb-teal-600)"></i><i style="background:var(--tb-teal-700)"></i></div>
+  <div class="scale"><em>terracotta</em><i style="background:var(--tb-terracotta-50)"></i><i style="background:var(--tb-terracotta-100)"></i><i style="background:var(--tb-terracotta-200)"></i><i style="background:var(--tb-terracotta-300)"></i><i style="background:var(--tb-terracotta-500)"></i><i style="background:var(--tb-terracotta-600)"></i><i style="background:var(--tb-terracotta-650)"></i><i style="background:var(--tb-terracotta-700)"></i></div>
 
   <h2>Button</h2>
-  <div class="row">
-    <button class="btn btn-p">기본</button><button class="btn btn-p hover">hover</button><button class="btn btn-p active">active</button>
-    <button class="btn btn-p focus">focus</button><button class="btn btn-p" disabled>disabled</button>
-    <button class="btn btn-g">ghost</button><button class="btn btn-s">보조(청록)</button>
-  </div>
+  <div class="row"><button class="btn p">Primary</button><button class="btn p hover">hover</button><button class="btn p active">active</button><button class="btn p" disabled>disabled</button></div>
+  <p></p>
+  <div class="row"><button class="btn s">Secondary</button><button class="btn s hover">hover</button><button class="btn s active">active</button><button class="btn s" disabled>disabled</button></div>
+  <p></p>
+  <div class="row"><button class="btn o">Outline</button><button class="btn o hover">hover</button><button class="btn o active">active</button><button class="btn o" disabled>disabled</button></div>
+
+  <h2>Input</h2>
+  <div class="row"><input placeholder="입력하세요"><input class="focus" value="Focus (Bath Teal)"><input class="err" value="Error"><input placeholder="Disabled" disabled></div>
 
   <h2>Filter Chip</h2>
-  <div class="row">
-    <button class="chip">기본</button><button class="chip hover">hover</button><button class="chip on">선택됨</button>
-    <button class="chip focus">focus</button><button class="chip" disabled>disabled</button>
-  </div>
+  <div class="row"><button class="chip">필터</button><button class="chip on">선택됨 (Bath Teal)</button><button class="chip hover">hover</button><button class="chip" disabled>disabled</button></div>
 
-  <h2>Input · Search</h2>
-  <div class="row">
-    <input placeholder="기본"><input class="focus" value="focus"><input class="err" value="오류"><input placeholder="disabled" disabled>
-  </div>
+  <h2>Badge</h2>
+  <div class="row"><span class="badge b-f">Facility</span><span class="badge b-h">Hours</span><span class="badge b-o">Open</span><span class="badge b-l">Outline</span></div>
 
   <h2>Card</h2>
   <div class="row">
-    <div class="card" style="flex:1 1 240px"><b>기본 카드</b><br><span style="color:var(--card-text)">보조 정보 Mocha</span> · <span style="color:var(--card-facility)">시설 정보 Teal</span></div>
-    <div class="card sel" style="flex:1 1 240px"><b>선택된 카드</b><br><span style="color:var(--card-text)">면 + 테두리 + 왼쪽 띠로 구분</span></div>
+    <div class="card" style="width:320px"><div class="media"></div><div class="body"><b>따뜻한 목욕탕</b><span style="font-size:13px;color:var(--card-text)">서울시 · 사우나 · 온탕 · 냉탕</span><div class="row"><span class="badge b-f">온탕</span><span class="badge b-f">사우나</span></div></div></div>
+    <div class="card sel" style="width:320px"><div class="body"><b>선택된 카드</b><span style="font-size:13px;color:var(--card-text)">옅은 청록 면 + 청록 선 + 왼쪽 띠</span></div></div>
   </div>
 
-  <h2>Badge</h2>
-  <div class="row"><span class="badge b-n">목욕탕·사우나</span><span class="badge b-f">시설 태그</span><span class="badge b-p">성인 12,000원</span><span class="badge b-u">요금 미확인</span></div>
-
-  <h2>State</h2>
-  <div class="row">
-    <div class="state s-ok">성공</div><div class="state s-wa">경고</div><div class="state s-er">오류</div><div class="state s-in">안내</div>
+  <h2>Toast · Modal</h2>
+  <div class="row" style="align-items:flex-start">
+    <div style="display:grid;gap:10px"><div class="toast t-s">알림 메시지</div><div class="toast t-e">알림 메시지</div><div class="toast t-i">알림 메시지</div></div>
+    <div class="modal"><h3>알림</h3><p>목욕탕이 저장되었습니다.</p><button class="btn p">확인</button></div>
   </div>
 
-  <h2>Navigation · Tab · Bottom Navigation · Toast · Modal</h2>
+  <h2>Navigation · Tab · Bottom Navigation</h2>
   <div class="band"><b>머리말(Navigation)</b> · Sand 면 위 Deep Cocoa 글자</div>
   <p></p>
   <div class="tabs"><span class="on">상세</span><span>리뷰</span><span>길찾기</span></div>
   <p></p>
   <div class="bnav"><span class="on">지도</span><span>목록</span><span>담아둔 곳</span></div>
-  <p></p>
-  <span class="toast">담아두었어요</span>
-  <p></p>
-  <div class="modal"><h3>모달 제목</h3><p>본문은 Mocha Brown을 씁니다.</p></div>
 </main>
 </body>
 </html>
