@@ -1,0 +1,56 @@
+/* 온보딩(스포트라이트). 색은 styles/tangbang-colors.css 토큰만 쓴다. */
+.tour { position: fixed; inset: 0; z-index: 1000; font-family: 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif; }
+
+/* 화면 전체를 덮어 뒤쪽을 누를 수 없게 한다 */
+.tour__shield { position: fixed; inset: 0; }
+
+/* 비추는 구멍: 구멍 밖은 큰 그림자(어두운 면)로 덮는다. 청록 선 + 아이보리 선으로 어두운 면 위에서도 경계가 보인다 */
+.tour__spot {
+  position: fixed; border-radius: var(--radius-md); pointer-events: none;
+  box-shadow: 0 0 0 2px var(--onboarding-ring), 0 0 0 4px var(--onboarding-ring-outer), 0 0 0 100vmax var(--onboarding-dim);
+  transition: top var(--dur-base) var(--ease-in-out), left var(--dur-base) var(--ease-in-out), width var(--dur-base) var(--ease-in-out), height var(--dur-base) var(--ease-in-out);
+  animation: tour-fade var(--dur-base) var(--ease-out) both;
+}
+
+.tour__card {
+  position: fixed; width: min(320px, calc(100vw - 32px)); box-sizing: border-box; display: grid; gap: var(--space-3); padding: var(--space-4);
+  background: var(--modal-bg); border: 1px solid var(--modal-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card);
+  transition: top var(--dur-base) var(--ease-in-out), left var(--dur-base) var(--ease-in-out);
+  animation: tour-fade var(--dur-base) var(--ease-out) both;
+}
+.tour__text { display: grid; gap: var(--space-1); }
+.tour__step { margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--color-text-link); }
+.tour__title { margin: 0; font-size: 17px; line-height: 24px; font-weight: 700; color: var(--modal-title); word-break: keep-all; }
+.tour__body { margin: 0; font-size: 14px; line-height: 22px; color: var(--modal-text); word-break: keep-all; }
+
+/* 진행 표시: 지금 단계는 색뿐 아니라 길이도 길다 */
+.tour__dots { display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.tour__dots li { width: 8px; height: 8px; border-radius: var(--radius-pill); background: var(--onboarding-dot); }
+.tour__dots li.on { width: 20px; background: var(--color-action-secondary); }
+
+.tour__actions { display: flex; align-items: center; gap: var(--space-2); }
+.tour__skip { margin-right: auto; min-height: 44px; padding: 0 var(--space-1); background: none; border: 0; cursor: pointer; font: inherit; font-size: 13px; line-height: 18px; font-weight: 600; color: var(--color-text-link); text-decoration: underline; text-underline-offset: 2px; }
+.tour__btn { min-height: 44px; padding: 0 var(--space-4); border: 1px solid transparent; border-radius: var(--radius-md); cursor: pointer; font: inherit; font-size: 14px; line-height: 20px; font-weight: 600; transition: background var(--dur-base) var(--ease-out); }
+.tour__btn--primary { background: var(--button-primary-bg); color: var(--button-primary-text); }
+.tour__btn--outline { background: var(--button-outline-bg); color: var(--button-outline-text); border-color: var(--button-outline-border); }
+@media (hover: hover) and (pointer: fine) {
+  .tour__btn--primary:hover { background: var(--button-primary-bg-hover); }
+  .tour__btn--outline:hover { background: var(--button-outline-bg-hover); }
+}
+.tour__btn--primary:active { background: var(--button-primary-bg-active); }
+.tour__btn--outline:active { background: var(--button-outline-bg-active); }
+.tour :focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+
+/* 안내 중 눈에 띄게 할 버튼: 바깥으로 퍼지는 고리가 반복된다(움직임 줄이기에서는 고정 고리) */
+.tour-pulse { position: relative; animation: tour-pulse 1.4s var(--ease-out) infinite; }
+@keyframes tour-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-border-focus) 70%, transparent); }
+  70%, 100% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--color-border-focus) 0%, transparent); }
+}
+
+@keyframes tour-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .tour__spot, .tour__card { transition: none; animation: none; }
+  .tour__btn { transition: none; }
+  .tour-pulse { animation: none; box-shadow: 0 0 0 3px var(--color-border-focus); }
+}

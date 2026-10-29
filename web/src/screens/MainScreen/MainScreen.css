@@ -270,3 +270,10 @@
 .onsen-main .item, .onsen-main .qp, .onsen-main .pin, .onsen-main .bubble, .onsen-main .fab { transform: none !important; }
 }
 @keyframes om-fade { from { opacity: 0; } }
+
+/* 사용법(온보딩 다시 보기): '직접 확인한 곳만' 오른쪽의 작은 ? 버튼. 눌리는 영역은 ::before로 44px */
+.onsen-main .swrow { display: inline-flex; align-items: center; gap: 4px; }
+.onsen-main .help { position: relative; display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--muted); transition: color var(--dur-base) var(--ease-out); }
+.onsen-main .help::before { content: ""; position: absolute; inset: -10px; }
+.onsen-main .help svg { width: 18px; height: 18px; }
+@media (hover: hover) and (pointer: fine) { .onsen-main .help:hover { color: var(--selected); } }

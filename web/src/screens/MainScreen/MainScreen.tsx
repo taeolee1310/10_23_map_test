@@ -15,7 +15,8 @@ import {
   type PlaceWithDist,
 } from '../../lib/onsen'
 import GlideSelect from '../../components/GlideSelect'
-import { IconBanana, IconDrop, IconLocate, IconPin, IconSearch } from './Icons'
+import Onboarding, { type TourStep } from '../../components/Onboarding'
+import { IconBanana, IconDrop, IconHelp, IconLocate, IconPin, IconSearch } from './Icons'
 import PlaceDetail from './PlaceDetail'
 import PlaceList from './PlaceList'
 import PlacePreview from './PlacePreview'
@@ -28,6 +29,7 @@ const SORTS = [
   { value: 'name', label: '이름순' },
 ]
 const PAGE = 60
+const TOUR_KEY = 'tangbang:onboarding:v1' // 안내를 한 번 봤는지(이 브라우저에만 저장)
 const FAV_KEY = 'onsen_fav'
 
 type Loaded = { baseDate: string; places: Place[] }
@@ -80,6 +82,7 @@ function MainBody({ data }: { data: Loaded }) {
   const [selId, setSelId] = useState<string | null>(null)
   const [hotId, setHotId] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  const [tourOpen, setTourOpen] = useState(false)
   const [shown, setShown] = useState(PAGE)
   const [animKey, setAnimKey] = useState(0)
   const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -246,6 +249,52 @@ function MainBody({ data }: { data: Loaded }) {
   }, [])
 
   const closeDetail = useCallback(() => setDetailOpen(false), [])
+
+  // 온보딩: 처음 들어왔을 때 한 번만 자동으로 열고, '직접 확인한 곳만' 옆 '?' 사용법 버튼으로 다시 볼 수 있다.
+  // 저장소를 못 쓰는 브라우저에서는 매번 띄우지 않는다.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(TOUR_KEY) === '1') return
+    } catch {
+      return
+    }
+    const t = window.setTimeout(() => setTourOpen(true), 900)
+    return () => window.clearTimeout(t)
+  }, [])
+  const closeTour = useCallback(() => {
+    setTourOpen(false)
+    try {
+      localStorage.setItem(TOUR_KEY, '1')
+    } catch {
+      /* 저장하지 못해도 안내는 닫힌다 */
+    }
+  }, [])
+  const tourSteps: TourStep[] = [
+    {
+      target: '.quick .qp',
+      title: '내 위치 먼저 확인',
+      body: '내 주변 목욕탕 버튼을 누르면 가까운 곳부터 볼 수 있어요. 위치는 거리 계산에만 쓰고 저장하거나 보내지 않아요.',
+      action: { label: '내 위치 확인하기', run: goNear },
+      onEnter: () => setDetailOpen(false),
+    },
+    {
+      target: '#list .item',
+      title: '목욕탕 정보 확인',
+      body: '목록에서 목욕탕을 누르면 지도에 위치가 나오고, 종류·요금·거리가 아래 카드에 요약돼요. 요금은 직접 확인한 곳만 숫자로 보여 드려요.',
+    },
+    {
+      target: '.preview',
+      pulse: '.preview .btn',
+      title: "'자세히 보기'를 눌러 확인하세요",
+      body: '가기 전 걱정 TOP 3, 세신 결제 방식과 여탕·남탕 수건, 드라이기를 요금 위에서 한눈에 볼 수 있어요. 정보가 확인된 곳에만 나와요.',
+      // 비추는 카드에 실제 목욕탕이 보이도록, 고른 곳이 없으면 정보가 확인된 곳(없으면 맨 위)을 고른다
+      onEnter: () => {
+        if (selId) return
+        const pick = view.find((p) => p.facts) ?? view[0]
+        if (pick) select(pick.id, 'list')
+      },
+    },
+  ]
   // 요금 제보: 제보 받을 주소(REPORT_URL)가 정해지면 그곳으로, 아직이면 안내만 한다
   const reportPrice = (id: string) => {
     const p = places.find((d) => d.id === id)
@@ -303,11 +352,25 @@ function MainBody({ data }: { data: Loaded }) {
                 <button key={v} aria-pressed={filters.kind === v} onClick={() => updateFilters({ kind: v })}>{l}</button>
               ))}
             </div>
-            <label className="sw">
-              <input type="checkbox" checked={filters.priceOnly} onChange={(e) => updateFilters({ priceOnly: e.target.checked })} />
-              <i />
-              <span>직접 확인한 곳만</span>
-            </label>
+            <div className="swrow">
+              <label className="sw">
+                <input type="checkbox" checked={filters.priceOnly} onChange={(e) => updateFilters({ priceOnly: e.target.checked })} />
+                <i />
+                <span>직접 확인한 곳만</span>
+              </label>
+              <button
+                type="button"
+                className="help"
+                aria-label="탕방 사용법 보기"
+                title="탕방 사용법"
+                onClick={() => {
+                  setDetailOpen(false)
+                  setTourOpen(true)
+                }}
+              >
+                <IconHelp />
+              </button>
+            </div>
           </div>
           {note && <div className="note">{note}</div>}
           <div className="listhead">
@@ -401,6 +464,7 @@ function MainBody({ data }: { data: Loaded }) {
         출처: 행정안전부 온천이용업소 현황, 서울시 목욕장업 인허가 정보, 카카오 로컬 API(장소·주차장 검색), 요금: 업체 가격표(네이버 플레이스)·행안부 착한가격업소, 지도: 카카오맵. 데이터 기준일 {data.baseDate}.
         위치는 이 브라우저에서 거리 계산에만 쓰고 저장하거나 보내지 않아요. 지도 위치를 못 찾은 곳은 목록에만 나와요.
       </p>
+      <Onboarding steps={tourSteps} open={tourOpen} onClose={closeTour} />
     </div>
   )
 }

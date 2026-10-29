@@ -213,7 +213,13 @@
   --chip-border-disabled: var(--color-border-subtle);
   --chip-border-selected: var(--color-action-secondary-active);
 
-  /* Switch(토글): 꺼짐은 회색, 켜짐은 Bath Teal. 꺼진 트랙은 아이보리·크림 위 3:1 이상 */
+  /* Onboarding(스포트라이트): 어두운 면 + 비추는 구멍의 선(청록 + 아이보리) */
+  --onboarding-dim: rgba(var(--tb-cocoa-700-rgb), 0.62);
+  --onboarding-ring: var(--color-border-focus);
+  --onboarding-ring-outer: var(--color-bg-surface);
+  --onboarding-dot: var(--tb-cocoa-100);
+
+  /* Switch(토글):꺼짐은 회색, 켜짐은 Bath Teal. 꺼진 트랙은 아이보리·크림 위 3:1 이상 */
   --switch-track-off: var(--tb-cocoa-200);
   --switch-track-on: var(--color-action-secondary);
   --switch-thumb: var(--tb-white);
