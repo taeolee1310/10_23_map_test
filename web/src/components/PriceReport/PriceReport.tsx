@@ -22,7 +22,22 @@ const MEMO_MAX = 100
 const ERRORS: Record<string, string> = {
   'not-ready': '제보 창구를 준비 중이에요',
   rate: '잠시 뒤에 다시 보내 주세요',
+  limit: '제보는 한 사람당 3번까지 보낼 수 있어요. 이미 보내 주셔서 고마워요',
   price: '요금은 0~200,000 사이 숫자로 적어 주세요',
+}
+
+// 로그인이 없어서, 이 브라우저에 익명 번호를 하나 만들어 '한 사람당 횟수'를 센다(개인정보 아님, 지우면 새로 생긴다)
+const deviceId = () => {
+  try {
+    let id = localStorage.getItem('tangbang:device')
+    if (!id) {
+      id = crypto.randomUUID()
+      localStorage.setItem('tangbang:device', id)
+    }
+    return id
+  } catch {
+    return ''
+  }
 }
 
 const comma = (digits: string) => (digits ? Number(digits).toLocaleString('ko-KR') : '')
@@ -97,7 +112,7 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
       const r = await fetch('/api/report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ placeId: place.id, placeName: place.name, ...vals, source }),
+        body: JSON.stringify({ placeId: place.id, placeName: place.name, ...vals, source, deviceId: deviceId() }),
       })
       const j = await r.json().catch(() => ({}))
       if (r.ok && j.ok) {

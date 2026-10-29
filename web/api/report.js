@@ -4,8 +4,11 @@
 //   REPORT_SHEET_URL    : Apps Script 웹 앱 주소
 //   REPORT_SHEET_SECRET : 주소가 알려져도 아무나 줄을 추가하지 못하게 하는 비밀 값(Apps Script 쪽 값과 같아야 한다)
 
+import { createHash } from 'node:crypto'
+
 const SOURCES = ['현장 가격표', '직접 냈어요', '공식 홈페이지·네이버', '기타']
 const LIMIT_PER_HOUR = 5
+// 한 사람당 보낼 수 있는 횟수(시트에서 센다). 사람은 브라우저가 만든 익명 기기 ID로, 같은 접속 주소의 보조 한도는 시트 쪽(LIMIT_PER_IP)에 있다.
 const MAX_WON = 200000
 
 // 같은 사람이 계속 보내지 못하게 하는 간단한 횟수 제한. 서버 기능이 새로 뜨면 초기화되는 '대략적인' 제한이라,
@@ -87,6 +90,11 @@ export default async function handler(req, res) {
   }
 
   const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+  // 기기 ID와 접속 주소는 한 방향으로 섞어(해시) 시트에 남긴다. 원래 값은 저장하지 않는다.
+  const hash = (v) => createHash('sha256').update(`${v}|${process.env.REPORT_SHEET_SECRET}`).digest('hex').slice(0, 16)
+  const deviceId = text(b.deviceId, 64)
+  const who = hash(deviceId ? `device:${deviceId}` : `ip:${ip}`)
+  const ipHash = hash(`ip:${ip}`)
   if (tooMany(`${ip}|${req.headers['user-agent'] || ''}`)) return res.status(429).json({ ok: false, error: 'rate' })
 
   try {
@@ -94,9 +102,10 @@ export default async function handler(req, res) {
       method: 'POST',
       redirect: 'follow', // Apps Script는 결과를 다른 주소로 넘겨 준다
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ secret: process.env.REPORT_SHEET_SECRET, placeId, placeName, adult, towel, scrub, source, memo, flags: flags.join(', ') }),
+      body: JSON.stringify({ secret: process.env.REPORT_SHEET_SECRET, placeId, placeName, adult, towel, scrub, source, memo, flags: flags.join(', '), who, ip: ipHash }),
     })
     const j = await r.json().catch(() => ({}))
+    if (j.error === 'limit') return res.status(429).json({ ok: false, error: 'limit' }) // 한 사람이 보낼 수 있는 횟수를 넘음
     if (!r.ok || !j.ok) return res.status(502).json({ ok: false, error: 'store' })
     return res.status(200).json({ ok: true })
   } catch {
