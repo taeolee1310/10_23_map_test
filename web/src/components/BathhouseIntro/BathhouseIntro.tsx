@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import stripUrl from '../../assets/bathhouse/stream-strip.png'
 import Duck from './Duck'
+import origUrl from '../../assets/bathhouse/orig.webp'
+import { DUCK_ON, GHOST_ON, SCENE_ON, STEAM_ON } from './iosLite'
 import GhostCursor from '../GhostCursor'
 import { buildScene, STAGE_H, STAGE_W, type Scene } from './scene'
 import { CANVAS_BOX, createWaterfall, LOOP_SECONDS } from './waterfall'
@@ -110,6 +112,7 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
   )
 
   useEffect(() => {
+    if (!SCENE_ON) return // iOS 점검 중: 캔버스 합성을 하지 않는다(iosLite.ts)
     const stage = stageRef.current
     const baseCanvas = baseRef.current
     const fall = fallRef.current
@@ -187,14 +190,17 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
 
   return (
     <main className={`bh${isLeaving ? ' bh--leaving' : ''}`} aria-labelledby="bh-title">
-      <div className={`bh__stage${scene ? ' bh__stage--ready' : ''}`} ref={stageRef} aria-hidden="true">
-        <canvas className="bh__base" ref={baseRef} />
+      <div className={`bh__stage${scene || !SCENE_ON ? ' bh__stage--ready' : ''}`} ref={stageRef} aria-hidden="true">
+        {!SCENE_ON && <div className="bh__lite-bg" style={{ backgroundImage: `url(${origUrl})` }} />}
+        {SCENE_ON && <canvas className="bh__base" ref={baseRef} />}
 
-        <div className="bh__clouds">
-          <div className="bh__cloud-tex" />
-        </div>
+        {SCENE_ON && (
+          <div className="bh__clouds">
+            <div className="bh__cloud-tex" />
+          </div>
+        )}
 
-        {scene && (
+        {SCENE_ON && scene && (
           <>
             <div className="bh__piece bh__piece--frame" style={{ ...place(scene.frame), backgroundImage: `url(${scene.frame.url})` }} />
             <div className="bh__piece bh__piece--sun" style={{ ...place(scene.sun), backgroundImage: `url(${scene.sun.url})` }} />
@@ -202,10 +208,10 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
           </>
         )}
 
-        <canvas className="bh__fall" ref={fallRef} />
+        {SCENE_ON && <canvas className="bh__fall" ref={fallRef} />}
 
         {/* 수면을 떠다니는 오리: 수증기 아래, 글과 겹치지 않는 수면 구간. 누르면 효과음이 난다 */}
-        {scene && (
+        {DUCK_ON && (scene || !SCENE_ON) && (
           <Duck
             hint={!soundAsked && !duckPressed}
             onPress={() => {
@@ -215,7 +221,7 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
           />
         )}
 
-        {scene && (
+        {STEAM_ON && scene && (
           <div className="bh__steams">
             {(['back', 'mid', 'front'] as const).map((name) =>
               [0, 1].map((copy) => (
@@ -227,7 +233,7 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
       </div>
 
       {/* 화면 전체에 깔리는 커서 연기. 그려 둔 에셋에 묶여 있지 않고 화면 위를 그대로 덮는다(마우스가 닿지 않는 장면 레이어는 그대로) */}
-      <GhostCursor color={smoke} size={72} trailLength={45} inertia={0.5} turbulence={0.5} drift={0.3} bloomStrength={0.5} bloomRadius={0.4} grainIntensity={0.04} brightness={0.7} zIndex={1} excludeSelector=".bh__link, .bh__duck-hit" excludeNearSelector=".bh__volume" excludeNearRatio={0.1} />
+      {GHOST_ON && <GhostCursor color={smoke} size={72} trailLength={45} inertia={0.5} turbulence={0.5} drift={0.3} bloomStrength={0.5} bloomRadius={0.4} grainIntensity={0.04} brightness={0.7} zIndex={1} excludeSelector=".bh__link, .bh__duck-hit" excludeNearSelector=".bh__volume" excludeNearRatio={0.1} />}
 
       <div className="bh__copy">
         <p className="bh__brand">탕방</p>

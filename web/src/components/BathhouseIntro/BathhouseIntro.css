@@ -490,3 +490,11 @@
     display: none;
   }
 }
+
+/* iOS 점검 중(iosLite.ts): 캔버스 합성 없이 원본 일러스트를 한 장으로 깐다 */
+.bh__lite-bg {
+  position: absolute;
+  inset: 0;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
