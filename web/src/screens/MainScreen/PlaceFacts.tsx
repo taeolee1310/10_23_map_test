@@ -120,7 +120,7 @@ export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: () => void
   )
 }
 
-/** 요금 자세히 보기(기본 닫힘). 대인·소인·찜질복·야간 입장·시간 초과를 아이콘 줄로 보여 준다(Figma 437:9469). 값이 있는 줄만 넣고, 대인 말고는 줄이 없으면 통째로 숨긴다. */
+/** 상세 화면 요금 카드 안의 요금 줄. 대인·소인·찜질복·야간 입장·시간 초과를 아이콘 줄로 바로 보여 준다(Figma 437:9469). 값이 있는 줄만 넣고, 대인 말고는 줄이 없으면 통째로 숨긴다. */
 export function FeeDetails({ price, fees }: { price: Price; fees?: Facts['fees'] }) {
   const night = fees?.night
   const rows: { icon: PriceIconName; label: string; value: string; note?: string }[] = []
@@ -131,8 +131,7 @@ export function FeeDetails({ price, fees }: { price: Price; fees?: Facts['fees']
   if (fees?.overtime) rows.push({ icon: 'overtime', label: '시간 초과', value: '+' + won(fees.overtime.price), note: fees.overtime.label })
   if (!rows.some((r) => r.icon !== 'adult')) return null
   return (
-    <details className="fee-more">
-      <summary>요금 자세히 보기</summary>
+    <div className="fee-list">
       {rows.map((r) => (
         <div className="fee-row" key={r.icon}>
           <PriceIcon name={r.icon} />
@@ -143,7 +142,7 @@ export function FeeDetails({ price, fees }: { price: Price; fees?: Facts['fees']
           <b>{r.value}</b>
         </div>
       ))}
-    </details>
+    </div>
   )
 }
 
