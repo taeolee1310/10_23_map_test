@@ -546,6 +546,564 @@
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "lic3130000-202-2023-00003": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "12520175": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "19143257": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "8032536": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "1534238244": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "1854323785": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "7963443": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 3
+    }
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "16877251": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "8016981": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "1127403040": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "1372689730": {
+   "hairdryer": {
+    "paid": false
+   },
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "693898968": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "27596563": {
+   "supplies": {
+    "shampoo": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "lic3210000-202-2018-00001": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "8231174": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "605985110": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "10374471": {
+   "hairdryer": {
+    "paid": true
+   },
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "25421609": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "10555841": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "9632747": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "16446306": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "22080143": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "8045730": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "69706227": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "8660627": {
+   "seshin": {
+    "price_full": 25000
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "11373593": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "321314006": {
+   "supplies": {
+    "shampoo": true,
+    "bodywash": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "17103308": {
+   "hairdryer": {
+    "paid": true
+   },
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "10494685": {
+   "hairdryer": {
+    "paid": false
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "1899417213": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "supplies": {
+    "shampoo": true
+   },
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "11480254": {
+   "hairdryer": {
+    "paid": true
+   },
+   "supplies": {
+    "shampoo": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "lic3230000-202-2024-00001": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "20747760": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "20745786": {
+   "supplies": {
+    "shampoo": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "10895295": {
+   "hairdryer": {
+    "paid": false
+   },
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "16273034": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "14979876": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "10282010": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "17811821": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "11806333": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "lic3180000-202-2015-00003": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "1716071152": {
+   "hairdryer": {
+    "paid": false
+   },
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "27465384": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "10284127": {
+   "hairdryer": {
+    "paid": false
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "20746241": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "lic3180000-202-2024-00002": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "9179865": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "172791007": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "275336271": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "8894930": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "226597105": {
+   "hairdryer": {
+    "paid": true
+   },
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "1971245957": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "9805955": {
+   "hairdryer": {
+    "paid": false
+   },
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "lic3110000-202-2024-00004": {
+   "supplies": {
+    "shampoo": true,
+    "bodywash": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "725385976": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "17381337": {
+   "hairdryer": {
+    "paid": false
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "23399231": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "7976015": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "9950234": {
+   "hairdryer": {
+    "paid": false
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "10052061": {
+   "hairdryer": {
+    "paid": true
+   },
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "11290336": {
+   "hairdryer": {
+    "paid": true
+   },
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "25459323": {
+   "hairdryer": {
+    "paid": false
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "1910188383": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "239811140": {
+   "seshin": {
+    "price_full": 99000
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "15859470": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "13330378": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "16705862": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "8100100": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "12749730": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "20740295": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   }
  }
 }

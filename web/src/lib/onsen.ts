@@ -65,7 +65,7 @@ export const DEFAULT_FILTERS: Filters = { q: '', kind: '', gu: '', priceOnly: tr
 // 시설 유형 버튼. 값은 데이터의 '구분'이 아니라 묶음 이름이다(아래 kindGroup).
 export const KINDS: [string, string][] = [
   ['', '전체'],
-  ['bath', '목욕탕·사우나'], // 서울 505곳 중 대부분이라 전체 바로 다음에 둔다
+  ['bath', '목욕탕·사우나'], // 서울 465곳 중 대부분이라 전체 바로 다음에 둔다
   ['onsen', '온천·숙박'],
 ]
 
