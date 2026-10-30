@@ -15,6 +15,13 @@
 
 ## 파일 목록
 
+### `raw/` — 내려받은 원본 (올리지 않음)
+| 파일 | 내용 | 출처 | 기준일 |
+|---|---|---|---|
+| `skorea-municipalities-2018-geo.json` | 전국 시군구 경계 (18MB) | 통계청 SGIS 2018, 공공누리 제1유형. `southkorea/southkorea-maps` 저장소 `kostat/2018/json/`에서 받음 | 2018-12-24 |
+
+`python export_gu_boundary.py` → `web/public/data/seoul-gu.json`(서울 25개 구 경계, 약 50KB, 점 간격 약 9m로 줄임). 내 위치가 어느 구인지 알려 주는 데 쓴다.
+
 ### `collected/` — 수집·정리한 목록
 | 파일 | 줄 | 내용 | 출처 | 기준일 |
 |---|---|---|---|---|

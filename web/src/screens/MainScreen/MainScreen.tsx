@@ -8,6 +8,8 @@ import {
   filterPlaces,
   hasXY,
   km,
+  guAt,
+  type GuBoundary,
   sortPlaces,
   type Filters,
   type LatLng,
@@ -94,6 +96,7 @@ function MainBody({ data }: { data: Loaded }) {
   const [inView, setInView] = useState(false)
   const [bounds, setBounds] = useState<MapBounds | null>(null)
   const [me, setMe] = useState<LatLng | null>(null)
+  const [nearGu, setNearGu] = useState('') // '내 주변 목욕탕'을 눌렀을 때 안내하는, 내 위치가 속한 구
   const [note, setNote] = useState('')
   const [toast, setToast] = useState('')
   const [toastOn, setToastOn] = useState(false) // 글자는 남겨 두고 보이고 안 보이는 것만 바꿔, 사라질 때도 부드럽게
@@ -243,6 +246,13 @@ function MainBody({ data }: { data: Loaded }) {
     )
   }, [])
 
+  // 내 위치가 어느 구인지: 구 경계(seoul-gu.json)에서 찾는다. 처음 한 번만 불러온다. 서울 밖이거나 못 불러오면 태그를 숨긴다.
+  const guBoundary = useRef<Promise<GuBoundary | null> | null>(null)
+  const findGu = async (p: LatLng) => {
+    guBoundary.current ??= fetch('/data/seoul-gu.json').then((r) => (r.ok ? (r.json() as Promise<GuBoundary>) : null)).catch(() => null)
+    const b = await guBoundary.current
+    return b ? guAt(p.lat, p.lng, b) : ''
+  }
   const goNear = () =>
     locate((p) => {
       setSort('dist')
@@ -253,11 +263,14 @@ function MainBody({ data }: { data: Loaded }) {
         .sort((a, b) => a.k - b.k)
         .slice(0, 8)
         .map((x) => x.d)
+      setNearGu('')
+      findGu(p).then(setNearGu)
       updateFilters({ favOnly: false })
       requestFit(near, [p]) // 위 updateFilters의 맞춤보다 나중에 불러서 이쪽이 이긴다
     })
 
   const reset = () => {
+    setNearGu('')
     setQuery('')
     updateFilters(DEFAULT_FILTERS)
   }
@@ -434,7 +447,10 @@ function MainBody({ data }: { data: Loaded }) {
           </div>
           {note && <div className="note">{note}</div>}
           <div className="listhead">
-            <span><b aria-live="polite">{count}</b></span>
+            <span className="lh-count">
+              <b aria-live="polite">{count}</b>
+              {nearGu && <em className="gu-tag" title="지금 위치가 속한 구예요">내 위치 · {nearGu}</em>}
+            </span>
             {/* 색은 기존 정렬 드롭다운 그대로: 글자·체크는 링크색(--secondary), 바탕은 카드 흰색, 고르는 알약은 칩 바탕(--soft) */}
             <GlideSelect
               ariaLabel="정렬"
@@ -525,7 +541,7 @@ function MainBody({ data }: { data: Loaded }) {
         </aside>
       </div>
       <p className="graytip" style={{ margin: '0 8px 4px' }}>
-        출처: 행정안전부 온천이용업소 현황, 서울시 목욕장업 인허가 정보, 카카오 로컬 API(장소·주차장 검색), 요금: 업체 가격표(네이버 플레이스)·행안부 착한가격업소, 지도: 카카오맵. 데이터 기준일 {data.baseDate}.
+        출처: 행정안전부 온천이용업소 현황, 서울시 목욕장업 인허가 정보, 카카오 로컬 API(장소·주차장 검색), 요금: 업체 가격표(네이버 플레이스)·행안부 착한가격업소, 지도: 카카오맵, 구 경계: 통계청 SGIS(공공누리 제1유형). 데이터 기준일 {data.baseDate}.
         위치는 이 브라우저에서 거리 계산에만 쓰고 저장하거나 보내지 않아요. 지도 위치를 못 찾은 곳은 목록에만 나와요.
       </p>
       <PriceReport place={reportFor} onClose={() => setReportFor(null)} onMessage={showToast} />

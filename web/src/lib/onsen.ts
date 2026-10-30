@@ -149,3 +149,22 @@ export function sortPlaces(list: PlaceWithDist[], sort: string, hasMe: boolean) 
   }
   return a
 }
+
+// 서울 25개 구 경계(통계청 SGIS 2018, 공공누리 제1유형). export_gu_boundary.py가 만든 seoul-gu.json을 읽는다.
+export type GuBoundary = Record<string, [number, number][][]>
+
+function inRing(x: number, y: number, ring: [number, number][]) {
+  let inside = false
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i]
+    const [xj, yj] = ring[j]
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside
+  }
+  return inside
+}
+
+// 이 좌표가 속한 구 이름. 서울 밖이면 빈 글자
+export function guAt(lat: number, lng: number, b: GuBoundary): string {
+  for (const [name, rings] of Object.entries(b)) if (rings.some((r) => inRing(lng, lat, r))) return name
+  return ''
+}
