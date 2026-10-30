@@ -22,6 +22,7 @@ from export_web_data import _addr_key, _name_key
 SRC = "C:/Users/user/naver-crawl/out"
 MERGED = "data/merged/onsen_merged.csv"
 OUT = "data/collected/naver_places.csv"
+MANUAL = "data/curated/naver_match_manual.csv"
 SKIP = {"index.json", "queue.json"}
 PHONE = re.compile(r"0\d{1,2}-?\d{3,4}-?\d{4}")  # 글 속 번호는 지운다
 ROAD = re.compile(r"(\S+구)\s+(\S+(?:로|길)(?:\d+길)?)\s+(\d+(?:-\d+)?)")
@@ -89,6 +90,17 @@ def main():
     for k, kid in zip(m["_k"], m["카카오ID"]):
         key2id.setdefault(k, set()).add(kid)
     df["카카오ID"] = df["_k"].map(lambda k: next(iter(key2id[k])) if k in key2id and len(key2id[k]) == 1 else "")
+    # 이름 표기만 달라 자동으로 못 붙은 곳: 사람이 확인한 짝(data/curated/naver_match_manual.csv)을 붙인다. 이미 붙은 곳은 건드리지 않는다.
+    man = pd.read_csv(MANUAL, encoding="utf-8-sig", dtype=str)
+    taken = set(df["카카오ID"]) - {""}
+    n_man = 0
+    for kid, nid in zip(man["카카오ID"], man["네이버ID"]):
+        hit = df["네이버ID"] == nid
+        if kid not in taken and hit.any() and (df.loc[hit, "카카오ID"] == "").all():
+            df.loc[hit, "카카오ID"] = kid
+            taken.add(kid)
+            n_man += 1
+    print(f"사람이 확인한 짝으로 추가로 붙음 {n_man}줄 (조건: {MANUAL})")
     clash = df[df["카카오ID"] != ""].groupby("카카오ID").size()
     clash_ids = set(clash[clash > 1].index)
     df.loc[df["카카오ID"].isin(clash_ids), "카카오ID"] = ""
