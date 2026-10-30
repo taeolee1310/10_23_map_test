@@ -31,12 +31,18 @@
 | `onsen_official_clean.csv` | 6 | 행안부 온천이용업소(서울) | 행정안전부 전국 온천이용업소 현황 | 2026-08-27 |
 | `onsen_parking.csv` | 27 | 온천 근처 주차장(반경 안) | 카카오 로컬(PK6) | 2026-10-23 |
 | `naver_raw.jsonl` | 9 | 네이버 플레이스 수집 원자료 (올리지 않음) | 네이버 플레이스 | 2026-10-26 |
+| `naver_home_facts.csv` | 수집 진행 중 | 곳마다 네이버 플레이스 홈 페이지의 영업시간·가격표·편의와, 수건·세신·드라이기 등 키워드가 든 문장(근거, 출처·날짜 표시). **올리지 않음**(후기 문장이 들어 있음) | `scripts/collect_home.py` | 수집일 칸 |
+| `place_facts_auto.json` | | 위 근거로 판정한 세신 금액·수건·드라이기·샴푸·24시간. 근거가 모자라거나 엇갈리면 키를 넣지 않는다 | `scripts/judge_facts.py` | 수집일 칸 |
+| `facts_judged.csv` | | 곳마다 판정 결과와 신뢰도, '불명' 사유(검산용) | `scripts/judge_facts.py` | |
+| `excluded_candidates.csv` | 36 | 이름으로 거른 피트니스 후보(확실/애매) | 이름 기준 | 2026-10-30 |
 
 ### `curated/` — 사람이 확인·작성
 | 파일 | 줄 | 내용 | 출처 |
 |---|---|---|---|
 | `onsen_prices.csv` | 151 | **확인된 요금** (성인 평일·주말, 수건, 주차, 어린이, 메모, 확인일) | 네이버 플레이스 가격표 145곳(2026-10-27), 서울시 착한가격업소·상한가격 6곳(2026-09-30) |
 | `naver_notfound_exclude.csv` | 187 | 네이버 플레이스에서 같은 주소의 시설을 못 찾아 **제외한 곳** | 직접 확인(2026-10-27) |
+| `excluded.csv` | | **폐업·피트니스(체인 포함)·마사지 중심이라 뺀 곳**(이름·주소·사유·근거·확인일). 스크립트는 줄을 추가만 하고 고치지 않는다. 되살리려면 줄을 지운다 | `scripts/judge_facts.py`가 추가, 사람이 검토 |
+| `place_facts.json` | 32 | 사람이 확인한 세신·수건·드라이기 등. **자동 판정(`place_facts_auto.json`)보다 항목별로 우선** | 직접 확인 |
 | `tangbang_places_price_data.json` | 2 | 요금 조사 자료(실측 확인 / 인근 평균 추정) | 직접 조사 |
 
 ### `merged/` — 합친 결과
@@ -63,6 +69,19 @@ collected/onsen_parking.csv, curated/tangbang_places_price_data.json ───�
 python onsen_merge.py       # 목록 합치기 → data/merged/onsen_merged.csv
 python export_web_data.py   # 요금·주차장 붙이기 → web/public/data/onsen.json
 ```
+
+### 네이버 홈 페이지 수집 → 판정 → 서비스 반영 (곳이 늘어도 같은 순서)
+
+```
+python scripts/collect_home.py   # 곳당 10초 간격, 한 번에 최대 150곳. 연속 3회 실패하면 멈추고, 다시 돌리면 받은 곳은 건너뜀
+python scripts/judge_facts.py    # 근거 문장 판정 + 제외 목록 추가(excluded.csv)
+python onsen_merge.py            # excluded.csv에 있는 곳을 뺌
+python export_web_data.py        # place_facts_auto.json 위에 place_facts.json(사람 값)을 덮어 facts를 만듦
+```
+
+- 판정 규칙: 세신은 가격표의 같은 값(남녀 값이 다르면 뺌), 수건은 성별이 보이는 안내 문장의 장수, 드라이기는 '무료'·'유료·금액' 문장. **근거가 없거나 엇갈리면 '불명'**, 근거가 낮은 것(오래된 글·날짜 없는 후기)은 2건 이상 일치해야 쓴다.
+- 제외 규칙: 이름이 휘트니스·피트니스·스포츠클럽·짐인 곳, 가격표에 트레이너·레슨(PT)이 있는 곳, 가격표가 마사지·테라피 중심(세신은 마사지가 아니라 남김)인 곳. 폐업은 업체 영업 표시에 '폐업·휴업'이 직접 적힌 곳만 뺀다(영업 정보가 비어 있다고 폐업으로 보지 않는다).
+- 로그는 `logs/`, 후기 문장이 든 수집 파일은 깃에 올리지 않는다(`.gitignore`).
 
 ## 자주 쓰는 칸
 

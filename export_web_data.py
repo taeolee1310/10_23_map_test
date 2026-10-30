@@ -15,6 +15,7 @@ PRICE_FILE = "data/curated/onsen_prices.csv"  # 확인된 가격만 사람이 �
 TANGBANG_PRICES = "data/curated/tangbang_places_price_data.json"  # 요금 조사 자료(실측 확인 + 인근 평균 추정)
 # 한국소비자원 참가격 '목욕(성인 일반대중탕 1회)' 서울 값. 기준월 미표기·잠정치라 추정으로만 쓴다.
 SEOUL_REGION_PRICE = {"adult": 11000.0, "basis": "서울 일반 대중탕 지역 요금·참가격 잠정", "checked": "2026-10-24"}
+AUTO_FACTS_FILE = "data/collected/place_facts_auto.json"  # scripts/judge_facts.py가 근거 문장으로 판정한 값(다시 만들 수 있음)
 FACTS_FILE = "data/curated/place_facts.json"  # 사람이 직접 확인한 세부 정보(세신·수건·드라이기 등). 카카오ID가 열쇠
 OUT = "web/public/data/onsen.json"
 PRICE_COLS = ("성인_평일", "성인_주말", "수건", "주차", "어린이")
@@ -48,11 +49,26 @@ def load_prices():
     return prices
 
 
-def load_facts():
-    """직접 확인한 곳의 세부 정보. 파일에 없는 곳은 facts 키를 아예 넣지 않는다(추측으로 채우지 않는다)."""
-    if not os.path.exists(FACTS_FILE):
+def _places(path):
+    if not os.path.exists(path):
         return {}
-    return json.load(open(FACTS_FILE, encoding="utf-8-sig")).get("places", {})
+    return json.load(open(path, encoding="utf-8-sig")).get("places", {})
+
+
+def _overlay(auto, manual):
+    """자동 판정 위에 사람이 확인한 값을 항목별로 덮는다(사람 값이 없는 항목은 자동 값이 남는다)."""
+    out = dict(auto)
+    for k, v in manual.items():
+        out[k] = _overlay(out[k], v) if isinstance(v, dict) and isinstance(out.get(k), dict) else v
+    if auto.get("source") and manual.get("source"):
+        out["source"] = f'{manual["source"]} / {auto["source"]}'
+    return out
+
+
+def load_facts():
+    """세부 정보. 사람이 확인한 값(FACTS_FILE)이 자동 판정(AUTO_FACTS_FILE)보다 우선한다. 파일에 없는 곳은 facts 키를 아예 넣지 않는다(추측으로 채우지 않는다)."""
+    auto, manual = _places(AUTO_FACTS_FILE), _places(FACTS_FILE)
+    return {kid: _overlay(auto.get(kid, {}), manual.get(kid, {})) for kid in {**auto, **manual}}
 
 
 def load_parking():
