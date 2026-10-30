@@ -72,8 +72,8 @@ def sentences_of(cell):
     return out
 
 
-def decide(votes):
-    """votes: [(값, 신뢰도, 출처)]. 높음·중간 근거가 있으면 그것만, 없으면 낮은 근거가 2건 이상 일치할 때만. 서로 다르면 None(모순)."""
+def decide(votes, allow_single=False):
+    """votes: [(값, 신뢰도, 출처)]. 높음·중간 근거가 있으면 그것만, 없으면 낮은 근거가 2건 이상 일치할 때만(allow_single이면 1건도 '낮음'으로 씀). 서로 다르면 None(모순)."""
     good = [v for v in votes if v[1] in ("high", "mid")]
     use = good if good else votes
     if not use:
@@ -82,7 +82,7 @@ def decide(votes):
     if len(vals) > 1:
         return None, "모순"
     if not good and len(use) < 2:
-        return None, "근거 1건(낮음)"
+        return (use[0][0], f"낮음·근거 1건·{use[0][2][:18]}") if allow_single else (None, "근거 1건(낮음)")
     best = "높음" if any(v[1] == "high" for v in use) else ("중간" if good else "낮음")
     return use[0][0], f"{best}·{use[0][2][:18]}"
 
@@ -94,12 +94,15 @@ def judge_seshin(row):
             continue
         (men if "남" in name else women if "여" in name else neutral).add(price)
     if men and women:
-        full = men | women
-        return (next(iter(full)), "높음·가격표") if len(full) == 1 else (None, "남녀 금액이 달라 뺌")
+        if len(men) == 1 and len(women) == 1:
+            m, w = next(iter(men)), next(iter(women))
+            return ({"price_full": m} if m == w else {"price_men": m, "price_women": w}), "높음·가격표"
+        return None, "남녀 세신 항목이 여럿"
     if men or women:
-        return None, "한쪽 성별만"
+        one = men or women
+        return ({"price_men" if men else "price_women": next(iter(one))}, "높음·가격표(한쪽 성별)") if len(one) == 1 else (None, "세신 항목이 여럿")
     if len(neutral) == 1:
-        return next(iter(neutral)), "높음·가격표"
+        return {"price_full": next(iter(neutral))}, "높음·가격표"
     return None, "가격표에 세신 없음" if not neutral else "세신 항목이 여럿"
 
 
@@ -112,7 +115,10 @@ def judge_hairdryer(row):
         paid = re.search(r"드라이\S*.{0,12}(유료|\d+원|동전|코인)|(유료|\d+원|동전|코인).{0,12}드라이", s)
         if bool(free) != bool(paid):
             votes.append(({"paid": bool(paid)}, rel, label))
-    return decide(votes)
+    val, why = decide(votes, allow_single=True)
+    if val and why.startswith("낮음"):
+        val = {**val, "low": True}  # 화면에 '후기 1건 기준'이라고 밝힌다
+    return val, why
 
 
 def judge_towel(row):
@@ -139,6 +145,38 @@ def judge_towel(row):
             out[g] = val
             note.append(f"{g}:{why}")
     return out, " / ".join(note) or "근거 없음"
+
+
+CLOTHES = re.compile(r"찜질복|가운|까운|수면복|찜질옷")
+CLOTHES_SKIP = re.compile(r"보증|세탁|분실|반납")
+NIGHT = re.compile(r"야간|심야")
+DAY = re.compile(r"주간")
+ADULT = re.compile(r"대인|성인|일반|입욕|입장|사우나|목욕")
+NOT_ADULT = re.compile(r"소인|어린이|유아|초등|학생|경로|청소년|미취학|찜질복|가운|까운|세신|회원|\d+매|\d+장|수면|룸")
+OVERTIME = re.compile(r"초과|연장")
+
+
+def judge_fees(row):
+    """가격표의 찜질복·야간 입장·시간 초과. 값이 하나로 정해지지 않으면 넣지 않는다. 야간 추가금은 (야간 − 주간)을 코드로 계산한다."""
+    items = price_items(row["가격표"])
+    fees = {}
+    clothes = {p for n, p in items if CLOTHES.search(n) and not CLOTHES_SKIP.search(n)}
+    if len(clothes) == 1:
+        fees["clothes"] = next(iter(clothes))
+    adult = [(n, p) for n, p in items if ADULT.search(n) and not NOT_ADULT.search(n)]
+    day = {p for n, p in adult if DAY.search(n)}
+    night = {p for n, p in adult if NIGHT.search(n)}
+    if len(night) == 1:
+        n = next(iter(night))
+        if len(day) == 1 and n > next(iter(day)):
+            fees["night"] = {"price": n, "extra": n - next(iter(day))}
+        elif not day and n >= 5000:  # 주간 요금이 없고 5천 원 미만이면 추가금인지 총액인지 알 수 없어 뺀다
+            fees["night"] = {"price": n}
+    over = {(n, p) for n, p in items if OVERTIME.search(n)}
+    if len(over) == 1:
+        n, p = next(iter(over))
+        fees["overtime"] = {"price": p, "label": n}
+    return fees
 
 
 def judge_supplies(row):
@@ -209,12 +247,14 @@ def main():
         f, note = {}, {}
         v, why = judge_seshin(r)
         if v:
-            f["seshin"] = {"price_full": v}
-        note["세신"] = f"{v:,}원 ({why})" if v else f"불명({why})"
+            f["seshin"] = v
+        note["세신"] = f"{json.dumps(v, ensure_ascii=False)} ({why})" if v else f"불명({why})"
         v, why = judge_hairdryer(r)
         if v:
             f["hairdryer"] = v
         note["드라이기"] = ("유료" if v["paid"] else "무료") + f" ({why})" if v else f"불명({why})"
+        if v and v.get("low"):
+            note["드라이기"] = "[낮음] " + note["드라이기"]
         v, why = judge_towel(r)
         if v:
             f["towel"] = v
@@ -222,6 +262,10 @@ def main():
         sup = judge_supplies(r)
         if sup:
             f["supplies"] = sup
+        fees = judge_fees(r)
+        if fees:
+            f["fees"] = fees
+        note["요금세부"] = json.dumps(fees, ensure_ascii=False) if fees else ""
         if r["영업표시"].startswith("24시간"):
             f["convenience"] = {"open_24h": True}
         if f:

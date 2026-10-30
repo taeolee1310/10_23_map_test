@@ -39,9 +39,12 @@ export type Place = {
 // 가기 전에 알고 싶은 세부 정보. 직접 확인한 곳에만 있고, 없는 칸은 키 자체가 없다(추측으로 채우지 않는다).
 export type TowelMode = { mode: 'unlimited' | 'limited'; count?: number }
 export type Facts = {
-  seshin?: { payment?: 'cash_only' | 'card_ok'; price_full?: number; price_mini?: number; beds?: number; reservation?: boolean }
+  // 전신 세신 금액: 남녀가 같으면 price_full, 다르면 price_men·price_women (한쪽만 확인된 곳은 그쪽만)
+  seshin?: { payment?: 'cash_only' | 'card_ok'; price_full?: number; price_men?: number; price_women?: number; price_mini?: number; beds?: number; reservation?: boolean }
   towel?: { women?: TowelMode; men?: TowelMode } // 여탕·남탕이 다를 수 있다
-  hairdryer?: { paid: boolean }
+  hairdryer?: { paid: boolean; low?: boolean } // low: 근거가 후기 1건뿐이라 신뢰도가 낮다
+  // 가격표의 추가 요금. night.extra는 (야간 − 주간)을 코드로 계산한 값, overtime.label은 가게가 적은 문구 그대로
+  fees?: { clothes?: number; night?: { price: number; extra?: number }; overtime?: { price: number; label?: string } }
   facility?: { baths?: { name: string; temp_c?: number }[]; sauna?: string[]; open_air?: boolean; water?: string }
   supplies?: { shampoo?: boolean; bodywash?: boolean }
   convenience?: { parking_height_m?: number; open_24h?: boolean; sleeping_room?: boolean }

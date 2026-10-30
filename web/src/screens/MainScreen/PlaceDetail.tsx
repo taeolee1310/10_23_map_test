@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
-import { FactsDetails, TopWorries, unknownList, worries } from './PlaceFacts'
+import { FactsDetails, FeeDetails, TopWorries, unknownList, worries } from './PlaceFacts'
 
 type Props = {
   place: PlaceWithDist | null
@@ -55,11 +55,11 @@ function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string) 
       {p.weekend != null && row('성인 1인 (주말)', won(p.weekend))}
       {p.towel != null && row('수건', p.towel === 0 ? '무료' : '별도 ' + won(p.towel))}
       {p.parking != null && row('주차', p.parking === 0 ? '무료' : won(p.parking))}
-      {p.child != null && row('어린이', won(p.child))}
       {p.jjimjil != null && row('찜질 이용 시 추가', '+' + won(p.jjimjil))}
       {p.adult != null && p.towel != null && (
         <div className="total">예상 지출 (평일 성인 1인, 수건 포함) {won(p.adult + p.towel)}</div>
       )}
+      <FeeDetails price={p} fees={d.facts?.fees} />
       {p.adult != null && p.towel == null && <p className="small">수건·대여용품 같은 별도 비용은 알 수 없어요.</p>}
       {p.none && <p className="small">추가 요금 없음 (확인됨)</p>}
       {p.memo && <p className="small">{p.memo}</p>}

@@ -199,8 +199,10 @@
 .onsen-main .worry ul { margin: 0; padding: 0; list-style: none; }
 .onsen-main .worry li { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; border-top: 1px solid var(--line); }
 .onsen-main .worry li:first-child { border-top: 0; }
-.onsen-main .worry li span { font-size: 12.5px; color: var(--muted); flex: none; }
+.onsen-main .worry li { min-height: 52px; } /* 32px 아이콘이 들어가 한 줄 높이를 조금 키운다 */
+.onsen-main .worry li > span:not(.price-icon) { font-size: 12.5px; color: var(--muted); flex: 1; }
 .onsen-main .worry li b { font-size: 15px; font-weight: 800; color: var(--ink); text-align: right; }
+.onsen-main .worry li b.none { font-size: 13px; font-weight: 600; color: var(--muted); } /* 확인 못 한 줄은 옅게 */
 /* 세부 정보 접이식 */
 .onsen-main .facts details { border-top: 1px solid var(--line); }
 .onsen-main .facts details:first-of-type { border-top: 0; }
@@ -211,6 +213,18 @@
 .onsen-main .facts .pr b { white-space: normal; text-align: right; }
 .onsen-main .facts details > .pr:last-child { margin-bottom: 8px; }
 @media (prefers-reduced-motion: reduce) { .onsen-main .facts summary::after { transition: none; } }
+
+/* 요금 자세히 보기: 요금 카드 안, 기본 닫힘. 열면 아이콘 줄(대인·소인·찜질복·야간 입장·시간 초과) */
+.onsen-main .fee-more { margin-top: 8px; border-top: 1px solid var(--line); }
+.onsen-main .fee-more summary { display: flex; justify-content: space-between; align-items: center; min-height: 44px; cursor: pointer; font-size: 13px; font-weight: 700; color: var(--muted-strong); list-style: none; }
+.onsen-main .fee-more summary::-webkit-details-marker { display: none; }
+.onsen-main .fee-more summary::after { content: ""; width: 8px; height: 8px; margin-right: 4px; border-right: 2px solid var(--muted-strong); border-bottom: 2px solid var(--muted-strong); transform: rotate(45deg); transition: transform .2s; }
+.onsen-main .fee-more[open] summary::after { transform: rotate(-135deg); }
+.onsen-main .fee-row { display: flex; align-items: center; gap: 12px; min-height: 48px; border-top: 1px solid var(--line); }
+.onsen-main .fee-row > span:not(.price-icon) { flex: 1; font-size: 14px; font-weight: 600; color: var(--ink); }
+.onsen-main .fee-row small { display: block; margin-top: 1px; font-size: 12px; font-weight: 400; color: var(--muted); }
+.onsen-main .fee-row b { font-size: 15px; font-weight: 800; color: var(--ink); white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .onsen-main .fee-more summary::after { transition: none; } }
 .onsen-main .small { font-size: 12.5px; color: var(--muted); margin: 6px 0 0; }
 .onsen-main .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .onsen-main #side { min-height: 0; display: flex; flex-direction: column; gap: 12px; }

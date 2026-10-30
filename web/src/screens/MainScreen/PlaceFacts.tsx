@@ -1,4 +1,5 @@
-import { won, type Facts, type TowelMode } from '../../lib/onsen'
+import { won, type Facts, type Price, type TowelMode } from '../../lib/onsen'
+import PriceIcon, { type PriceIconName } from '../../components/PriceIcon/PriceIcon'
 
 // 값이 있는 것만 문구로 만든다. 없는 칸은 null이라 화면에서 통째로 빠진다.
 const towelOne = (t: TowelMode) => (t.mode === 'unlimited' ? '무제한 제공' : t.count != null ? `${t.count}장 제공` : '장수 제한')
@@ -11,14 +12,30 @@ export function towelText(t: Facts['towel']): string | null {
   return [w && '여탕 수건 ' + towelOne(w), m && '남탕 수건 ' + towelOne(m)].filter(Boolean).join(' · ')
 }
 
-export function worries(f: Facts | undefined): { label: string; text: string }[] {
-  if (!f) return []
-  const out: { label: string; text: string }[] = []
-  if (f.seshin?.payment) out.push({ label: '세신 결제', text: f.seshin.payment === 'cash_only' ? '세신 현금 결제만 가능' : '세신 카드 결제 가능' })
-  const towel = towelText(f.towel)
-  if (towel) out.push({ label: '수건', text: towel })
-  if (f.hairdryer) out.push({ label: '헤어드라이기', text: f.hairdryer.paid ? '드라이기 유료' : '드라이기 무료' })
-  return out
+export function seshinPriceText(s: Facts['seshin']): string | null {
+  if (!s) return null
+  if (s.price_full != null) return won(s.price_full)
+  const parts = [s.price_women != null && `여탕 ${won(s.price_women)}`, s.price_men != null && `남탕 ${won(s.price_men)}`].filter(Boolean)
+  return parts.length ? parts.join(' · ') : null
+}
+
+type WorryRow = { icon: PriceIconName; label: string; text: string | null } // text가 null이면 아직 확인하지 못한 항목
+
+/** 가기 전 걱정 TOP 3 세 줄(수건·드라이기·세신, Figma 순서). 확인 못 한 줄은 text가 null이다. */
+function worryRows(f: Facts | undefined): WorryRow[] {
+  const price = seshinPriceText(f?.seshin)
+  const pay = f?.seshin?.payment ? (f.seshin.payment === 'cash_only' ? '현금 결제만 가능' : '카드 결제 가능') : null
+  const hd = f?.hairdryer
+  return [
+    { icon: 'towel', label: '수건', text: towelText(f?.towel)?.replace(/수건 /g, '') ?? null }, // 줄 이름이 '수건'이라 값에서는 뺀다
+    { icon: 'hairdryer', label: '드라이기', text: hd ? (hd.paid ? '유료' : '무료') + (hd.low ? ' (후기 1건 기준)' : '') : null },
+    { icon: 'scrub', label: '세신', text: price || pay ? [price, pay].filter(Boolean).join(' · ') : null }, // 요금·결제를 한 줄로
+  ]
+}
+
+/** 값이 하나라도 있는 줄만(있는지 없는지 판단할 때 쓴다) */
+export function worries(f: Facts | undefined): WorryRow[] {
+  return worryRows(f).filter((r) => r.text)
 }
 
 const yn = (v: boolean | undefined, yes: string, no: string) => (v == null ? null : v ? yes : no)
@@ -36,6 +53,8 @@ function groups(f: Facts): { title: string; rows: Row[] }[] {
       title: '세신',
       rows: rows([
         s?.price_full != null ? ['전신 세신', won(s.price_full)] : null,
+        s?.price_women != null ? ['여탕 전신 세신', won(s.price_women)] : null,
+        s?.price_men != null ? ['남탕 전신 세신', won(s.price_men)] : null,
         s?.price_mini != null ? ['미니 세신', won(s.price_mini)] : null,
         s?.beds != null ? ['세신대', `${s.beds}개`] : null,
         s?.reservation != null ? ['예약', s.reservation ? '가능' : '불가'] : null,
@@ -71,8 +90,8 @@ function groups(f: Facts): { title: string; rows: Row[] }[] {
 
 /** 가기 전 걱정 TOP 3. 값이 하나도 없으면 비워 두지 않고, 아직 모른다는 안내와 함께 알려 주기 버튼을 보여 준다. */
 export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: () => void }) {
-  const list = worries(facts)
-  if (!list.length) {
+  const list = worryRows(facts)
+  if (!list.some((r) => r.text)) {
     return (
       <section className="sec worry ask" aria-labelledby="worry-h">
         <h3 id="worry-h">가기 전 걱정 TOP 3</h3>
@@ -91,12 +110,40 @@ export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: () => void
       <ul>
         {list.map((w) => (
           <li key={w.label}>
+            <PriceIcon name={w.icon} />
             <span>{w.label}</span>
-            <b>{w.text}</b>
+            {w.text ? <b>{w.text}</b> : <b className="none">정보 없음</b>}
           </li>
         ))}
       </ul>
     </section>
+  )
+}
+
+/** 요금 자세히 보기(기본 닫힘). 대인·소인·찜질복·야간 입장·시간 초과를 아이콘 줄로 보여 준다(Figma 437:9469). 값이 있는 줄만 넣고, 대인 말고는 줄이 없으면 통째로 숨긴다. */
+export function FeeDetails({ price, fees }: { price: Price; fees?: Facts['fees'] }) {
+  const night = fees?.night
+  const rows: { icon: PriceIconName; label: string; value: string; note?: string }[] = []
+  if (price.adult != null) rows.push({ icon: 'adult', label: '대인', value: won(price.adult) })
+  if (price.child != null) rows.push({ icon: 'child', label: '소인', value: won(price.child) })
+  if (fees?.clothes != null) rows.push({ icon: 'clothes', label: '찜질복', value: won(fees.clothes) })
+  if (night) rows.push({ icon: 'night', label: '야간 입장', value: night.extra != null ? '+' + won(night.extra) : won(night.price), note: night.extra != null ? `야간 ${won(night.price)}` : '야간 요금' })
+  if (fees?.overtime) rows.push({ icon: 'overtime', label: '시간 초과', value: '+' + won(fees.overtime.price), note: fees.overtime.label })
+  if (!rows.some((r) => r.icon !== 'adult')) return null
+  return (
+    <details className="fee-more">
+      <summary>요금 자세히 보기</summary>
+      {rows.map((r) => (
+        <div className="fee-row" key={r.icon}>
+          <PriceIcon name={r.icon} />
+          <span>
+            {r.label}
+            {r.note && <small>{r.note}</small>}
+          </span>
+          <b>{r.value}</b>
+        </div>
+      ))}
+    </details>
   )
 }
 

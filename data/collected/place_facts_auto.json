@@ -2,8 +2,23 @@
  "_설명": "scripts/judge_facts.py가 만든다. 사람이 확인한 data/curated/place_facts.json이 항목별로 우선한다.",
  "places": {
   "480929361": {
+   "fees": {
+    "clothes": 2000,
+    "night": {
+     "price": 15000,
+     "extra": 3000
+    }
+   },
    "convenience": {
     "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "8640049": {
+   "seshin": {
+    "price_men": 20000,
+    "price_women": 30000
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -22,6 +37,11 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "26509032": {
+   "fees": {
+    "night": {
+     "price": 16000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -71,6 +91,12 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "19011301": {
+   "fees": {
+    "night": {
+     "price": 20000,
+     "extra": 3000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -78,9 +104,21 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "2136431144": {
+   "seshin": {
+    "price_men": 30000,
+    "price_women": 40000
+   },
    "supplies": {
     "shampoo": true,
     "bodywash": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "lic3220000-202-2003-00009": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -108,6 +146,14 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
+  "16765958": {
+   "hairdryer": {
+    "paid": false,
+    "low": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
   "12713052": {
    "convenience": {
     "open_24h": true
@@ -123,6 +169,10 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "13137446": {
+   "hairdryer": {
+    "paid": false,
+    "low": true
+   },
    "convenience": {
     "open_24h": true
    },
@@ -130,6 +180,12 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "27302052": {
+   "fees": {
+    "night": {
+     "price": 35000,
+     "extra": 7000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -154,8 +210,22 @@
    "hairdryer": {
     "paid": true
    },
+   "fees": {
+    "night": {
+     "price": 15000,
+     "extra": 2000
+    }
+   },
    "convenience": {
     "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "lic3240000-202-2007-00001": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -173,7 +243,18 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
+  "9118313": {
+   "hairdryer": {
+    "paid": false,
+    "low": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
   "1589854149": {
+   "fees": {
+    "clothes": 2000
+   },
    "convenience": {
     "open_24h": true
    },
@@ -195,8 +276,19 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "lic3240000-202-2001-00016": {
+   "seshin": {
+    "price_men": 20000,
+    "price_women": 28000
+   },
    "supplies": {
     "shampoo": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "378476850": {
+   "fees": {
+    "clothes": 2000
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -245,6 +337,14 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
+  "16791133": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
   "20740919": {
    "hairdryer": {
     "paid": true
@@ -259,9 +359,48 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
+  "1679148995": {
+   "seshin": {
+    "price_men": 20000,
+    "price_women": 30000
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "10941047": {
+   "seshin": {
+    "price_men": 18000,
+    "price_women": 30000
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "20741296": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "11039135": {
+   "fees": {
+    "clothes": 2000
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
   "368494593": {
    "convenience": {
     "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "446947563": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -287,6 +426,10 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1129477142": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
+   },
    "convenience": {
     "open_24h": true
    },
@@ -302,6 +445,14 @@
      "mode": "limited",
      "count": 3
     }
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "16095444": {
+   "seshin": {
+    "price_men": 15000,
+    "price_women": 23000
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -327,10 +478,19 @@
    "hairdryer": {
     "paid": true
    },
+   "fees": {
+    "clothes": 2000
+   },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "20749217": {
+   "fees": {
+    "night": {
+     "price": 16000,
+     "extra": 3000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -361,6 +521,13 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
+  "1988689391": {
+   "fees": {
+    "clothes": 1000
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
   "202977425": {
    "hairdryer": {
     "paid": true
@@ -382,6 +549,9 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "219640416": {
+   "fees": {
+    "clothes": 12000
+   },
    "convenience": {
     "open_24h": true
    },
@@ -406,8 +576,35 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "10378943": {
+   "fees": {
+    "clothes": 12000
+   },
    "convenience": {
     "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "8086592": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "lic3040000-202-2001-00003": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "580405909": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -420,6 +617,13 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1136727366": {
+   "fees": {
+    "clothes": 2000,
+    "night": {
+     "price": 15000,
+     "extra": 3000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -434,6 +638,12 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "710352612": {
+   "fees": {
+    "clothes": 2000,
+    "night": {
+     "price": 13000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -469,8 +679,22 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "8079875": {
+   "fees": {
+    "clothes": 2000,
+    "night": {
+     "price": 13000,
+     "extra": 1000
+    }
+   },
    "convenience": {
     "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "20748119": {
+   "fees": {
+    "clothes": 2000
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -489,7 +713,17 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
+  "16056800": {
+   "fees": {
+    "clothes": 2000
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
   "1324696968": {
+   "fees": {
+    "clothes": 1000
+   },
    "convenience": {
     "open_24h": true
    },
@@ -506,6 +740,14 @@
   "1521975720": {
    "convenience": {
     "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "14517034": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -548,6 +790,9 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "lic3130000-202-2023-00003": {
+   "fees": {
+    "clothes": 2000
+   },
    "convenience": {
     "open_24h": true
    },
@@ -555,6 +800,9 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "12520175": {
+   "fees": {
+    "clothes": 2000
+   },
    "convenience": {
     "open_24h": true
    },
@@ -576,6 +824,12 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1534238244": {
+   "fees": {
+    "night": {
+     "price": 12000,
+     "extra": 1000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -607,13 +861,34 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "8016981": {
+   "fees": {
+    "clothes": 2000,
+    "night": {
+     "price": 13000,
+     "extra": 1000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
+  "8164677": {
+   "fees": {
+    "clothes": 2000
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
   "1127403040": {
+   "fees": {
+    "clothes": 2000,
+    "overtime": {
+     "price": 1500,
+     "label": "7/1부터시간초과(기본12시간초과시)"
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -631,6 +906,12 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "693898968": {
+   "fees": {
+    "night": {
+     "price": 35000,
+     "extra": 7000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -651,6 +932,14 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
+  "16906741": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
   "8231174": {
    "towel": {
     "women": {
@@ -660,6 +949,14 @@
    },
    "convenience": {
     "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "lic3210000-202-1998-00164": {
+   "seshin": {
+    "price_men": 20000,
+    "price_women": 30000
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -675,6 +972,13 @@
    "hairdryer": {
     "paid": true
    },
+   "fees": {
+    "clothes": 2000,
+    "night": {
+     "price": 14000,
+     "extra": 2000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -686,6 +990,13 @@
     "women": {
      "mode": "limited",
      "count": 2
+    }
+   },
+   "fees": {
+    "clothes": 2000,
+    "night": {
+     "price": 13000,
+     "extra": 2000
     }
    },
    "convenience": {
@@ -709,8 +1020,22 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "16446306": {
+   "fees": {
+    "night": {
+     "price": 15000,
+     "extra": 3000
+    }
+   },
    "convenience": {
     "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "9103007": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -729,6 +1054,14 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
+  "10720433": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
   "69706227": {
    "convenience": {
     "open_24h": true
@@ -740,10 +1073,17 @@
    "seshin": {
     "price_full": 25000
    },
+   "hairdryer": {
+    "paid": false,
+    "low": true
+   },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "11373593": {
+   "fees": {
+    "clothes": 2000
+   },
    "convenience": {
     "open_24h": true
    },
@@ -760,7 +1100,8 @@
   },
   "17103308": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "low": true
    },
    "convenience": {
     "open_24h": true
@@ -834,7 +1175,8 @@
   },
   "16273034": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "low": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -847,13 +1189,32 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "10282010": {
+   "fees": {
+    "night": {
+     "price": 11000,
+     "extra": 1000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
+  "192022696": {
+   "fees": {
+    "clothes": 1000
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
   "17811821": {
+   "fees": {
+    "night": {
+     "price": 12000,
+     "extra": 1000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -868,8 +1229,21 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "lic3180000-202-2015-00003": {
+   "fees": {
+    "night": {
+     "price": 13000,
+     "extra": 1000
+    }
+   },
    "convenience": {
     "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "14505269": {
+   "fees": {
+    "clothes": 2000
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -884,6 +1258,13 @@
      "count": 2
     }
    },
+   "fees": {
+    "clothes": 1000,
+    "overtime": {
+     "price": 1000,
+     "label": "12시간 초과시 1시간당 1000원"
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -891,6 +1272,12 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "27465384": {
+   "fees": {
+    "night": {
+     "price": 9000,
+     "extra": 1000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -922,12 +1309,38 @@
    "hairdryer": {
     "paid": true
    },
+   "fees": {
+    "clothes": 1000
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "151470386": {
+   "seshin": {
+    "price_men": 20000,
+    "price_women": 25000
+   },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "172791007": {
    "convenience": {
     "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "14579200": {
+   "fees": {
+    "clothes": 1000
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "8959499": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -946,12 +1359,21 @@
      "count": 2
     }
    },
+   "fees": {
+    "clothes": 2000
+   },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "226597105": {
    "hairdryer": {
     "paid": true
+   },
+   "fees": {
+    "night": {
+     "price": 11000,
+     "extra": 1000
+    }
    },
    "convenience": {
     "open_24h": true
@@ -960,6 +1382,16 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1971245957": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
+   },
+   "fees": {
+    "night": {
+     "price": 12000,
+     "extra": 1000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -969,6 +1401,9 @@
   "9805955": {
    "hairdryer": {
     "paid": false
+   },
+   "fees": {
+    "clothes": 1000
    },
    "convenience": {
     "open_24h": true
@@ -986,7 +1421,16 @@
   },
   "725385976": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "low": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "20744989": {
+   "hairdryer": {
+    "paid": true,
+    "low": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -1000,14 +1444,20 @@
   },
   "23399231": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "low": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "7976015": {
+   "seshin": {
+    "price_men": 25000,
+    "price_women": 30000
+   },
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "low": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -1021,7 +1471,8 @@
   },
   "10052061": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "low": true
    },
    "convenience": {
     "open_24h": true
@@ -1038,6 +1489,19 @@
      "mode": "limited",
      "count": 2
     }
+   },
+   "fees": {
+    "night": {
+     "price": 10000
+    }
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "9761522": {
+   "hairdryer": {
+    "paid": false,
+    "low": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -1071,6 +1535,12 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "13330378": {
+   "fees": {
+    "night": {
+     "price": 14000,
+     "extra": 1000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -1099,6 +1569,12 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "20740295": {
+   "fees": {
+    "night": {
+     "price": 11000,
+     "extra": 1000
+    }
+   },
    "convenience": {
     "open_24h": true
    },
@@ -1108,6 +1584,13 @@
   "377837926": {
    "convenience": {
     "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "16501457": {
+   "fees": {
+    "clothes": 2000
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
