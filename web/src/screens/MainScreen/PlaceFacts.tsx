@@ -1,4 +1,4 @@
-import { won, type Facts, type Price, type TowelMode } from '../../lib/onsen'
+import { won, type DayKo, type Facts, type Price, type TowelMode } from '../../lib/onsen'
 import PriceIcon, { type PriceIconName } from '../../components/PriceIcon/PriceIcon'
 
 // 값이 있는 것만 문구로 만든다. 없는 칸은 null이라 화면에서 통째로 빠진다.
@@ -49,6 +49,7 @@ function groups(f: Facts): { title: string; rows: Row[] }[] {
   const sp = f.supplies
   const cv = f.convenience
   const all = [
+    { title: '영업시간', rows: rows(WEEK.map((d): Row | null => (cv?.hours?.[d] ? [d, cv.hours[d]!] : null))) }, // 요일별(가게 등록 문구 그대로)
     {
       title: '세신',
       rows: rows([
@@ -175,10 +176,14 @@ export function FactsDetails({ facts }: { facts?: Facts }) {
   )
 }
 
-/** 주소 아래 한 줄: 24시간 영업 여부와 휴무일. 가게가 등록한 값이 있을 때만 나온다(없으면 null). */
+const WEEK: DayKo[] = ['월', '화', '수', '목', '금', '토', '일']
+const DAY_OF_TODAY: DayKo[] = ['일', '월', '화', '수', '목', '금', '토'] // Date.getDay() 순서
+
+/** 주소 아래 한 줄: 24시간 영업 여부, 오늘 영업시간, 휴무일. 가게가 등록한 값이 있을 때만 나온다(없으면 null). */
 export function hoursText(f: Facts | undefined): string | null {
   const cv = f?.convenience
-  const parts = [cv?.open_24h && '24시간 영업', cv?.closed_days].filter(Boolean)
+  const today = cv?.hours?.[DAY_OF_TODAY[new Date().getDay()]]
+  const parts = [cv?.open_24h && '24시간 영업', today && `오늘 ${today}`, cv?.closed_days].filter(Boolean)
   return parts.length ? parts.join(' · ') : null
 }
 
@@ -186,7 +191,7 @@ export function hoursText(f: Facts | undefined): string | null {
 export function unknownList(facts?: Facts): string[] {
   const f = facts
   return [
-    !f?.convenience?.open_24h && '운영시간', // 24시간이 아닌 곳의 요일별 영업시간은 아직 모은 값이 없다
+    !f?.convenience?.open_24h && !f?.convenience?.hours && '운영시간',
     !f?.convenience?.closed_days && '휴무일',
     f?.facility?.open_air == null && '노천탕',
     '가족탕·개인탕',

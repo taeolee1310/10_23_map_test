@@ -37,7 +37,8 @@ export type Place = {
 }
 
 // 가기 전에 알고 싶은 세부 정보. 직접 확인한 곳에만 있고, 없는 칸은 키 자체가 없다(추측으로 채우지 않는다).
-export type TowelMode = { mode: 'unlimited' | 'limited'; count?: number }
+export type DayKo = '월' | '화' | '수' | '목' | '금' | '토' | '일'
+export type TowelMode ={ mode: 'unlimited' | 'limited'; count?: number }
 export type Facts = {
   // 전신 세신 금액: 남녀가 같으면 price_full, 다르면 price_men·price_women (한쪽만 확인된 곳은 그쪽만)
   seshin?: { payment?: 'cash_only' | 'card_ok'; price_full?: number; price_men?: number; price_women?: number; price_mini?: number; beds?: number; reservation?: boolean }
@@ -47,7 +48,8 @@ export type Facts = {
   fees?: { clothes?: number; night?: { price: number; extra?: number }; overtime?: { price: number; label?: string } }
   facility?: { baths?: { name: string; temp_c?: number }[]; sauna?: string[]; open_air?: boolean; water?: string }
   supplies?: { shampoo?: boolean; bodywash?: boolean }
-  convenience?: { parking_height_m?: number; open_24h?: boolean; sleeping_room?: boolean; closed_days?: string } // closed_days: 가게가 등록한 휴무 문구 그대로('연중무휴' 등)
+  // closed_days: 가게가 등록한 휴무 문구 그대로('연중무휴' 등). hours: 요일별 영업시간(가게가 등록한 문구 그대로, 휴무일은 '정기휴무 …')
+  convenience?: { parking_height_m?: number; open_24h?: boolean; sleeping_room?: boolean; closed_days?: string; hours?: Partial<Record<DayKo, string>> }
   source?: string
   checked?: string
 }

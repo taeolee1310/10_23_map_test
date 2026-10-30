@@ -34,6 +34,7 @@
 | `naver_home_facts.csv` | 398 | 곳마다 네이버 플레이스 홈 페이지의 영업시간·가격표·편의와, 수건·세신·드라이기 등 키워드가 든 문장(근거, 출처·날짜 표시). **올리지 않음**(후기 문장이 들어 있음) | `scripts/collect_home.py` | 수집일 칸 |
 | `naver_id_found.csv` | 74 | 네이버 ID가 없던 곳을 이름으로 검색한 결과(일치 10곳, 못 찾음 64곳). 주소가 같고 이름이 비슷하고 네이버 업종이 목욕·사우나·찜질·온천일 때만 '일치' | `scripts/find_naver_ids.py` | 2026-10-30 |
 | `naver_reviews.jsonl` | 395 | 방문자 후기 탭에서 키워드(수건·드라이기·세신·샴푸·폐업 등)가 든 문장과 **방문일**. 작성자 이름은 저장하지 않음. **올리지 않음** | `scripts/collect_reviews.mjs`(ego-browser) | 수집일 칸 |
+| `naver_hours.jsonl` | 395 | 홈 페이지 '영업시간 펼쳐보기'를 눌러 받은 요일별 영업시간·휴무 문구(요일표가 있는 곳 158곳, 24시간 영업 등은 표 없음) | `scripts/collect_hours.mjs`(ego-browser) | 수집일 칸 |
 | `price_auto.csv` | | 가격표에서 뽑은 입장료(대인 평일·주말·소인). 사람이 확인한 `onsen_prices.csv`에 없는 곳만 서비스에 쓴다 | `scripts/judge_facts.py` | 수집일 칸 |
 | `place_facts_auto.json` | | 위 근거로 판정한 세신 금액·수건·드라이기·샴푸·24시간. 근거가 모자라거나 엇갈리면 키를 넣지 않는다 | `scripts/judge_facts.py` | 수집일 칸 |
 | `facts_judged.csv` | | 곳마다 판정 결과와 신뢰도, '불명' 사유(검산용) | `scripts/judge_facts.py` | |
@@ -78,6 +79,7 @@ python export_web_data.py   # 요금·주차장 붙이기 → web/public/data/on
 ```
 python scripts/collect_home.py   # 곳당 10초 간격, 한 번에 최대 150곳. 연속 3회 실패하면 멈추고, 다시 돌리면 받은 곳은 건너뜀
 ego-browser nodejs -e "await import('file:///<절대경로>/run.mjs')"   # 후기 탭 수집(scripts/collect_reviews.mjs를 가져오는 ASCII 경로 파일). 한 번에 60곳, 곳당 약 17초. 캡차·차단이면 멈춤
+ego-browser nodejs -e "await import('file:///<절대경로>/run.mjs')"   # 영업시간 수집(scripts/collect_hours.mjs를 가져오는 ASCII 경로 파일). 한 번에 60곳, 곳당 약 10초. 캡차·차단이면 멈춤
 python scripts/find_naver_ids.py # (네이버 ID가 없는 곳이 있을 때) 이름 검색으로 ID를 찾고 맞으면 홈 페이지도 수집. 같은 속도 제한
 python scripts/judge_facts.py    # 근거 문장 판정 + 제외 목록 추가(excluded.csv)
 python onsen_merge.py            # excluded.csv에 있는 곳을 뺌

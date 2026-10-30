@@ -100,6 +100,23 @@ def add_review_evidence(row, reviews):
     return row
 
 
+HOURS = "data/collected/naver_hours.jsonl"  # scripts/collect_hours.mjs가 '펼쳐보기'로 모은 요일별 영업시간
+DAYS = "월화수목금토일"
+
+
+def load_hours():
+    """{카카오ID: {'월': '06:00 - 23:00', ..., '일': '정기휴무 (매달 1, 3번째 일요일)'}}. 요일 표가 없는 곳(24시간 영업 등)은 넣지 않는다."""
+    out = {}
+    if os.path.exists(HOURS):
+        for line in open(HOURS, encoding="utf-8"):
+            r = json.loads(line)
+            week = (r.get("hours") or {}).get("week") or {}
+            week = {d: " · ".join(week[d]) for d in DAYS if week.get(d)}
+            if week:
+                out[r["kakaoId"]] = week
+    return out
+
+
 def closed_hints(reviews):
     """올해 후기에 폐업·휴업이 언급된 문장(검토용. 자동으로 제외하지 않는다)."""
     # 깃에 올라가는 파일이라 후기 문장은 적지 않고 날짜만 남긴다(문장은 로컬 naver_reviews.jsonl에서 찾는다)
@@ -306,6 +323,8 @@ def main():
 
     gone = set(allx["카카오ID"])
     facts, judged, price_rows = {}, [], []
+    hours = load_hours()
+    print(f"요일별 영업시간이 있는 곳 {len(hours)}곳")
     reviews = load_reviews()
     print(f"후기 탭 수집이 있는 곳 {len(reviews)}곳(후기 문장 {sum(len(v) for v in reviews.values())}건)")
     for r in rows[~rows["카카오ID"].isin(gone)].to_dict("records"):
@@ -341,6 +360,8 @@ def main():
             conv["open_24h"] = True
         if r["휴무"]:  # '연중무휴'·'매달 2, 4번째 화요일 정기 휴무' 같은 업체 등록 문구 그대로
             conv["closed_days"] = r["휴무"]
+        if r["카카오ID"] in hours:
+            conv["hours"] = hours[r["카카오ID"]]
         if conv:
             f["convenience"] = conv
         pr = judge_prices(r)
