@@ -33,7 +33,7 @@
 | `naver_raw.jsonl` | 9 | 네이버 플레이스 수집 원자료 (올리지 않음) | 네이버 플레이스 | 2026-10-26 |
 | `naver_home_facts.csv` | 398 | 곳마다 네이버 플레이스 홈 페이지의 영업시간·가격표·편의와, 수건·세신·드라이기 등 키워드가 든 문장(근거, 출처·날짜 표시). **올리지 않음**(후기 문장이 들어 있음) | `scripts/collect_home.py` | 수집일 칸 |
 | `naver_id_found.csv` | 74 | 네이버 ID가 없던 곳을 이름으로 검색한 결과(일치 10곳, 못 찾음 64곳). 주소가 같고 이름이 비슷하고 네이버 업종이 목욕·사우나·찜질·온천일 때만 '일치' | `scripts/find_naver_ids.py` | 2026-10-30 |
-| `naver_reviews.jsonl` | 395 | 방문자 후기 탭에서 키워드(수건·드라이기·세신·샴푸·폐업 등)가 든 문장과 **방문일**. 작성자 이름은 저장하지 않음. **올리지 않음** | `scripts/collect_reviews.mjs`(ego-browser) | 수집일 칸 |
+| `naver_reviews.jsonl` | 395 | 방문자 후기 탭에서 키워드(수건·드라이기·세신·샴푸·폐업 등)가 든 문장과 **방문일**. 작성자 이름은 저장하지 않음. **올리지 않음. 2026-10-30에 로컬에서 삭제함**(판정 결과는 `place_facts_auto.json`에 남아 있음, 다시 판정하려면 `collect_reviews.mjs`로 재수집) | `scripts/collect_reviews.mjs`(ego-browser) | 수집일 칸 |
 | `naver_hours.jsonl` | 395 | 홈 페이지 '영업시간 펼쳐보기'를 눌러 받은 요일별 영업시간·휴무 문구(요일표가 있는 곳 158곳, 24시간 영업 등은 표 없음) | `scripts/collect_hours.mjs`(ego-browser) | 수집일 칸 |
 | `price_auto.csv` | | 가격표에서 뽑은 입장료(대인 평일·주말·소인). 사람이 확인한 `onsen_prices.csv`에 없는 곳만 서비스에 쓴다 | `scripts/judge_facts.py` | 수집일 칸 |
 | `place_facts_auto.json` | | 위 근거로 판정한 세신 금액·수건·드라이기·샴푸·24시간. 근거가 모자라거나 엇갈리면 키를 넣지 않는다 | `scripts/judge_facts.py` | 수집일 칸 |
