@@ -318,7 +318,7 @@
 @media (hover: hover) and (pointer: fine) { .onsen-main .help:hover { color: var(--selected); } }
 
 /* 메인 화면 로고: 기준 색 토큰으로 칠한다(인트로의 로고 색은 그대로) */
-.onsen-main .onsen-logo { --logo-line: var(--color-text-secondary); --logo-water: var(--color-action-secondary); --logo-steam: var(--color-accent-decor); }
+.onsen-main .onsen-logo { --logo-line: var(--color-action-secondary); --logo-water: var(--color-action-secondary); --logo-steam: var(--color-action-secondary); }
 
 /* 목록을 못 불러왔을 때: 가운데 카드 한 장 + 다시 불러오기 */
 .onsen-main .loaderr { margin: auto; width: min(360px, calc(100% - 32px)); display: grid; gap: var(--space-2); justify-items: center; text-align: center; padding: var(--space-5); background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
