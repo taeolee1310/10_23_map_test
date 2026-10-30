@@ -1,6 +1,6 @@
 # 탕방 · 서울 목욕탕·사우나 지도 서비스 (React + Vite)
 
-서울의 목욕탕·사우나·온천 465곳을 지도와 목록으로 보여 주고, 확인된 요금을 알려 주는 서비스. 화면은 React + Vite(`web/`), 데이터 정리는 판다스(파이썬 3개), 지도는 카카오 JavaScript SDK.
+서울의 목욕탕·사우나·온천 464곳을 지도와 목록으로 보여 주고, 확인된 요금을 알려 주는 서비스. 화면은 React + Vite(`web/`), 데이터 정리는 판다스(파이썬 3개), 지도는 카카오 JavaScript SDK.
 줄마다 (왜)와 → 검사가 있다. 규칙 한 줄 = 검사 한 줄.
 
 ## 환경
@@ -14,7 +14,7 @@
 - 화면이 읽는 데이터는 `web/public/data/onsen.json` 하나. 만드는 법과 자료 분류는 `data/README.md`.
   - `python onsen_merge.py` → `data/merged/onsen_merged.csv`
   - `python export_web_data.py` → `web/public/data/onsen.json`
-- 수집은 ego-lite 브라우저로 한다. 새 수집 스크립트는 만들지 않는다. 새 자료는 `data/collected/`에 같은 칸으로 저장한다. **예외(사용자 허락, 2026-10-30)**: 네이버 홈 페이지 수집 `scripts/collect_home.py`(Scrapling)와 판정 `scripts/judge_facts.py`. 요청 제한을 피해 가는 방식(세션 새로 열기 등)은 쓰지 않고, 곳당 10초 간격·한 번에 150곳·연속 3회 실패 시 멈춤을 지킨다. 흐름은 `data/README.md`.
+- 수집은 ego-lite 브라우저로 한다. 새 수집 스크립트는 만들지 않는다. 새 자료는 `data/collected/`에 같은 칸으로 저장한다. **예외(사용자 허락, 2026-10-30)**: 네이버 홈 페이지 수집 `scripts/collect_home.py`·`scripts/find_naver_ids.py`(Scrapling)와 판정 `scripts/judge_facts.py`. 요청 제한을 피해 가는 방식(세션 새로 열기 등)은 쓰지 않고, 곳당 10초 간격·한 번에 150곳·연속 3회 실패 시 멈춤을 지킨다. 흐름은 `data/README.md`.
 - 남아 있는 파이썬 연습 파일(`place.py`, `geo.py`, `make_map.py`, `factcheck.py`, `map.html`, `map_config.js`)은 React 화면과 무관하다.
 
 ## 두 개의 열쇠 규칙

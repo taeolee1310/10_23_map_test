@@ -21,6 +21,7 @@ FACTS_CSV = "data/collected/naver_home_facts.csv"
 MERGED = "data/merged/onsen_merged.csv"
 CANDIDATES = "data/collected/excluded_candidates.csv"  # 이름으로 거른 피트니스 후보(확실/애매)
 EXCLUDED = "data/curated/excluded.csv"
+FOUND = "data/collected/naver_id_found.csv"  # scripts/find_naver_ids.py가 이름 검색으로 찾은 ID
 OUT_FACTS = "data/collected/place_facts_auto.json"
 OUT_JUDGED = "data/collected/facts_judged.csv"
 TODAY = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d")
@@ -164,6 +165,10 @@ def exclusion_reasons(rows, merged):
         b = re.sub(r"\s*\S*점$", "", r.이름)
         if b in chain and FIT_STRONG.search(r.이름):
             ex.setdefault(r.카카오ID, ("피트니스 체인", f"같은 이름 {int((brands == b).sum())}곳({r.이름})"))
+    if os.path.exists(FOUND):  # 이름 검색으로 이은 곳은 네이버에 올라 있는 이름도 본다
+        for r in read(FOUND).itertuples():
+            if r.결과 == "일치" and FIT_STRONG.search(r.네이버이름):
+                ex.setdefault(r.카카오ID, ("피트니스·스포츠 시설", f"네이버 이름 기준({r.네이버이름})"))
     for r in rows.itertuples():
         items = price_items(r.가격표)
         mas = [n for n, _ in items if MASSAGE.search(n)]

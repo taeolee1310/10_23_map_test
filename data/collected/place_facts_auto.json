@@ -1104,6 +1104,20 @@
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "377837926": {
+   "convenience": {
+    "open_24h": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "489992586": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   }
  }
 }
