@@ -67,12 +67,23 @@
 .onsen-main #panel { position: relative; display: flex; flex-direction: column; min-height: 0; background: var(--card); border: 1px solid var(--card-border);
   border-radius: var(--radius-lg); box-shadow: var(--shadow-card); overflow: hidden; }
 .onsen-main .filters { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; padding: 14px var(--gut) 12px; border-bottom: 1px solid var(--line); }
-.onsen-main .sel { display: inline-flex; }
-.onsen-main .sel select { appearance: none; -webkit-appearance: none; min-height: 36px; max-width: 100%; border: 1px solid var(--input-border); background: var(--input-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2357483B' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 12px center;
-  border-radius: 999px; padding: 0 32px 0 14px; font: inherit; font-size: 13px; font-weight: 600; color: var(--ink); cursor: pointer; }
-/* 지역을 골랐을 때는 선택 색(Bath Teal)으로 보여 지금 어느 구를 보는지 바로 알 수 있다 */
-.onsen-main .sel.on select { background-color: var(--card-bg-selected); border-color: var(--card-border-selected); color: var(--secondary); font-weight: 700; }
-.onsen-main .sel select:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+.onsen-main .sel-gu { position: relative; display: inline-flex; align-items: center; }
+/* 지역 드롭다운: 다른 필터 알약과 같은 모양. 고르면 선택 색(Bath Teal)으로 바뀌고 오른쪽에 해제(×)가 생긴다 */
+.onsen-main .sel-gu .glide-select__trigger { height: 36px; padding: 0 12px 0 14px; border: 1px solid var(--input-border); border-radius: 999px; background: var(--input-bg); color: var(--ink); font-size: 13px; font-weight: 600; transition: background-color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out), transform var(--dur-press) var(--ease-out); }
+.onsen-main .sel-gu .glide-select__trigger:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+.onsen-main .sel-gu .glide-select__trigger[aria-expanded='true'] { border-color: var(--card-border-selected); }
+.onsen-main .sel-gu.on .glide-select__trigger { background: var(--card-bg-selected); border-color: var(--card-border-selected); color: var(--secondary); font-weight: 700; padding-right: 36px; }
+.onsen-main .sel-gu .glide-select__chevron { color: var(--muted-strong); }
+.onsen-main .sel-gu.on .glide-select__chevron { display: none; } /* 선택 중에는 화살표 대신 해제 버튼 */
+.onsen-main .sel-gu .glide-select__menu { border: 1px solid var(--card-border); box-shadow: var(--shadow-card); }
+.onsen-main .sel-gu .glide-select__option { font-weight: 600; }
+.onsen-main .sel-gu .glide-select__option[aria-selected='true'] .glide-select__name { color: var(--secondary); font-weight: 800; }
+.onsen-main .sel-gu .glide-select__tag { font-variant-numeric: tabular-nums; }
+.onsen-main .sel-clear { position: absolute; right: 6px; top: 50%; width: 24px; height: 24px; margin-top: -12px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--secondary); cursor: pointer; transition: background var(--dur-base) var(--ease-out), transform var(--dur-press) var(--ease-out); }
+.onsen-main .sel-clear::before { content: ""; position: absolute; inset: -10px; } /* 누르는 영역은 44px 안팎으로 */
+@media (hover: hover) and (pointer: fine) { .onsen-main .sel-clear:hover { background: color-mix(in srgb, var(--secondary) 14%, transparent); } }
+.onsen-main .sel-clear:active { transform: scale(.88); }
+.onsen-main .sel-clear:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 1px; }
 .onsen-main .seg { display: inline-flex; background: var(--soft); border-radius: 999px; padding: 3px; }
 .onsen-main .seg button { position: relative; overflow: hidden; border: 0; background: transparent; border-radius: 999px; padding: 5px 12px; font-size: 13px; transition: background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out); }
 .onsen-main .seg button[aria-pressed="true"] { background: var(--selected); color: var(--on-selected); font-weight: 700; }

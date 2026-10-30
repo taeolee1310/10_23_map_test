@@ -149,6 +149,15 @@
   touch-action: none;
 }
 
+.glide-select__list[data-scroll] {
+  max-height: calc(var(--gs-menu-max, 9999px) - 8px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--gs-text) 30%, transparent) transparent;
+}
+
 .glide-select__pill {
   position: absolute;
   top: 0;

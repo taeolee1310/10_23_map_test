@@ -123,6 +123,8 @@ def build():
 
     places = []
     for i, r in enumerate(df.to_dict("records")):
+        if r["구분"] == "온천 숙박":  # 숙박 시설은 목욕탕 지도에서 뺀다(줄 번호 i는 그대로 두어 다른 곳의 id가 안 바뀐다)
+            continue
         kid = r["카카오ID"]
         # 요금: ① 사람이 적은 확인값(onsen_prices.csv) ② 요금 조사 자료의 확인값. 추정값은 확인된 요금과 따로 둔다.
         price = prices.get(kid) if kid else None

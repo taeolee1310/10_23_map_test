@@ -25,6 +25,9 @@ import './MainScreen.css'
 
 const DATA_URL = '/data/onsen.json' // export_web_data.py가 만든다
 const LOAD_TIMEOUT = 15000 // 이보다 오래 걸리면 실패로 보고 로딩 화면에서 풀어 준다
+// 손가락이 주 입력인 기기에서는 드롭다운 항목을 크게(누르기 쉬운 높이)
+const TOUCH = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
+
 const SORTS = [
   { value: 'auto', label: '추천순' },
   { value: 'dist', label: '가까운 순' },
@@ -140,11 +143,18 @@ function MainBody({ data }: { data: Loaded }) {
   )
   const filtered = useMemo(() => filterPlaces(withDist, filters, favs), [withDist, filters, favs])
   // 지역 드롭다운 항목: 전체 목록에서 구별 곳 수를 센다(가나다순)
+  // 구별 개수는 지역을 뺀 나머지 필터를 적용한 목록에서 센다(고르면 목록 숫자와 같아진다)
+  const guPool = useMemo(() => filterPlaces(places, { ...filters, gu: '' }, favs), [places, filters, favs])
   const guList = useMemo(() => {
     const m = new Map<string, number>()
-    for (const p of places) if (p.gu) m.set(p.gu, (m.get(p.gu) ?? 0) + 1)
+    for (const p of guPool) if (p.gu) m.set(p.gu, (m.get(p.gu) ?? 0) + 1)
+    if (filters.gu && !m.has(filters.gu)) m.set(filters.gu, 0) // 고른 구가 0곳이어도 선택 표시는 남긴다
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], 'ko'))
-  }, [places])
+  }, [guPool, filters.gu])
+  const guOptions = useMemo(
+    () => [{ value: '', label: '전체 지역', tag: String(guPool.length) }, ...guList.map(([g, n]) => ({ value: g, label: g, tag: String(n) }))],
+    [guList, guPool.length],
+  )
   // '지도 범위로 보기'가 꺼져 있으면 지도가 움직여도 같은 배열이라 핀을 다시 그리지 않는다
   const inside = useMemo(
     () =>
@@ -380,16 +390,28 @@ function MainBody({ data }: { data: Loaded }) {
                 <button key={v} aria-pressed={filters.kind === v} onClick={() => updateFilters({ kind: v })}>{l}</button>
               ))}
             </div>
-            {/* 지역(구) 드롭다운: 고른 구는 선택 색으로 보이고, 목록 위 개수 앞에도 적힌다 */}
-            <label className={`sel${filters.gu ? ' on' : ''}`}>
-              <span className="sr">지역</span>
-              <select value={filters.gu} onChange={(e) => updateFilters({ gu: e.target.value })}>
-                <option value="">전체 지역</option>
-                {guList.map(([g, n]) => (
-                  <option key={g} value={g}>{g} ({n})</option>
-                ))}
-              </select>
-            </label>
+            {/* 지역(구) 드롭다운: 고른 구는 선택 색으로 보이고, 목록 위 개수 앞에도 적힌다. 항목이 많아 메뉴 안에서 스크롤한다 */}
+            <span className={`sel-gu${filters.gu ? ' on' : ''}`}>
+              <GlideSelect
+                ariaLabel="지역"
+                options={guOptions}
+                value={filters.gu}
+                onChange={(v) => updateFilters({ gu: v })}
+                size={TOUCH ? 'lg' : 'md'}
+                radius={14}
+                menuWidth={184}
+                maxMenuHeight={320}
+                accentColor="var(--secondary)"
+                surfaceColor="var(--card)"
+                highlightColor="var(--soft)"
+                textColor="var(--ink)"
+              />
+              {filters.gu && (
+                <button type="button" className="sel-clear" aria-label={`${filters.gu} 선택 해제`} onClick={() => updateFilters({ gu: '' })}>
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M2 2l6 6M8 2L2 8" /></svg>
+                </button>
+              )}
+            </span>
             <div className="swrow">
               <label className="sw">
                 <input type="checkbox" checked={filters.priceOnly} onChange={(e) => updateFilters({ priceOnly: e.target.checked })} />

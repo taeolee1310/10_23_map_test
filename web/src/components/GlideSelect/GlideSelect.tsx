@@ -1,5 +1,7 @@
 // React Bits의 GlideSelect(JavaScript + CSS)를 TypeScript로 옮긴 것. 동작은 원본 그대로다.
-// 다른 점 하나: 아이콘(화살표·체크)을 @hugeicons 패키지 대신 같은 모양의 인라인 SVG로 그려서 패키지를 새로 설치하지 않는다.
+// 다른 점: ① 아이콘(화살표·체크)을 @hugeicons 패키지 대신 같은 모양의 인라인 SVG로 그려서 패키지를 새로 설치하지 않는다.
+// ② maxMenuHeight: 항목이 많을 때 메뉴 안에서 스크롤한다(고른 항목을 가운데로, 키보드로 옮기면 보이는 곳까지 따라 스크롤,
+//    화면에 남은 공간만큼만 높이를 줄인다). 터치에서는 스크롤과 탭을 구분해 탭으로 고른다.
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import './GlideSelect.css'
 
@@ -58,6 +60,8 @@ export type GlideSelectProps = {
   popDuration?: number
   glideDuration?: number
   rememberPosition?: boolean
+  /** 메뉴 최대 높이(px). 넘치면 메뉴 안에서 스크롤한다. 없으면 항목이 모두 보인다 */
+  maxMenuHeight?: number
   disabled?: boolean
   ariaLabel?: string
   className?: string
@@ -84,6 +88,7 @@ export default function GlideSelect({
   popDuration = 180,
   glideDuration = 220,
   rememberPosition = true,
+  maxMenuHeight,
   disabled = false,
   ariaLabel = 'Select',
   className = '',
@@ -95,10 +100,13 @@ export default function GlideSelect({
   const [phase, setPhase] = useState<Phase>('closed')
   const [active, setActive] = useState<number | null>(null)
   const [side, setSide] = useState<'top' | 'bottom'>(placement)
+  const [edge, setEdge] = useState<'left' | 'right'>(align)
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const pillRef = useRef<HTMLSpanElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  const tap = useRef<{ id: number; x: number; y: number; t: number } | null>(null)
   const instant = useRef(false)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const scrub = useRef<{ id: number; top: number } | null>(null)
@@ -113,8 +121,27 @@ export default function GlideSelect({
     const root = rootRef.current
     if (!el || !root) return
     const r = root.getBoundingClientRect()
-    const need = el.offsetHeight + MENU_GAP
-    setSide(placement === 'bottom' && r.bottom + need > window.innerHeight ? 'top' : placement === 'top' && r.top - need < 0 ? 'bottom' : placement)
+    const list = listRef.current
+    let nextSide: 'top' | 'bottom' = placement
+    if (maxMenuHeight && list) {
+      // 항목이 많으면: 화면에 남은 공간이 넉넉한 쪽으로 열고, 그 공간만큼만 높이를 준다
+      const want = Math.min(list.scrollHeight + 2 * PAD, maxMenuHeight)
+      const below = window.innerHeight - r.bottom - MENU_GAP - 12
+      const above = r.top - MENU_GAP - 12
+      nextSide = placement === 'bottom' ? (below >= want || below >= above ? 'bottom' : 'top') : above >= want || above >= below ? 'top' : 'bottom'
+      const room = nextSide === 'bottom' ? below : above
+      el.style.setProperty('--gs-menu-max', `${Math.max(96, Math.min(want, room))}px`)
+      if (selected >= 0) list.scrollTop = Math.max(0, selected * step - (list.clientHeight - S.row) / 2) // 고른 항목을 가운데로
+    } else {
+      const need = el.offsetHeight + MENU_GAP
+      nextSide = placement === 'bottom' && r.bottom + need > window.innerHeight ? 'top' : placement === 'top' && r.top - need < 0 ? 'bottom' : placement
+    }
+    setSide(nextSide)
+    // 가로: 기준 모서리로 열었을 때 화면 밖으로 나가면 반대 모서리에 맞춘다
+    const menuW = Math.max(el.offsetWidth, r.width)
+    const fitsLeft = r.left + menuW <= window.innerWidth - 8
+    const fitsRight = r.right - menuW >= 8
+    setEdge(align === 'left' ? (fitsLeft || !fitsRight ? 'left' : 'right') : fitsRight || !fitsLeft ? 'right' : 'left')
     el.style.transitionDuration = instant.current ? '0ms' : ''
     el.dataset.state = 'closed'
     void el.offsetHeight
@@ -142,6 +169,14 @@ export default function GlideSelect({
     p.style.transform = `translateY(${active * step}px)`
     p.style.opacity = '1'
     instant.current = false
+    const list = listRef.current
+    if (list && list.scrollHeight > list.clientHeight + 1) {
+      // 고른 줄이 보이는 영역 밖이면 그 줄이 보일 만큼만 스크롤한다
+      const top = active * step
+      const bottom = top + S.row
+      if (top < list.scrollTop) list.scrollTop = top
+      else if (bottom > list.scrollTop + list.clientHeight) list.scrollTop = bottom - list.clientHeight
+    }
   }, [active, phase, step])
 
   const open = (viaKey: boolean) => {
@@ -224,11 +259,21 @@ export default function GlideSelect({
   const rowAt = (y: number) => {
     const s = scrub.current
     if (!s) return null
-    const i = Math.floor((y - s.top - PAD) / step)
+    return rowFromY(y, s.top)
+  }
+  const rowFromY = (y: number, top: number) => {
+    const i = Math.floor((y - top + (listRef.current?.scrollTop ?? 0)) / step)
     return i >= 0 && i < items.length ? i : null
   }
+  const scrollable = () => !!maxMenuHeight && !!listRef.current && listRef.current.scrollHeight > listRef.current.clientHeight + 1
   const onListDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (scrub.current) return
+    const lr = e.currentTarget.getBoundingClientRect()
+    if (maxMenuHeight && e.clientX > lr.left + e.currentTarget.clientWidth) return // 스크롤바를 잡은 것은 고르는 동작이 아니다
+    if (e.pointerType === 'touch' && scrollable()) {
+      tap.current = { id: e.pointerId, x: e.clientX, y: e.clientY, t: Date.now() } // 스크롤이 시작되면 pointercancel로 끝난다
+      return
+    }
     try {
       e.currentTarget.setPointerCapture(e.pointerId)
     } catch {
@@ -244,6 +289,16 @@ export default function GlideSelect({
     if (i !== active) setActive(i)
   }
   const onListUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const t = tap.current
+    if (t && t.id === e.pointerId) {
+      tap.current = null
+      const still = Math.abs(e.clientX - t.x) < 8 && Math.abs(e.clientY - t.y) < 8 && Date.now() - t.t < 600
+      if (e.type === 'pointerup' && still && listRef.current) {
+        const i = rowFromY(e.clientY, listRef.current.getBoundingClientRect().top)
+        if (i !== null) pick(i, false)
+      }
+      return
+    }
     if (!scrub.current || scrub.current.id !== e.pointerId) return
     const i = e.type === 'pointerup' ? rowAt(e.clientY) : null
     scrub.current = null
@@ -258,7 +313,7 @@ export default function GlideSelect({
     if (i !== active) setActive(i)
   }
 
-  const origin = `${side === 'bottom' ? 'top' : 'bottom'} ${align}`
+  const origin = `${side === 'bottom' ? 'top' : 'bottom'} ${edge}`
   const vars = {
     '--gs-accent': accentColor,
     '--gs-surface': surfaceColor,
@@ -314,12 +369,14 @@ export default function GlideSelect({
         </span>
       </button>
       {phase !== 'closed' ? (
-        <div ref={menuRef} className="glide-select__menu" data-state="open" data-side={side} data-align={align}>
+        <div ref={menuRef} className="glide-select__menu" data-state="open" data-side={side} data-align={edge}>
           <div
+            ref={listRef}
             id={`${id}-list`}
             role="listbox"
             aria-label={ariaLabel}
             className="glide-select__list"
+            data-scroll={maxMenuHeight ? '' : undefined}
             data-live={active !== null ? '' : undefined}
             onPointerOver={onListOver}
             onPointerLeave={() => {
