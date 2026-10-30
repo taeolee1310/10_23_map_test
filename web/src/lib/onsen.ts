@@ -47,7 +47,7 @@ export type Facts = {
   fees?: { clothes?: number; night?: { price: number; extra?: number }; overtime?: { price: number; label?: string } }
   facility?: { baths?: { name: string; temp_c?: number }[]; sauna?: string[]; open_air?: boolean; water?: string }
   supplies?: { shampoo?: boolean; bodywash?: boolean }
-  convenience?: { parking_height_m?: number; open_24h?: boolean; sleeping_room?: boolean }
+  convenience?: { parking_height_m?: number; open_24h?: boolean; sleeping_room?: boolean; closed_days?: string } // closed_days: 가게가 등록한 휴무 문구 그대로('연중무휴' 등)
   source?: string
   checked?: string
 }

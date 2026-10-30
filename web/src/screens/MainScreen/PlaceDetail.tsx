@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
-import { FactsDetails, FeeDetails, TopWorries, unknownList, worries } from './PlaceFacts'
+import { FactsDetails, FeeDetails, TopWorries, hoursText, unknownList, worries } from './PlaceFacts'
 
 type Props = {
   place: PlaceWithDist | null
@@ -151,6 +151,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
           <h2>{d.name}</h2>
           {d.women_only && <span className="pill women">여성전용</span>}
           <div className="small" style={{ margin: 0 }}>{d.addr}</div>
+          {hoursText(d.facts) && <div className="hours-line">{hoursText(d.facts)}</div>}
           {/* 바로 할 일: 길찾기·전화 */}
           <div className="actions d-actions">
             <a className="btn sm" target="_blank" rel="noopener noreferrer" href={l.car}>자동차 길찾기</a>

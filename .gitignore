@@ -14,6 +14,8 @@ data/collected/seoul_bath_license_geo.csv
 # 후기 문장이 들어 있어(직원 이름이 섞일 수 있음) 올리지 않는다. 화면용 값은 place_facts_auto.json·onsen.json에 있다
 data/collected/naver_places.csv
 data/collected/naver_home_facts.csv
+data/collected/naver_reviews.jsonl
+data/collected/review_targets.json
 # 수집 로그
 logs/
 collect_home*.log

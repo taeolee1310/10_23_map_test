@@ -214,6 +214,9 @@
 .onsen-main .facts details > .pr:last-child { margin-bottom: 8px; }
 @media (prefers-reduced-motion: reduce) { .onsen-main .facts summary::after { transition: none; } }
 
+/* 주소 아래 영업 한 줄(24시간 영업 · 연중무휴) */
+.onsen-main .hours-line { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--secondary); }
+
 /* 요금 카드 안의 아이콘 줄(대인·소인·찜질복·야간 입장·시간 초과) */
 .onsen-main .fee-list { margin-top: 8px; }
 .onsen-main .fee-row { display: flex; align-items: center; gap: 12px; min-height: 48px; border-top: 1px solid var(--line); }

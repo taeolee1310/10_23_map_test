@@ -81,6 +81,7 @@ function groups(f: Facts): { title: string; rows: Row[] }[] {
       rows: rows([
         cv?.parking_height_m != null ? ['주차 층고 제한', `${cv.parking_height_m}m`] : null,
         yn(cv?.open_24h, '24시간 운영', '24시간 아님') ? ['24시간', yn(cv?.open_24h, '24시간 운영', '24시간 아님')!] : null,
+        cv?.closed_days ? ['휴무일', cv.closed_days] : null,
         yn(cv?.sleeping_room, '있음', '없음') ? ['수면실', yn(cv?.sleeping_room, '있음', '없음')!] : null,
       ]),
     },
@@ -174,11 +175,19 @@ export function FactsDetails({ facts }: { facts?: Facts }) {
   )
 }
 
+/** 주소 아래 한 줄: 24시간 영업 여부와 휴무일. 가게가 등록한 값이 있을 때만 나온다(없으면 null). */
+export function hoursText(f: Facts | undefined): string | null {
+  const cv = f?.convenience
+  const parts = [cv?.open_24h && '24시간 영업', cv?.closed_days].filter(Boolean)
+  return parts.length ? parts.join(' · ') : null
+}
+
 /** 데이터에 있는 항목은 '아직 모르는 정보' 문구에서 뺀다. */
 export function unknownList(facts?: Facts): string[] {
   const f = facts
   return [
-    '운영시간·휴무일',
+    !f?.convenience?.open_24h && '운영시간', // 24시간이 아닌 곳의 요일별 영업시간은 아직 모은 값이 없다
+    !f?.convenience?.closed_days && '휴무일',
     f?.facility?.open_air == null && '노천탕',
     '가족탕·개인탕',
     f?.convenience == null && '주차·편의시설',

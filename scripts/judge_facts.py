@@ -24,6 +24,7 @@ EXCLUDED = "data/curated/excluded.csv"
 FOUND = "data/collected/naver_id_found.csv"  # scripts/find_naver_ids.py가 이름 검색으로 찾은 ID
 OUT_FACTS = "data/collected/place_facts_auto.json"
 OUT_JUDGED = "data/collected/facts_judged.csv"
+OUT_PRICES = "data/collected/price_auto.csv"
 TODAY = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d")
 EX_COLS = ["카카오ID", "이름", "주소", "사유", "근거", "확인일"]
 
@@ -72,6 +73,40 @@ def sentences_of(cell):
     return out
 
 
+REVIEWS = "data/collected/naver_reviews.jsonl"  # scripts/collect_reviews.mjs가 후기 탭에서 모은 키워드 문장(방문일 포함)
+REVIEW_COLS = {"수건근거": ("수건", "타월", "타올"), "드라이기근거": ("드라이",), "샴푸근거": ("샴푸", "바디워시", "어메니티")}
+
+
+def load_reviews():
+    out = {}
+    if os.path.exists(REVIEWS):
+        for line in open(REVIEWS, encoding="utf-8"):
+            r = json.loads(line)
+            out[r["kakaoId"]] = r["reviews"]
+    return out
+
+
+def add_review_evidence(row, reviews):
+    """후기 탭 근거를 방문일과 함께 근거 칸에 합친다. 홈 페이지의 날짜 없는 후기 문장은 같은 후기일 수 있어 중복으로 세지 않게 뺀다."""
+    row = dict(row)
+    for col, words in REVIEW_COLS.items():
+        keep = [p for p in filter(None, row[col].split(" ‖ ")) if not p.startswith("[방문자리뷰(날짜없음)]")]
+        new = []
+        for rv in sorted(reviews, key=lambda x: x["date"], reverse=True):
+            y, m, d = rv["date"].split("-")
+            label = f"방문자리뷰 {y}년 {int(m)}월 {int(d)}일"
+            new += [f"[{label}] {ln}" for ln in rv["lines"] if any(w in ln for w in words)]
+        row[col] = " ‖ ".join(keep + new)
+    return row
+
+
+def closed_hints(reviews):
+    """올해 후기에 폐업·휴업이 언급된 문장(검토용. 자동으로 제외하지 않는다)."""
+    # 깃에 올라가는 파일이라 후기 문장은 적지 않고 날짜만 남긴다(문장은 로컬 naver_reviews.jsonl에서 찾는다)
+    dates = sorted({rv["date"] for rv in reviews if rv["date"] >= "2026-01-01" for ln in rv["lines"] if re.search("폐업|휴업", ln)}, reverse=True)
+    return "폐업·휴업 언급 후기 " + ", ".join(dates) if dates else ""
+
+
 def decide(votes, allow_single=False):
     """votes: [(값, 신뢰도, 출처)]. 높음·중간 근거가 있으면 그것만, 없으면 낮은 근거가 2건 이상 일치할 때만(allow_single이면 1건도 '낮음'으로 씀). 서로 다르면 None(모순)."""
     good = [v for v in votes if v[1] in ("high", "mid")]
@@ -111,8 +146,10 @@ def judge_hairdryer(row):
     for rel, label, s in sentences_of(row["드라이기근거"]):
         if "드라이" not in s or re.search(r"드라이\S*\s?(는|도)?\s?없", s):
             continue
-        free = re.search(r"드라이\S*.{0,12}(무료|공짜)|(무료|공짜).{0,12}드라이", s)
-        paid = re.search(r"드라이\S*.{0,12}(유료|\d+원|동전|코인)|(유료|\d+원|동전|코인).{0,12}드라이", s)
+        # '동전 없이 사용'·'돈 안 받아요'는 무료다. 문장에 '동전'이 있다는 이유로 유료로 읽지 않는다.
+        no_charge = re.search(r"(동전|돈|요금|비용).{0,5}(없이|안\s?(받|내|들|넣)|필요\s?없)|그냥\s?(사용|쓸)", s)
+        free = re.search(r"드라이\S*.{0,12}(무료|공짜)|(무료|공짜).{0,12}드라이", s) or no_charge
+        paid = None if no_charge else re.search(r"드라이\S*.{0,12}(유료|\d+원|동전|코인|돈\s?받)|(유료|\d+원|동전|코인).{0,12}드라이", s)
         if bool(free) != bool(paid):
             votes.append(({"paid": bool(paid)}, rel, label))
     val, why = decide(votes, allow_single=True)
@@ -152,7 +189,7 @@ CLOTHES_SKIP = re.compile(r"보증|세탁|분실|반납")
 NIGHT = re.compile(r"야간|심야")
 DAY = re.compile(r"주간")
 ADULT = re.compile(r"대인|성인|일반|입욕|입장|사우나|목욕")
-NOT_ADULT = re.compile(r"소인|어린이|유아|초등|학생|경로|청소년|미취학|찜질복|가운|까운|세신|회원|\d+매|\d+장|수면|룸")
+NOT_ADULT = re.compile(r"소인|어린이|유아|초등|학생|경로|청소년|미취학|찜질복|가운|까운|세신|회원|\d+매|\d+장|수면|룸|\d+세|개월|미만|이하|~|아동|소아|취학")  # 나이 범위가 든 항목은 성인 요금으로 보지 않는다
 OVERTIME = re.compile(r"초과|연장")
 
 
@@ -177,6 +214,32 @@ def judge_fees(row):
         n, p = next(iter(over))
         fees["overtime"] = {"price": p, "label": n}
     return fees
+
+
+WEEKEND = re.compile(r"주말|공휴일")
+CHILD = re.compile(r"소인|어린이|초등|유아|미취학|아동|소아|취학")
+PRICE_COLS_OUT = ["카카오ID", "성인_평일", "성인_주말", "수건", "주차", "어린이", "추가요금_없음확인", "메모", "출처", "확인일"]
+
+
+def judge_prices(row):
+    """네이버 가격표의 입장료: 성인 평일(주간)·주말·어린이. 항목마다 값이 하나로 정해질 때만 쓴다(여럿이면 뺌). 성인 평일이 없으면 줄을 만들지 않는다."""
+    items = price_items(row["가격표"])
+
+    def uniq(match):
+        s = {p for n, p in items if match(n)}
+        return next(iter(s)) if len(s) == 1 else None
+
+    adult_like = lambda n: ADULT.search(n) and not NOT_ADULT.search(n) and not NIGHT.search(n)
+    adult = uniq(lambda n: adult_like(n) and not WEEKEND.search(n))
+    if adult is None:
+        return None
+    weekend = uniq(lambda n: adult_like(n) and WEEKEND.search(n))
+    child = uniq(lambda n: CHILD.search(n) and not NIGHT.search(n) and not WEEKEND.search(n) and not re.search(r"세신|회원|찜질복|가운|까운|성인|대인", n))
+    if child is not None and child >= adult:
+        child = None  # 소인이 대인 이상이면 항목을 잘못 읽은 것이다
+    if weekend is not None and weekend < adult:
+        weekend = None  # 주말이 평일보다 싸면 잘못 읽었을 가능성이 커서 뺀다
+    return {"성인_평일": adult, "성인_주말": weekend, "어린이": child}
 
 
 def judge_supplies(row):
@@ -242,9 +305,16 @@ def main():
     print(f"제외 목록 {len(allx)}곳(이번에 추가 {len(add)}곳). 사유별:", allx["사유"].value_counts().to_dict())
 
     gone = set(allx["카카오ID"])
-    facts, judged = {}, []
+    facts, judged, price_rows = {}, [], []
+    reviews = load_reviews()
+    print(f"후기 탭 수집이 있는 곳 {len(reviews)}곳(후기 문장 {sum(len(v) for v in reviews.values())}건)")
     for r in rows[~rows["카카오ID"].isin(gone)].to_dict("records"):
         f, note = {}, {}
+        hint = ""
+        if r["카카오ID"] in reviews:
+            r = add_review_evidence(r, reviews[r["카카오ID"]])
+            hint = closed_hints(reviews[r["카카오ID"]])
+        note["폐업후기"] = hint
         v, why = judge_seshin(r)
         if v:
             f["seshin"] = v
@@ -266,8 +336,17 @@ def main():
         if fees:
             f["fees"] = fees
         note["요금세부"] = json.dumps(fees, ensure_ascii=False) if fees else ""
+        conv = {}
         if r["영업표시"].startswith("24시간"):
-            f["convenience"] = {"open_24h": True}
+            conv["open_24h"] = True
+        if r["휴무"]:  # '연중무휴'·'매달 2, 4번째 화요일 정기 휴무' 같은 업체 등록 문구 그대로
+            conv["closed_days"] = r["휴무"]
+        if conv:
+            f["convenience"] = conv
+        pr = judge_prices(r)
+        if pr:
+            price_rows.append({"카카오ID": r["카카오ID"], **pr, "메모": "네이버 플레이스 가격표에 가게가 올린 입장료(자동 판정)",
+                               "출처": "네이버 플레이스 가격표(자동 판정)", "확인일": r["수집일"]})
         if f:
             f["checked"] = r["수집일"]
             f["source"] = "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -277,6 +356,8 @@ def main():
     json.dump({"_설명": "scripts/judge_facts.py가 만든다. 사람이 확인한 data/curated/place_facts.json이 항목별로 우선한다.",
                "places": facts}, open(OUT_FACTS, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     pd.DataFrame(judged).to_csv(OUT_JUDGED, index=False, encoding="utf-8-sig")
+    pd.DataFrame(price_rows, columns=PRICE_COLS_OUT).to_csv(OUT_PRICES, index=False, encoding="utf-8-sig")
+    print(f"가격표에서 입장료를 뽑은 곳 {len(price_rows)}곳 → {OUT_PRICES} (사람이 확인한 onsen_prices.csv에 없는 곳만 서비스에 쓴다)")
     j = pd.DataFrame(judged)
     print(f"판정한 곳 {len(j)}곳 → 값이 하나라도 나온 곳 {len(facts)}곳")
     for k in ("세신", "드라이기", "수건"):

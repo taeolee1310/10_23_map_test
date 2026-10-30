@@ -15,6 +15,7 @@ PRICE_FILE = "data/curated/onsen_prices.csv"  # 확인된 가격만 사람이 �
 TANGBANG_PRICES = "data/curated/tangbang_places_price_data.json"  # 요금 조사 자료(실측 확인 + 인근 평균 추정)
 # 한국소비자원 참가격 '목욕(성인 일반대중탕 1회)' 서울 값. 기준월 미표기·잠정치라 추정으로만 쓴다.
 SEOUL_REGION_PRICE = {"adult": 11000.0, "basis": "서울 일반 대중탕 지역 요금·참가격 잠정", "checked": "2026-10-24"}
+PRICE_AUTO_FILE = "data/collected/price_auto.csv"  # scripts/judge_facts.py가 네이버 가격표에서 뽑은 입장료(다시 만들 수 있음)
 AUTO_FACTS_FILE = "data/collected/place_facts_auto.json"  # scripts/judge_facts.py가 근거 문장으로 판정한 값(다시 만들 수 있음)
 FACTS_FILE = "data/curated/place_facts.json"  # 사람이 직접 확인한 세부 정보(세신·수건·드라이기 등). 카카오ID가 열쇠
 OUT = "web/public/data/onsen.json"
@@ -25,15 +26,24 @@ def none_if_nan(v):
 
 
 def load_prices():
+    """사람이 확인한 요금(PRICE_FILE)이 먼저, 그 곳에 없는 곳만 가격표 자동 판정(PRICE_AUTO_FILE)으로 채운다."""
     prices = {}
-    if not os.path.exists(PRICE_FILE):
-        return prices
-    pdf = pd.read_csv(PRICE_FILE, encoding="utf-8-sig", dtype={"카카오ID": str})
+    for path in (PRICE_FILE, PRICE_AUTO_FILE):
+        _read_prices(path, prices)
+    return prices
+
+
+def _read_prices(path, prices):
+    if not os.path.exists(path):
+        return
+    pdf = pd.read_csv(path, encoding="utf-8-sig", dtype={"카카오ID": str})
     for col in PRICE_COLS:
         pdf[col] = pd.to_numeric(pdf[col].replace("무료", 0), errors="coerce")  # '무료'는 0원
     for r in pdf.to_dict("records"):
         if all(pd.isna(r[c]) for c in PRICE_COLS):
             continue  # 가격이 하나도 없는 줄은 '확인됨'으로 치지 않는다
+        if r["카카오ID"] in prices:
+            continue  # 이미 사람이 확인한 값이 있는 곳은 자동 값으로 덮지 않는다
         prices[r["카카오ID"]] = {
             "adult": none_if_nan(r["성인_평일"]),
             "weekend": none_if_nan(r["성인_주말"]),
