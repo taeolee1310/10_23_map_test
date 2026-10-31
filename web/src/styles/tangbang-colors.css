@@ -213,17 +213,13 @@
   --chip-border-disabled: var(--color-border-subtle);
   --chip-border-selected: var(--color-action-secondary-active);
 
-  /* CTA 유리 물 버튼(인트로 '목욕탕 찾아보기'): 크림 유리 + 맑은 청록 물. 글자는 짙은 청록(유리 위 7:1 이상, 물에 닿아도 큰 글자 기준 3:1 이상) */
-  --cta-glass-bg: color-mix(in srgb, color-mix(in srgb, var(--color-bg-page) 40%, var(--color-bg-surface)) 96%, transparent);
-  --cta-glass-edge: color-mix(in srgb, var(--tb-teal-600) 85%, transparent);
-  --cta-glass-rim: color-mix(in srgb, var(--tb-white) 65%, transparent);
-  --cta-glass-gloss: color-mix(in srgb, var(--tb-white) 75%, transparent);
-  --cta-water-top: color-mix(in srgb, var(--tb-teal-500) 62%, transparent);
-  --cta-water-back: color-mix(in srgb, var(--tb-teal-500) 24%, transparent); /* 수면 뒤쪽 면 */
-  --cta-water-bottom: color-mix(in srgb, var(--tb-teal-500) 88%, transparent);
-  --cta-water-light: color-mix(in srgb, var(--tb-white) 70%, transparent);
-  --cta-water-surface: color-mix(in srgb, var(--tb-white) 85%, transparent);
-  --cta-text: var(--tb-teal-700);
+  /* 인트로 CTA '목욕탕 찾아보기'(물 차오르는 버튼): 청록 바탕, 올리면 옅은 청록 물이 차고 글자는 코코아로 바뀐다 */
+  --cta-liquid-bg: var(--button-secondary-bg);
+  --cta-liquid-text: var(--button-secondary-text);
+  --cta-liquid-fill-a: var(--tb-teal-200);
+  --cta-liquid-fill-b: var(--tb-teal-100);
+  --cta-liquid-text-filled: var(--color-text-primary);
+  --cta-liquid-border: color-mix(in srgb, var(--tb-white) 15%, transparent);
 
   /* Onboarding(스포트라이트): 어두운 면 + 비추는 구멍의 선(청록 + 아이보리) */
   --onboarding-dim: rgba(var(--tb-cocoa-700-rgb), 0.62);
