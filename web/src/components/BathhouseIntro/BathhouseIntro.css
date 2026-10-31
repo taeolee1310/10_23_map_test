@@ -240,25 +240,83 @@
   font-size: clamp(19px, 1.7vw, 24px);
   font-weight: 700;
 }
+/* 유리 테두리와 물빛이 있는 CTA. 그림(.bh__glass)은 장식이고 글자는 그 위 레이어에 둔다.
+   그림은 투명 여백을 자른 2095×539 한 장이라 버튼 비율도 그대로 맞춘다. 클릭 영역이 알약 모양이 되도록 radius를 준다. */
 .bh__link {
+  position: relative;
+  isolation: isolate;
   margin-top: clamp(12px, 4vh, 28px);
-  display: inline-flex;
+  display: inline-grid;
+  grid-auto-flow: column;
+  place-content: center;
   align-items: center;
-  gap: 10px;
-  min-height: 52px;
-  padding: 12px 28px;
-  /* 처음 눌러야 할 곳이 이 버튼이라는 게 보이도록 채운 주요 버튼(CTA)으로 둔다 */
-  border: 2px solid var(--tb-cream-sun);
+  gap: 12px;
+  width: clamp(260px, 26vw, 380px);
+  aspect-ratio: 2095 / 539;
+  padding: 0;
+  border: 0;
   border-radius: 999px;
-  background: var(--button-primary-bg);
-  color: var(--button-primary-text);
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--tb-bottle-brown) 55%, transparent);
-  text-shadow: none;
+  background: transparent;
+  color: var(--cta-text);
+  filter: drop-shadow(0 10px 18px color-mix(in srgb, var(--tb-bottle-brown) 40%, transparent));
   font: inherit;
-  font-size: clamp(19px, 1.6vw, 22px);
+  font-size: clamp(17px, 1.5vw, 21px);
   font-weight: 700;
+  line-height: 1.25;
   cursor: pointer;
-  transition: background 200ms ease;
+}
+.bh__glass {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+.bh__glass-bg {
+  fill: var(--cta-glass-bg);
+}
+.bh__glass-tex {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+/* 물빛 무늬: 이어 붙이지 않고 한 장을 아주 조금 옮기고 키웠다 줄이기만 한다 */
+.bh__glass-tex--drift {
+  animation: bh-glass-drift 26s ease-in-out infinite alternate;
+}
+.bh__glass-veil-stop {
+  stop-color: var(--tb-cream-sun);
+  stop-opacity: 0.86;
+}
+.bh__glass-veil-stop--end {
+  stop-opacity: 0;
+}
+/* 물결 경계: 가는 밝은 선과 그 둘레의 옅은 번짐 */
+.bh__glass-edge {
+  fill: none;
+  stroke: var(--cta-water-surface);
+  stroke-width: 1.25;
+  opacity: 0.55;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+.bh__glass-edge--glow {
+  stroke: var(--cta-water-light);
+  stroke-width: 5;
+  opacity: 0.22;
+}
+.bh__link-label,
+.bh__link-arrow {
+  position: relative;
+  z-index: 1; /* 물빛·유리 위에 고정 */
+}
+@keyframes bh-glass-drift {
+  from {
+    transform: translate(-28px, -10px) scale(1);
+  }
+  to {
+    transform: translate(28px, 12px) scale(1.06);
+  }
 }
 .bh__link:focus-visible {
   outline: 3px solid var(--tb-cream-sun);
@@ -268,12 +326,20 @@
   cursor: default;
 }
 @media (hover: hover) {
-  .bh__link:hover {
-    background: var(--button-primary-bg-hover);
+  .bh__link:hover .bh__glass-edge {
+    opacity: 0.85;
+  }
+  .bh__link:hover .bh__glass-edge--glow {
+    opacity: 0.4;
   }
 }
-.bh__link:active:not(:disabled) {
-  background: var(--button-primary-bg-active);
+.bh__link:focus-visible .bh__glass-edge {
+  opacity: 0.85;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bh__glass-tex--drift {
+    animation: none;
+  }
 }
 .bh__brand,
 .bh__copy h1,

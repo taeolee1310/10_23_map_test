@@ -10,6 +10,7 @@ import { CANVAS_BOX, createWaterfall, LOOP_SECONDS } from './waterfall'
 import soundOn from '../../assets/sound/sound-on.svg'
 import soundOff from '../../assets/sound/sound-off.svg'
 import ElasticSlider from '../ElasticSlider'
+import GlassWater from './GlassWater'
 import { createBgm, type Bgm } from './bgm'
 import { createSfx, type Sfx } from './sfx'
 import './BathhouseIntro.css'
@@ -50,6 +51,16 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
   const stageRef = useRef<HTMLDivElement>(null)
   const baseRef = useRef<HTMLCanvasElement>(null)
   const fallRef = useRef<HTMLCanvasElement>(null)
+
+  // 유리 버튼의 물결·빛무늬 움직임: 움직임 줄이기 설정이면 멈추고, iOS 점검 중에는 끈다(iosLite.ts)
+  const [glassMotion, setGlassMotion] = useState(() => !isIOS() && !window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  useEffect(() => {
+    if (isIOS()) return
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const sync = () => setGlassMotion(!mq.matches)
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
 
   const [volume, setVolume] = useState(BGM_VOLUME)
   const [duckPressed, setDuckPressed] = useState(false) // 오리를 한 번 눌렀는지(오리 위 안내는 그때까지만)
@@ -273,9 +284,11 @@ export default function BathhouseIntro({ onEnter }: BathhouseIntroProps) {
           몸은 풀려야죠.
         </h1>
         <p className="bh__sub">서울의 목욕탕을 찾아서.</p>
+        {/* 유리 테두리와 물빛은 장식(aria-hidden)이고, 글자·클릭·포커스는 이 button이 맡는다 */}
         <button className="bh__link" type="button" onClick={handleEnter} disabled={isLeaving}>
-          <span>목욕탕 찾아보기</span>
-          <span aria-hidden="true">→</span>
+          <GlassWater animate={glassMotion} />
+          <span className="bh__link-label">목욕탕 찾아보기</span>
+          <span className="bh__link-arrow" aria-hidden="true">→</span>
         </button>
       </div>
 
