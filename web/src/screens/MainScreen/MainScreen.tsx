@@ -4,7 +4,6 @@ import OnsenLogo from '../../components/OnsenLogo'
 import MilkLoader from '../../components/MilkLoader'
 import {
   DEFAULT_FILTERS,
-  KINDS,
   filterPlaces,
   hasXY,
   km,
@@ -398,11 +397,6 @@ function MainBody({ data }: { data: Loaded }) {
       <div id="app">
         <section id="panel" aria-label="목욕탕 목록">
           <div className="filters">
-            <div className="seg" role="group" aria-label="시설 유형">
-              {KINDS.map(([v, l]) => (
-                <button key={v} aria-pressed={filters.kind === v} onClick={() => updateFilters({ kind: v })}>{l}</button>
-              ))}
-            </div>
             {/* 지역(구) 드롭다운: 고른 구는 선택 색으로 보이고, 목록 위 개수 앞에도 적힌다. 항목이 많아 메뉴 안에서 스크롤한다 */}
             <span className={`sel-gu${filters.gu ? ' on' : ''}`}>
               <GlideSelect

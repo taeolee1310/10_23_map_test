@@ -59,30 +59,12 @@ export type LatLng = { lat: number; lng: number }
 
 export type Filters = {
   q: string
-  kind: string
   gu: string // 서울 25개 구 중 하나(빈 값 = 전체 지역)
   priceOnly: boolean
   favOnly: boolean
 }
 
-export const DEFAULT_FILTERS: Filters = { q: '', kind: '', gu: '', priceOnly: true, favOnly: false }
-
-// 시설 유형 버튼. 값은 데이터의 '구분'이 아니라 묶음 이름이다(아래 kindGroup).
-export const KINDS: [string, string][] = [
-  ['', '전체'],
-  ['bath', '목욕탕·사우나'], // 서울 464곳 중 대부분이라 전체 바로 다음에 둔다
-  ['onsen', '온천·숙박'],
-]
-
-// 데이터의 '구분' 값을 버튼 묶음으로 나눈다.
-//   온천·숙박: '온천', '온천 숙박', 그리고 구분이 비어 있지만 행안부 온천이용업소 목록에만 있는 곳
-//   목욕탕·사우나: 나머지 ('목욕탕·사우나', '온천 목욕탕·사우나')
-const ONSEN_KINDS = new Set(['온천', '온천 숙박'])
-export function kindGroup(d: Pick<Place, 'kind' | 'source'>): 'bath' | 'onsen' {
-  if (ONSEN_KINDS.has(d.kind)) return 'onsen'
-  if (!d.kind && d.source.includes('행안부')) return 'onsen'
-  return 'bath'
-}
+export const DEFAULT_FILTERS: Filters = { q: '', gu: '', priceOnly: true, favOnly: false }
 
 export const KIND_CLASS: Record<string, string> = { 온천: 'k0', '온천 숙박': 'k1', '온천 목욕탕·사우나': 'k2', '목욕탕·사우나': 'k2' }
 
@@ -135,7 +117,6 @@ export function filterPlaces<T extends Place>(places: T[], f: Filters, favs: Set
   const q = f.q.trim().toLowerCase()
   return places.filter(
     (d) =>
-      (!f.kind || kindGroup(d) === f.kind) &&
       (!f.gu || d.gu === f.gu) &&
       (!f.priceOnly || d.price) &&
       (!f.favOnly || favs.has(d.id)) &&
