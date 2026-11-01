@@ -354,6 +354,10 @@
 /* 상세 화면의 정보 위계: 핵심(이용 결정) → 가기 전에 확인 → 참고 */
 .onsen-main #detail h2 { font-size: 24px; font-weight: 800; }
 .onsen-main .d-actions { margin-top: 14px; }
+/* 모바일 상세의 작은 지도: 주소 아래, 길찾기 위 */
+.onsen-main .d-map { position: relative; margin-top: 14px; height: 180px; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--card-border); background: var(--soft); }
+.onsen-main .d-map__canvas { position: absolute; inset: 0; }
+.onsen-main .d-map__err { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 0 16px; text-align: center; font-size: 13px; color: var(--muted); }
 .onsen-main .sec.core { margin-top: 12px; background: var(--card); border-color: var(--stone); box-shadow: var(--shadow-card); padding: 16px; }
 .onsen-main .sec.core h3 { margin-bottom: 6px; font-size: 14px; font-weight: 800; color: var(--ink); }
 .onsen-main .price-hero { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: 0 0 6px; }

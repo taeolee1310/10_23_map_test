@@ -235,3 +235,56 @@ export default function KakaoMap(props: Props) {
     </>
   )
 }
+
+// 상세 화면(모바일)의 작은 지도: 그 장소 한 곳만 핀으로 보여 준다. SDK는 위 loadSdk를 같이 쓴다.
+// 손가락 스크롤을 막지 않도록 끌기·확대는 끄고, 크게 보려면 아래 길찾기·카카오맵 링크를 쓴다.
+export function MiniMap({ lat, lng, name, active }: { lat: number; lng: number; name: string; active: boolean }) {
+  const boxRef = useRef<HTMLDivElement>(null)
+  const mapRef = useRef<any>(null)
+  const pinRef = useRef<any>(null)
+  const [err, setErr] = useState(false)
+
+  useEffect(() => {
+    const key = import.meta.env.KAKAO_JS_KEY as string | undefined
+    if (!key) return setErr(true)
+    let dead = false
+    loadSdk(key)
+      .then(() => {
+        if (dead || !boxRef.current) return
+        const kakao = window.kakao
+        const pos = new kakao.maps.LatLng(lat, lng)
+        if (!mapRef.current) {
+          mapRef.current = new kakao.maps.Map(boxRef.current, { center: pos, level: 4, draggable: false, scrollwheel: false, disableDoubleClickZoom: true })
+        }
+        pinRef.current?.setMap(null)
+        const el = document.createElement('span')
+        el.className = 'pin sel'
+        el.setAttribute('aria-label', name) // 이름은 속성(글자)으로만 넣는다
+        el.innerHTML = '<span class="pin__body"></span><span class="pin__outline"></span><span class="pin__tub"></span>'
+        pinRef.current = new kakao.maps.CustomOverlay({ map: mapRef.current, position: pos, content: el, yAnchor: 1 })
+        mapRef.current.relayout()
+        mapRef.current.setCenter(pos)
+      })
+      .catch(() => !dead && setErr(true))
+    return () => {
+      dead = true
+    }
+  }, [lat, lng, name])
+
+  // 상세가 밀려 들어온 뒤 크기를 다시 재고 가운데로 맞춘다
+  useEffect(() => {
+    if (!active || !mapRef.current) return
+    const t = window.setTimeout(() => {
+      mapRef.current.relayout()
+      mapRef.current.setCenter(new window.kakao.maps.LatLng(lat, lng))
+    }, 380)
+    return () => window.clearTimeout(t)
+  }, [active, lat, lng])
+
+  return (
+    <div className="d-map" role="img" aria-label={`${name} 위치 지도`}>
+      <div ref={boxRef} className="d-map__canvas" />
+      {err && <p className="d-map__err">지도를 불러오지 못했어요. 아래 길찾기로 위치를 확인해 주세요.</p>}
+    </div>
+  )
+}

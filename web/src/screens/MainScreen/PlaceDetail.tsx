@@ -1,6 +1,10 @@
 import { useEffect, useRef } from 'react'
 import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
 import { FactsDetails, FeeDetails, TopWorries, hoursText, unknownList, worries } from './PlaceFacts'
+import { MiniMap } from '../../components/KakaoMap/KakaoMap'
+
+// 모바일(820px 이하, MainScreen.css와 같은 기준)에서만 상세에 작은 지도를 넣는다. 데스크톱은 옆에 큰 지도가 보인다
+const MOBILE = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 820px)').matches
 
 type Props = {
   place: PlaceWithDist | null
@@ -159,6 +163,8 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
           {d.women_only && <span className="pill women">여성전용</span>}
           <div className="small" style={{ margin: 0 }}>{d.addr}</div>
           {hoursText(d.facts) && <div className="hours-line">{hoursText(d.facts)}</div>}
+          {/* 모바일: 상세가 지도를 가리므로, 길찾기 위에 이 장소 위치를 작은 지도로 먼저 보여 준다 */}
+          {MOBILE && d.lat != null && d.lng != null && <MiniMap lat={d.lat} lng={d.lng} name={d.name} active={open} />}
           {/* 바로 할 일: 길찾기·전화 */}
           <div className="actions d-actions">
             <a className="btn sm" target="_blank" rel="noopener noreferrer" href={l.car}>자동차 길찾기</a>
