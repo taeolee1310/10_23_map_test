@@ -1,10 +1,12 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
 import { FactsDetails, FeeDetails, TopWorries, hoursText, unknownList, worries } from './PlaceFacts'
 import { MiniMap } from '../../components/KakaoMap/KakaoMap'
 
 // 모바일(820px 이하, MainScreen.css와 같은 기준)에서만 상세에 작은 지도를 넣는다. 데스크톱은 옆에 큰 지도가 보인다
 const MOBILE = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 820px)').matches
+// 전체 지도로 볼 때 아래 바텀시트가 보이는 높이(이름·주소·길찾기까지). MainScreen.css의 --sheet-peek와 같은 값
+const SHEET_PEEK = 300
 
 type Props = {
   place: PlaceWithDist | null
@@ -120,9 +122,19 @@ function ParkingBlock({ d }: { d: PlaceWithDist }) {
 
 export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onReport }: Props) {
   // 손가락으로 오른쪽으로 밀면 '목록으로'(모바일의 뒤로 가기 제스처). 세로 스크롤과 구분하려고 가로로 충분히 길고 빠를 때만 본다.
-  const swipe = useRef<{ x: number; y: number; t: number } | null>(null)
+  const swipe = useRef<{ x: number; y: number; t: number; top: boolean } | null>(null)
   const backRef = useRef<HTMLButtonElement>(null)
   const boxRef = useRef<HTMLElement>(null)
+  // 모바일 '전체보기': 지도를 화면 가득 펴고 상세는 아래 바텀시트로 내린다. 위로 밀면 다시 상세 화면이 된다.
+  const [sheet, setSheet] = useState(false)
+  const hasMap = MOBILE && d?.lat != null && d?.lng != null
+
+  useEffect(() => {
+    setSheet(false)
+  }, [open, d?.id])
+  useEffect(() => {
+    if (sheet) boxRef.current?.scrollTo({ top: 0 }) // 바텀시트에는 이름·주소·길찾기가 보이게
+  }, [sheet])
 
   useEffect(() => {
     if (!open) return
@@ -138,12 +150,20 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
   const kakao = d ? safeUrl(d.url) : ''
   const tel = d ? safeTel(d.tel) : ''
   return (
+    <>
+    {/* 전체보기: 화면 가득한 지도. 상세(#detail)가 바텀시트로 내려가 이 위에 겹친다 */}
+    {open && sheet && hasMap && d && (
+      <div className="d-full">
+        <MiniMap lat={d.lat!} lng={d.lng!} name={d.name} active interactive offsetY={SHEET_PEEK / 2} />
+      </div>
+    )}
     <article
       id="detail"
       ref={boxRef}
       onTouchStart={(e) => {
         const p = e.touches[0]
-        swipe.current = { x: p.clientX, y: p.clientY, t: Date.now() }
+        // 맨 위에서 시작한 손가락만 '아래로 밀어 지도 펴기'로 본다(중간에서는 그냥 스크롤)
+        swipe.current = { x: p.clientX, y: p.clientY, t: Date.now(), top: (boxRef.current?.scrollTop ?? 0) <= 0 }
       }}
       onTouchEnd={(e) => {
         const s = swipe.current
@@ -152,11 +172,23 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
         const p = e.changedTouches[0]
         const dx = p.clientX - s.x
         const dy = p.clientY - s.y
-        if (dx > 80 && Math.abs(dy) < dx * 0.5 && Date.now() - s.t < 700) onClose()
+        const quick = Date.now() - s.t < 700
+        if (sheet) {
+          // 바텀시트: 위로 밀면 지도가 작아지고 상세 화면으로 돌아간다
+          if (dy < -40 && Math.abs(dx) < -dy) setSheet(false)
+          return
+        }
+        if (dx > 80 && Math.abs(dy) < dx * 0.5 && quick) onClose()
+        else if (hasMap && s.top && dy > 90 && Math.abs(dx) < dy * 0.5 && quick) setSheet(true)
       }}
-      onTouchCancel={() => (swipe.current = null)} className={open ? 'open' : ''} aria-hidden={!open} tabIndex={open ? 0 : -1} aria-label="목욕탕 상세 (방향키로 스크롤)">
+      onTouchCancel={() => (swipe.current = null)} className={`${open ? 'open' : ''}${sheet ? ' sheet' : ''}`} aria-hidden={!open} tabIndex={open ? 0 : -1} aria-label="목욕탕 상세 (방향키로 스크롤)">
       {d && l && (
         <>
+          {sheet && (
+            <button type="button" className="d-handle" aria-label="상세 정보 펼치기" onClick={() => setSheet(false)}>
+              <i aria-hidden="true" />
+            </button>
+          )}
           <button className="back" ref={backRef} onClick={onClose}>← 목록으로</button>
           <div className={`pill kind ${KIND_CLASS[d.kind] || ''}`}>{d.gu}{d.kind ? ` · ${d.kind}` : ''}</div>
           <h2>{d.name}</h2>
@@ -164,7 +196,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
           <div className="small" style={{ margin: 0 }}>{d.addr}</div>
           {hoursText(d.facts) && <div className="hours-line">{hoursText(d.facts)}</div>}
           {/* 모바일: 상세가 지도를 가리므로, 길찾기 위에 이 장소 위치를 작은 지도로 먼저 보여 준다 */}
-          {MOBILE && d.lat != null && d.lng != null && <MiniMap lat={d.lat} lng={d.lng} name={d.name} active={open} />}
+          {hasMap && !sheet && <MiniMap lat={d.lat!} lng={d.lng!} name={d.name} active={open} onExpand={() => setSheet(true)} />}
           {/* 바로 할 일: 길찾기·전화 */}
           <div className="actions d-actions">
             <a className="btn sm" target="_blank" rel="noopener noreferrer" href={l.car}>자동차 길찾기</a>
@@ -221,5 +253,6 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
         </>
       )}
     </article>
+    </>
   )
 }

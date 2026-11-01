@@ -308,7 +308,14 @@
 .onsen-main #detail { position: fixed; z-index: 50; border-radius: 0; }
 /* 모바일: 상세는 화면 전체가 오른쪽에서 왼쪽으로 밀려 들어오고, 닫을 때는 오른쪽으로 밀려 나간다(화면 이동의 익숙한 방향).
    닫는 동안에는 투명해지지 않고 다 나간 뒤에 숨긴다. */
-.onsen-main #detail { transition: transform 360ms var(--ease-drawer), opacity 0s linear 360ms, visibility 0s linear 360ms; }
+.onsen-main #detail { transition: transform 360ms var(--ease-drawer), top 360ms var(--ease-drawer), opacity 0s linear 360ms, visibility 0s linear 360ms; }
+/* 전체보기: 지도가 화면을 채우고, 상세는 아래 바텀시트(이름·주소·길찾기까지)로 내려간다. 위로 밀거나 손잡이를 누르면 다시 상세 화면 */
+.onsen-main { --sheet-peek: 300px; }
+.onsen-main .d-full { position: fixed; inset: 0; z-index: 49; background: var(--soft); }
+.onsen-main .d-full .d-map { margin: 0; height: 100%; border: 0; border-radius: 0; }
+.onsen-main #detail.sheet { top: calc(100% - var(--sheet-peek)); overflow: hidden; padding-top: 4px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: var(--shadow); }
+.onsen-main .d-handle { display: grid; place-items: center; width: 100%; height: 24px; padding: 0; border: 0; background: none; }
+.onsen-main .d-handle i { width: 40px; height: 4px; border-radius: var(--radius-pill); background: var(--card-border); }
 .onsen-main #detail.open { transition-delay: 0s; }
 .onsen-main { --gut: 12px; }
 .onsen-main .filters { padding: 12px var(--gut); }
@@ -357,6 +364,7 @@
 /* 모바일 상세의 작은 지도: 주소 아래, 길찾기 위 */
 .onsen-main .d-map { position: relative; margin-top: 14px; height: 180px; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--card-border); background: var(--soft); }
 .onsen-main .d-map__canvas { position: absolute; inset: 0; }
+.onsen-main .d-map__more { position: absolute; z-index: 2; right: 8px; bottom: 8px; min-height: 32px; padding: 0 12px; border: 1px solid var(--card-border); border-radius: var(--radius-pill); background: var(--card); color: var(--ink); font-size: 13px; font-weight: 600; box-shadow: var(--shadow-s); }
 .onsen-main .d-map__err { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 0 16px; text-align: center; font-size: 13px; color: var(--muted); }
 .onsen-main .sec.core { margin-top: 12px; background: var(--card); border-color: var(--stone); box-shadow: var(--shadow-card); padding: 16px; }
 .onsen-main .sec.core h3 { margin-bottom: 6px; font-size: 14px; font-weight: 800; color: var(--ink); }
