@@ -13,12 +13,19 @@ type Props = {
 
 function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string) => void }) {
   const p = d.price
-  const est = d.price_estimate // 평균 추정값은 숫자로 보여 주지 않고 '미확인'으로만 쓴다
-  if (!p && est) {
+  const ex = d.price_example // 가상 값. 항상 '예시'로 표시한다
+  if (!p && (ex || d.price_estimate)) {
     return (
       <section className="sec core unknown-box">
         <h3>이용 요금</h3>
-        <b className="price-hero unknown">요금 미확인</b>
+        {ex ? (
+          <div className="price-hero example">
+            <b>{won(ex.adult)}</b>
+            <span>예시 · 성인 1인 ({ex.basis})</span>
+          </div>
+        ) : (
+          <b className="price-hero unknown">요금 미확인</b>
+        )}
         <div className="price-note">
           {PRICE_NOTE.estimate}
           <button className="linkbtn" onClick={() => onReport(d.id)}>요금 제보</button>

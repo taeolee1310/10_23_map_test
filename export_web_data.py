@@ -6,6 +6,7 @@
 import json
 import os
 import re
+from urllib.parse import quote
 
 import pandas as pd
 
@@ -18,7 +19,38 @@ SEOUL_REGION_PRICE = {"adult": 11000.0, "basis": "서울 일반 대중탕 지역
 PRICE_AUTO_FILE = "data/collected/price_auto.csv"  # scripts/judge_facts.py가 네이버 가격표에서 뽑은 입장료(다시 만들 수 있음)
 AUTO_FACTS_FILE = "data/collected/place_facts_auto.json"  # scripts/judge_facts.py가 근거 문장으로 판정한 값(다시 만들 수 있음)
 FACTS_FILE = "data/curated/place_facts.json"  # 사람이 직접 확인한 세부 정보(세신·수건·드라이기 등). 카카오ID가 열쇠
+PHOTO_FILE = "data/curated/place_photos.csv"  # 업체 등록 사진 후보 중 눈으로 보고 고른 대표 사진(탕·외관·내부만)
 OUT = "web/public/data/onsen.json"
+
+
+def load_photos():
+    """카카오ID → 목록 썸네일 주소. 네이버 업체 사진(ldb-phinf) 원본을 180px 정사각 썸네일 주소로 바꿔 쓴다."""
+    if not os.path.exists(PHOTO_FILE):
+        return {}
+    df = pd.read_csv(PHOTO_FILE, encoding="utf-8-sig", dtype=str, keep_default_na=False)
+    ok = df[df["사진URL"].str.startswith("https://ldb-phinf.pstatic.net/")]
+    thumb = "https://search.pstatic.net/common/?autoRotate=true&type=f180_180&src="
+    return {k: thumb + quote(u, safe="") for k, u in zip(ok["카카오ID"], ok["사진URL"])}
+
+
+def add_example_prices(places):
+    """요금을 확인하지 못한 곳에 '예시 요금'을 붙인다(가상 값, 화면에서 '예시'로 표시).
+    값 = 같은 구에서 확인된 성인 요금의 중앙값(500원 단위 반올림). 확인된 곳이 3곳 미만인 구는 서울 전체 중앙값."""
+    def median(xs):
+        xs = sorted(xs)
+        n = len(xs)
+        return (xs[n // 2] if n % 2 else (xs[n // 2 - 1] + xs[n // 2]) / 2) if n else None
+    confirmed = [p for p in places if p["price"] and p["price"].get("adult")]
+    seoul = median([p["price"]["adult"] for p in confirmed])
+    by_gu = {}
+    for p in confirmed:
+        by_gu.setdefault(p["gu"], []).append(p["price"]["adult"])
+    for p in places:
+        if p["price"]:
+            continue
+        xs = by_gu.get(p["gu"], [])
+        base, basis = (median(xs), f"{p['gu']} 확인 요금 {len(xs)}곳 중앙값") if len(xs) >= 3 else (seoul, f"서울 확인 요금 {len(confirmed)}곳 중앙값")
+        p["price_example"] = {"adult": round(base / 500) * 500, "basis": basis}
 PRICE_COLS = ("성인_평일", "성인_주말", "수건", "주차", "어린이")
 
 def none_if_nan(v):
@@ -142,6 +174,7 @@ def build():
     parking, radius = load_parking()
     facts = load_facts()
     tb_addr, tb_sigungu = load_tangbang_prices()
+    photos = load_photos()
     sigungu_count = {}
     for r in df.to_dict("records"):
         k = (_name_key(r["이름"]), r["시군구"])
@@ -187,14 +220,16 @@ def build():
             "parking": parking.get(kid) if kid else None,  # None=조회 안 됨, []=반경 안에 없음
             "parking_radius": radius,
             **({"facts": facts[kid]} if kid in facts else {}),
+            **({"photo": photos[kid]} if kid in photos else {}),
         })
+    add_example_prices(places)
     return places
 
 
 if __name__ == "__main__":
     places = build()
     no_xy = sum(1 for p in places if p["lat"] is None)
-    print(f"온천 {len(places)}곳 (조건: onsen_merged.csv 전체) / 좌표 없는 곳 {no_xy}곳 / 확인된 요금 {sum(1 for p in places if p['price'])}곳 / 추정 요금 {sum(1 for p in places if p['price_estimate'])}곳")
+    print(f"온천 {len(places)}곳 (조건: onsen_merged.csv 전체) / 좌표 없는 곳 {no_xy}곳 / 확인된 요금 {sum(1 for p in places if p['price'])}곳 / 추정 요금 {sum(1 for p in places if p['price_estimate'])}곳 / 예시 요금(가상, 조건: 확인 요금 없음) {sum(1 for p in places if 'price_example' in p)}곳 / 대표 사진 {sum(1 for p in places if 'photo' in p)}곳")
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump({"baseDate": max(p["checked_at"] for p in places), "places": places}, f, ensure_ascii=False)

@@ -1,0 +1,12 @@
+/* Figma Badge 시안 03(높이 32, 모서리 5, 아이콘 칸 32·아이콘 20, 라벨 왼 10·오른 12, 14px Medium)을
+   목록 카드에서는 80% 크기로 쓴다(사용자 요청 2026-11-01). 비율은 --s 하나로 맞춘다. */
+.tb-badge { --s: .8; --bg: var(--badge-neutral-bg); --fg: var(--badge-neutral-text);
+  display: inline-flex; align-items: center; height: calc(32px * var(--s)); border-radius: calc(5px * var(--s)); overflow: hidden; background: var(--bg); }
+.tb-badge__icon { flex: none; display: grid; place-items: center; width: calc(32px * var(--s)); height: calc(32px * var(--s)); background: var(--fg); }
+.tb-badge__icon img { display: block; width: calc(20px * var(--s)); height: calc(20px * var(--s)); }
+.tb-badge__label { padding: 0 calc(12px * var(--s)) 0 calc(10px * var(--s)); font-size: calc(14px * var(--s)); font-weight: 500; line-height: calc(32px * var(--s)); color: var(--fg); white-space: nowrap; }
+
+.tb-badge--facility { --bg: var(--badge-facility-bg); --fg: var(--badge-facility-text); }
+.tb-badge--women { --bg: var(--color-bg-surface-muted); --fg: var(--color-text-secondary); }
+.tb-badge--price { --bg: var(--badge-price-bg); --fg: var(--badge-price-text); }
+.tb-badge--example { --bg: var(--badge-unknown-bg); --fg: var(--badge-unknown-text); }

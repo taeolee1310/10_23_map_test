@@ -104,7 +104,12 @@
 /* 선택한 카드(따뜻한 바탕)에서는 보조 글자를 조금 더 짙게: 4.5:1 이상 */
 .onsen-main .item.on .ad, .onsen-main .item.on .price-note, .onsen-main .item.on .pill.price.unknown { color: var(--muted-strong); }
 .onsen-main .item.on .pill.dist { color: var(--ink); }
-.onsen-main .item .open { position: relative; overflow: hidden; display: block; width: 100%; text-align: left; background: none; border: 0; padding: 12px 52px 12px 14px; border-radius: inherit; }
+.onsen-main .item .open { position: relative; overflow: hidden; display: flex; align-items: flex-start; gap: 14px; width: 100%; text-align: left; background: none; border: 0; padding: 12px 52px 12px 14px; border-radius: inherit; }
+/* 대표 사진 한 장을 왼쪽에 두고, 이름·주소·칩은 사진 오른쪽으로 민다 */
+.onsen-main .item .thumb { flex: none; position: relative; width: 76px; height: 76px; border-radius: 14px; overflow: hidden; background: var(--soft); display: grid; place-items: center; }
+.onsen-main .item .thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.onsen-main .item .thumb small { font-size: 10.5px; line-height: 1.3; color: var(--muted); text-align: center; padding: 0 6px; word-break: keep-all; }
+.onsen-main .item .txt { flex: 1; min-width: 0; display: block; padding-top: 2px; }
 .onsen-main .item .nm { font-weight: 800; font-size: 15.5px; letter-spacing: -.02em; color: var(--ink); line-height: 1.3; }
 .onsen-main .item .ad { color: var(--muted); font-size: 12.5px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .onsen-main .item .meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
@@ -117,7 +122,7 @@
 /* 요금 아래 한 줄: 확인한 요금인지, 평균으로 낸 요금인지 */
 .onsen-main .price-note { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 11.5px; color: var(--muted); }
 .onsen-main .linkbtn { padding: 0; border: 0; background: none; font-size: inherit; font-weight: 600; color: var(--secondary); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
-.onsen-main .item .price-note { padding: 0 52px 10px 14px; margin-top: -4px; }
+.onsen-main .item .price-note { padding: 0 52px 10px calc(14px + 76px + 14px); margin-top: -4px; } /* 사진 폭만큼 밀어 글자 줄을 맞춘다 */
 .onsen-main .item .item-actions { display: none; }
 .onsen-main .preview .price-note { margin-top: 10px; }
 .onsen-main .pill.price.unknown { background: var(--badge-unknown-bg); color: var(--badge-unknown-text); font-weight: 500; }
@@ -197,7 +202,7 @@
 .onsen-main .worry li { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; border-top: 1px solid var(--line); }
 .onsen-main .worry li:first-child { border-top: 0; }
 .onsen-main .worry li { min-height: 52px; } /* 32px 아이콘이 들어가 한 줄 높이를 조금 키운다 */
-.onsen-main .worry li > span:not(.price-icon) { font-size: 12.5px; color: var(--muted); flex: 1; }
+.onsen-main .worry li > span:not(.price-icon) { font-size: 12.5px; font-weight: 600; color: var(--muted); flex: 1; } /* 항목 이름(수건·드라이기·세신)은 세미볼드 */
 .onsen-main .worry li b { font-size: 15px; font-weight: 800; color: var(--ink); text-align: right; }
 .onsen-main .worry li b.none { font-size: 13px; font-weight: 600; color: var(--muted); } /* 확인 못 한 줄은 옅게 */
 /* 세부 정보 접이식 */
@@ -355,6 +360,7 @@
 .onsen-main .price-hero b { font-size: 28px; line-height: 1.15; font-weight: 800; letter-spacing: -.02em; color: var(--ink); }
 .onsen-main .price-hero span { font-size: 13px; color: var(--muted-strong); font-weight: 600; }
 .onsen-main .price-hero.unknown { display: block; font-size: 22px; font-weight: 800; color: var(--muted); }
+.onsen-main .price-hero.example b { color: var(--muted); } /* 예시(가상) 요금은 확인된 요금보다 옅게 */
 .onsen-main .sec.core .pr { padding: 6px 0; border-top: 1px solid var(--line); }
 .onsen-main .sec.core .pr b { font-size: 15px; }
 .onsen-main .sec.worry { padding: 12px 16px; }

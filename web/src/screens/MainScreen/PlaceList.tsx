@@ -1,4 +1,5 @@
-import { KIND_CLASS, PRICE_NOTE, fmtDist, priceClass, priceLabel, priceState, type PlaceWithDist } from '../../lib/onsen'
+import { PRICE_NOTE, fmtDist, priceLabel, priceState, type PlaceWithDist } from '../../lib/onsen'
+import Badge from '../../components/Badge/Badge'
 import { IconBanana } from './Icons'
 
 type Props = {
@@ -44,15 +45,31 @@ export default function PlaceList({ list, total, shown, selId, hotId, favs, anim
           onMouseLeave={() => onHover(null)}
         >
           <button className="open" onClick={() => onSelect(d.id)}>
+            {/* 대표 사진 한 장(왼쪽). 사진이 없거나 못 불러오면 빈 자리만 남긴다 */}
+            <span className="thumb" aria-hidden="true">
+              {d.photo ? (
+                <img src={d.photo} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={(e) => (e.currentTarget.hidden = true)} />
+              ) : (
+                <small>사진 준비 중</small>
+              )}
+            </span>
+            <span className="txt">
             <div className="nm">{d.name}</div>
             <div className="ad">{d.addr}</div>
             <div className="meta">
-              {d.kind && <span className={`pill kind ${KIND_CLASS[d.kind] || ''}`}>{d.kind}</span>}
-              {d.women_only && <span className="pill women">여성전용</span>}
-              <span className={`pill price${priceClass(d)}`}>{priceLabel(d)}</span>
+              {d.kind && <Badge tone="facility">{d.kind}</Badge>}
+              {d.women_only && <Badge tone="women">여성전용</Badge>}
+              {priceState(d) === 'confirmed' ? (
+                <Badge tone="price">{priceLabel(d)}</Badge>
+              ) : priceState(d) === 'estimate' ? (
+                <Badge tone="example">{priceLabel(d)}</Badge>
+              ) : (
+                <span className="pill price unknown">{priceLabel(d)}</span>
+              )}
               {d.dist != null && <span className="pill dist">직선 {fmtDist(d.dist)}</span>}
               {d.lat == null && <span className="pill unknown">지도에 없음</span>}
             </div>
+            </span>
           </button>
           {priceState(d) !== 'none' && (
             <div className="price-note">

@@ -31,6 +31,9 @@ export type Place = {
   source: string
   price: Price | null
   price_estimate: PriceEstimate | null
+  // 요금을 확인하지 못한 곳의 가상 값(구별 확인 요금 중앙값). 화면에는 반드시 '예시'로 표시한다
+  price_example?: { adult: number; basis: string }
+  photo?: string // 대표 사진(네이버 플레이스 업체 등록 사진) 주소
   parking: Parking[] | null // null=조회 안 됨, []=반경 안에 없음
   parking_radius: number | null
   facts?: Facts
@@ -89,12 +92,14 @@ export const safeTel = (t: string) => (/^[0-9+\-() ]{5,20}$/.test(t || '') ? t :
 export function priceLabel(p: Place) {
   if (p.price && p.price.adult != null) return '성인 ' + won(p.price.adult)
   if (p.price) return '가격 일부만 확인'
-  return '요금 미확인' // 평균으로 낸 추정값은 숫자로 보여 주지 않는다
+  if (p.price_example) return '예시 · 성인 ' + won(p.price_example.adult) // 가상 값은 항상 '예시'를 앞에 붙인다
+  return '요금 미확인'
 }
 
-// 요금은 직접 확인한 곳만 숫자로 보여 준다. 확인 못 한 곳(평균 추정 포함)은 '요금 미확인'으로 두고 아래에 한 줄을 덧붙인다.
-export const priceState = (p: Place): 'confirmed' | 'estimate' | 'none' => (p.price ? 'confirmed' : p.price_estimate ? 'estimate' : 'none')
-export const PRICE_NOTE = { confirmed: '가게가 올린 요금', estimate: '아직 확인하지 못한 요금이에요' } as const
+// 확인한 요금은 그대로, 확인 못 한 곳은 '예시' 요금(옅은 칩)과 아래 한 줄로 확인 전임을 알린다.
+export const priceState = (p: Place): 'confirmed' | 'estimate' | 'none' =>
+  p.price ? 'confirmed' : p.price_example || p.price_estimate ? 'estimate' : 'none'
+export const PRICE_NOTE = { confirmed: '가게가 올린 요금', estimate: '예시 요금이에요. 실제 요금은 아직 확인 전이에요' } as const
 
 // 요금 칩은 확인한 요금만 진하게, 미확인은 옅은 회색
 export const priceClass = (p: Place) => (p.price ? '' : ' unknown')
