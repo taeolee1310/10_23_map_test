@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { MilkBottle, WAVE_LEN, WAVE_SEC, Y_EMPTY, Y_FULL, Y_HOLD } from './MilkLoader'
 
-/* 모바일 '당겨서 새로고침'. 브라우저 기본 새로고침(동그란 화살표)은 막고(MainScreen.css의 overscroll-behavior),
-   같은 자리·같은 크기(44px 원)에 바나나우유 병을 띄운다.
-   - 당기는 동안: 병이 손가락을 따라 내려오고, 당긴 만큼 우유가 차오른다(다 차면 놓았을 때 새로고침)
+/* 모바일 '당겨서 새로고침'. 브라우저 기본 새로고침은 막고(MainScreen.css의 overscroll-behavior) 같은 방식을 직접 만든다.
+   - 당기는 동안: 페이지 전체가 손가락을 따라 아래로 내려가고, 위에 생긴 빈 공간 가운데에 바나나우유 병이 보인다.
+     당긴 만큼 우유가 차오른다(다 차면 놓았을 때 새로고침)
+   - 페이지를 내리는 값은 스크롤 영역의 --ptr(px)로 넘기고, MainScreen.css가 머리말(.hero)의 위 여백으로 쓴다
    - 새로고침 중: 로딩 화면처럼 빨대로 마시듯 수위가 내려간다
    페이지를 다시 열면 인트로부터 다시 보게 되므로, 화면은 그대로 두고 목록 데이터만 다시 불러온다(onRefresh). */
 
 const TRIGGER = 72 // 이만큼 당기면(저항 적용 뒤) 놓았을 때 새로고침
 const MAX = 120 // 이보다 더 내려가지 않는다
-const REST = 56 // 새로고침하는 동안 병이 머무는 위치
+const REST = 64 // 새로고침하는 동안 남겨 두는 위쪽 빈 공간
+const SIZE = 40 // 병 크기. 빈 공간의 가운데에 놓는다
 const MIN_SPIN = 700 // 너무 빨리 끝나도 이만큼은 보여 준다
 // 당겨도 새로고침을 시작하지 않는 곳: 지도(끌어서 움직임), 상세·전체 지도, 열린 창
 const IGNORE = '.mapcard, #detail, .d-full, [role="dialog"], [aria-modal="true"]'
@@ -77,6 +79,15 @@ export default function PullRefresh({ scrollerId, onRefresh }: { scrollerId: str
     }
   }, [scrollerId])
 
+  // 페이지를 내린다: 스크롤 영역에 값만 넘긴다(끄는 중에는 손가락을 바로 따라가도록 전환을 끈다)
+  useEffect(() => {
+    const el = document.getElementById(scrollerId)
+    if (!el) return
+    el.style.setProperty('--ptr', `${pull}px`)
+    if (dragging) el.dataset.ptrDrag = ''
+    else delete el.dataset.ptrDrag
+  }, [pull, dragging, scrollerId])
+
   // 당기는 동안: 당긴 비율만큼 우유가 찬다
   useEffect(() => {
     if (busy || !surface.current) return
@@ -105,7 +116,7 @@ export default function PullRefresh({ scrollerId, onRefresh }: { scrollerId: str
   return (
     <div
       className={`ptr${dragging ? ' ptr--drag' : ''}${pull >= TRIGGER || busy ? ' ptr--ready' : ''}`}
-      style={{ transform: `translate(-50%, ${pull - 52}px)`, opacity: shown ? Math.min(1, pull / 32) : 0 }}
+      style={{ transform: `translate(-50%, ${(pull - SIZE) / 2}px)`, opacity: shown ? Math.min(1, pull / 48) : 0 }}
       role="status"
       aria-live="polite"
     >

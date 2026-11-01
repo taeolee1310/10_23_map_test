@@ -388,3 +388,9 @@
 .onsen-main .sec.more { background: transparent; border: 0; border-radius: 0; padding: 2px 0 0; }
 .onsen-main .sec.more h3 { font-size: 12px; font-weight: 600; color: var(--muted); }
 .onsen-main .sec.more .small { font-size: 12px; }
+
+/* 당겨서 새로고침(PullRefresh): 머리말 위 여백을 --ptr만큼 늘려 페이지 전체를 아래로 내린다.
+   transform이 아니라 여백을 쓰는 건 안쪽의 position: fixed(상세 화면)가 기준을 잃지 않게 하려는 것 */
+.onsen-main > .hero { margin-top: var(--ptr, 0px); transition: margin-top 300ms var(--ease-out); }
+.onsen-main[data-ptr-drag] > .hero { transition: none; }
+@media (prefers-reduced-motion: reduce) { .onsen-main > .hero { transition: none !important; } }
