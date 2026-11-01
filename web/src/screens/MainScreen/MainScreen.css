@@ -294,7 +294,8 @@
 .onsen-main #toast::before { content: "i"; flex: none; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--toast-info-icon); color: var(--color-text-on-action); font-size: 12px; font-weight: 600; }
 .onsen-main #toast.show { opacity: 1; translate: 0 0; }
 @media (max-width: 820px) {
-.onsen-main { overflow-y: auto; overflow-x: hidden; padding: 0 10px 10px; gap: 10px; }
+.onsen-main { overflow-y: auto; overflow-x: hidden; padding: 0 10px 10px; gap: 10px;
+  overscroll-behavior-y: contain; /* 브라우저 기본 당겨서 새로고침을 막고 바나나우유 표시(PullRefresh)로 대신한다 */ }
 .onsen-main .hero { margin: 0 -10px; padding: 14px 16px 34px; }
 .onsen-main .hero-copy { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .onsen-main .hero h1 { font-size: 22px; }

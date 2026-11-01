@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import KakaoMap, { type FitRequest, type MapBounds } from '../../components/KakaoMap'
 import OnsenLogo from '../../components/OnsenLogo'
 import MilkLoader from '../../components/MilkLoader'
+import PullRefresh from '../../components/MilkLoader/PullRefresh'
 import {
   DEFAULT_FILTERS,
   filterPlaces,
@@ -52,6 +53,14 @@ export default function MainScreen() {
       .catch(() => setLoadError(true))
   }, [])
   useEffect(() => loadData(), [loadData])
+  // 당겨서 새로고침: 화면(필터·선택)은 그대로 두고 목록만 다시 받는다. 실패하면 지금 목록을 그대로 둔다
+  const refresh = useCallback(
+    () =>
+      fetch(DATA_URL, { cache: 'no-cache', signal: AbortSignal.timeout(LOAD_TIMEOUT) })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error('data'))))
+        .then((j: Loaded) => setData(j)),
+    [],
+  )
 
   let body
   if (loadError) {
@@ -77,7 +86,7 @@ export default function MainScreen() {
       </div>
     )
   } else {
-    body = <MainBody data={data} />
+    body = <MainBody data={data} onRefresh={refresh} />
   }
   // 로더는 실제 데이터 요청이 진행 중일 때만 켜진다(성공·실패·시간 초과 모두 loading이 꺼지며 로더가 나간다)
   return (
@@ -88,7 +97,7 @@ export default function MainScreen() {
   )
 }
 
-function MainBody({ data }: { data: Loaded }) {
+function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<unknown> }) {
   const { places } = data
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [sort, setSort] = useState('auto')
@@ -358,6 +367,7 @@ function MainBody({ data }: { data: Loaded }) {
 
   return (
     <div className="onsen-main" id="shell">
+      {TOUCH && <PullRefresh scrollerId="shell" onRefresh={onRefresh} />}
       <header className="hero">
         <div className="hero-copy">
           <div className="brand">
