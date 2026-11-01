@@ -122,12 +122,14 @@ function ParkingBlock({ d }: { d: PlaceWithDist }) {
 
 export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onReport }: Props) {
   // 손가락으로 오른쪽으로 밀면 '목록으로'(모바일의 뒤로 가기 제스처). 세로 스크롤과 구분하려고 가로로 충분히 길고 빠를 때만 본다.
-  const swipe = useRef<{ x: number; y: number; t: number; top: boolean } | null>(null)
   const backRef = useRef<HTMLButtonElement>(null)
   const boxRef = useRef<HTMLElement>(null)
   // 모바일 '전체보기': 지도를 화면 가득 펴고 상세는 아래 바텀시트로 내린다. 위로 밀면 다시 상세 화면이 된다.
   const [sheet, setSheet] = useState(false)
+  const [dragging, setDragging] = useState(false) // 손가락으로 시트를 끄는 중(전환 애니메이션 끔)
   const hasMap = MOBILE && d?.lat != null && d?.lng != null
+  const live = useRef({ open, sheet, hasMap, onClose })
+  live.current = { open, sheet, hasMap, onClose }
 
   useEffect(() => {
     setSheet(false)
@@ -135,6 +137,83 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
   useEffect(() => {
     if (sheet) boxRef.current?.scrollTo({ top: 0 }) // 바텀시트에는 이름·주소·길찾기가 보이게
   }, [sheet])
+
+  // 손가락 제스처. 세로로 끌 때 기본 스크롤을 막아야 해서(passive: false) React 대신 직접 단다.
+  // - 오른쪽으로 빠르게 밀기: '목록으로'(모바일의 뒤로 가기 제스처)
+  // - 상세 맨 위에서 아래로 끌기: 시트가 손가락을 따라 내려가고, 충분히 내리면 전체보기(지도 + 바텀시트)
+  // - 바텀시트를 위로 끌기: 손가락을 따라 올라오고, 충분히 올리면 다시 상세 화면
+  useEffect(() => {
+    const el = boxRef.current
+    if (!el) return
+    let g: { x: number; y: number; t: number; base: number; atTop: boolean; mode: '' | 'x' | 'y' | 'scroll'; pos: number; vy: number; lt: number; ly: number } | null = null
+    const H = () => window.innerHeight
+    const peekTop = () => H() - SHEET_PEEK
+    const start = (e: TouchEvent) => {
+      const p = e.touches[0]
+      const L = live.current
+      if (!L.open || e.touches.length > 1) return (g = null)
+      const base = L.sheet ? peekTop() : 0
+      g = { x: p.clientX, y: p.clientY, t: Date.now(), base, atTop: el.scrollTop <= 0, mode: '', pos: base, vy: 0, lt: Date.now(), ly: p.clientY }
+    }
+    const move = (e: TouchEvent) => {
+      if (!g) return
+      const L = live.current
+      const p = e.touches[0]
+      const dx = p.clientX - g.x
+      const dy = p.clientY - g.y
+      if (!g.mode) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+        if (Math.abs(dx) > Math.abs(dy)) g.mode = 'x'
+        else if (L.sheet || (L.hasMap && g.atTop && dy > 0)) {
+          g.mode = 'y'
+          setDragging(true)
+        } else g.mode = 'scroll'
+      }
+      if (g.mode !== 'y') return
+      e.preventDefault()
+      const now = Date.now()
+      g.vy = (p.clientY - g.ly) / Math.max(1, now - g.lt)
+      g.lt = now
+      g.ly = p.clientY
+      g.pos = Math.min(H() - 120, Math.max(0, g.base + dy))
+      el.style.top = g.pos + 'px'
+    }
+    const end = (e: TouchEvent) => {
+      const s = g
+      g = null
+      if (!s) return
+      const L = live.current
+      if (s.mode === 'y') {
+        el.style.top = '' // 놓으면 CSS 전환으로 가까운 자리(상세 화면 / 바텀시트)에 붙는다
+        setDragging(false)
+        const moved = s.pos - s.base
+        if (L.sheet) setSheet(!(moved < -80 || s.vy < -0.5))
+        else setSheet(moved > 120 || s.vy > 0.5)
+        return
+      }
+      const p = e.changedTouches[0]
+      const dx = p.clientX - s.x
+      const dy = p.clientY - s.y
+      if (!L.sheet && dx > 80 && Math.abs(dy) < dx * 0.5 && Date.now() - s.t < 700) L.onClose()
+    }
+    const cancel = () => {
+      if (g?.mode === 'y') {
+        el.style.top = ''
+        setDragging(false)
+      }
+      g = null
+    }
+    el.addEventListener('touchstart', start, { passive: true })
+    el.addEventListener('touchmove', move, { passive: false })
+    el.addEventListener('touchend', end)
+    el.addEventListener('touchcancel', cancel)
+    return () => {
+      el.removeEventListener('touchstart', start)
+      el.removeEventListener('touchmove', move)
+      el.removeEventListener('touchend', end)
+      el.removeEventListener('touchcancel', cancel)
+    }
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -152,7 +231,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
   return (
     <>
     {/* 전체보기: 화면 가득한 지도. 상세(#detail)가 바텀시트로 내려가 이 위에 겹친다 */}
-    {open && sheet && hasMap && d && (
+    {open && (sheet || dragging) && hasMap && d && (
       <div className="d-full">
         <MiniMap lat={d.lat!} lng={d.lng!} name={d.name} active interactive offsetY={SHEET_PEEK / 2} />
       </div>
@@ -160,28 +239,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
     <article
       id="detail"
       ref={boxRef}
-      onTouchStart={(e) => {
-        const p = e.touches[0]
-        // 맨 위에서 시작한 손가락만 '아래로 밀어 지도 펴기'로 본다(중간에서는 그냥 스크롤)
-        swipe.current = { x: p.clientX, y: p.clientY, t: Date.now(), top: (boxRef.current?.scrollTop ?? 0) <= 0 }
-      }}
-      onTouchEnd={(e) => {
-        const s = swipe.current
-        swipe.current = null
-        if (!s || !open) return
-        const p = e.changedTouches[0]
-        const dx = p.clientX - s.x
-        const dy = p.clientY - s.y
-        const quick = Date.now() - s.t < 700
-        if (sheet) {
-          // 바텀시트: 위로 밀면 지도가 작아지고 상세 화면으로 돌아간다
-          if (dy < -40 && Math.abs(dx) < -dy) setSheet(false)
-          return
-        }
-        if (dx > 80 && Math.abs(dy) < dx * 0.5 && quick) onClose()
-        else if (hasMap && s.top && dy > 90 && Math.abs(dx) < dy * 0.5 && quick) setSheet(true)
-      }}
-      onTouchCancel={() => (swipe.current = null)} className={`${open ? 'open' : ''}${sheet ? ' sheet' : ''}`} aria-hidden={!open} tabIndex={open ? 0 : -1} aria-label="목욕탕 상세 (방향키로 스크롤)">
+      className={`${open ? 'open' : ''}${sheet ? ' sheet' : ''}${dragging ? ' dragging' : ''}`} aria-hidden={!open} tabIndex={open ? 0 : -1} aria-label="목욕탕 상세 (방향키로 스크롤)">
       {d && l && (
         <>
           {sheet && (

@@ -314,6 +314,7 @@
 .onsen-main .d-full { position: fixed; inset: 0; z-index: 49; background: var(--soft); }
 .onsen-main .d-full .d-map { margin: 0; height: 100%; border: 0; border-radius: 0; }
 .onsen-main #detail.sheet { top: calc(100% - var(--sheet-peek)); overflow: hidden; padding-top: 4px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: var(--shadow); }
+.onsen-main #detail.dragging { transition: none; overflow: hidden; border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: var(--shadow); }
 .onsen-main .d-handle { display: grid; place-items: center; width: 100%; height: 24px; padding: 0; border: 0; background: none; }
 .onsen-main .d-handle i { width: 40px; height: 4px; border-radius: var(--radius-pill); background: var(--card-border); }
 .onsen-main #detail.open { transition-delay: 0s; }
@@ -364,6 +365,8 @@
 /* 모바일 상세의 작은 지도: 주소 아래, 길찾기 위 */
 .onsen-main .d-map { position: relative; margin-top: 14px; height: 180px; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--card-border); background: var(--soft); }
 .onsen-main .d-map__canvas { position: absolute; inset: 0; }
+/* 상세 지도의 핀은 span이라 크기가 먹도록 블록으로 둔다(목록 지도의 핀은 button) */
+.onsen-main .d-map .pin { display: block; }
 .onsen-main .d-map__more { position: absolute; z-index: 2; right: 8px; bottom: 8px; min-height: 32px; padding: 0 12px; border: 1px solid var(--card-border); border-radius: var(--radius-pill); background: var(--card); color: var(--ink); font-size: 13px; font-weight: 600; box-shadow: var(--shadow-s); }
 .onsen-main .d-map__err { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 0 16px; text-align: center; font-size: 13px; color: var(--muted); }
 .onsen-main .sec.core { margin-top: 12px; background: var(--card); border-color: var(--stone); box-shadow: var(--shadow-card); padding: 16px; }
