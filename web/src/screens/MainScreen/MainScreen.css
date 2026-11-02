@@ -65,7 +65,7 @@
 /* min-height: 지도(240)+간격+미리보기가 들어갈 만큼은 항상 확보한다. 그 아래로 줄어들면 위 .onsen-main이 스크롤된다 */
 .onsen-main #app { flex: 1 1 0; min-height: 420px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
 .onsen-main #panel { position: relative; display: flex; flex-direction: column; min-height: 0; background: var(--card); border: 1px solid var(--card-border);
-  border-radius: var(--radius-lg); box-shadow: var(--shadow-card); overflow: hidden; }
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-card); overflow: hidden; overflow: clip; } /* clip: 안내(scrollIntoView)가 옆에서 밀려 들어오는 상세를 따라 패널을 옆으로 스크롤하지 못하게 */
 .onsen-main .filters { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; padding: 14px var(--gut) 12px; border-bottom: 1px solid var(--line); }
 .onsen-main .sel-gu { position: relative; display: inline-flex; align-items: center; }
 /* 지역 드롭다운: 다른 필터 알약과 같은 모양. 고르면 선택 색(Bath Teal)으로 바뀌고 오른쪽에 해제(×)가 생긴다 */

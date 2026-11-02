@@ -37,13 +37,14 @@ const SORTS = [
   { value: 'name', label: '이름순' },
 ]
 const PAGE = 60
-const TOUR_KEY = 'tangbang:onboarding:v2' // 안내를 한 번 봤는지(이 브라우저에만 저장). v2: 미리보기 칩·핀 두 번 누르기에 맞춰 다시 만든 안내(2026-11-02)
+const TOUR_KEY = 'tangbang:onboarding:v3' // 안내를 한 번 봤는지(이 브라우저에만 저장). v2: 미리보기 칩·핀 두 번 누르기(2026-11-02), v3: 상세 TOP 3 단계 추가(2026-11-02)
 // 온보딩 4단계 문구
 const TOUR_TEXT = [
   { title: '내 위치 먼저 확인', body: '내 주변 목욕탕 버튼을 누르면 가까운 곳부터 볼 수 있어요. 위치는 거리 계산에만 쓰고 저장하거나 보내지 않아요.' },
   { title: '목욕탕 고르기', body: '목록에서 목욕탕을 누르면 지도에 위치가 나와요. 바나나우유를 누르면 담아 둘 수 있어요.' },
   { title: '가기 전에 한눈에', body: "대인·소인 요금과 수건·드라이기·세신 정보를 카드에서 바로 볼 수 있어요. 진한 숫자는 확인한 요금이고 '예시'는 아직 확인 전인 요금이에요." },
   { title: '자세히 보는 두 가지 방법', body: "카드의 '자세히 보기'를 누르거나, 지도에서 고른 핀을 한 번 더 누르면 자세한 정보로 넘어가요." },
+  { title: '가기 전 걱정 TOP 3', body: '자세한 정보 맨 위에서 수건·드라이기·세신 정보를 먼저 확인하세요. 모르는 항목은 알려 주시면 확인한 뒤 반영해요.' },
 ]
 const FAV_KEY = 'onsen_fav'
 
@@ -360,12 +361,16 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
       target: '#list .item',
       title: TOUR_TEXT[1].title,
       body: TOUR_TEXT[1].body,
+      onEnter: () => closeDetail(), // '이전'으로 돌아올 때 상세가 열려 있으면 닫는다(3·4단계도 같다)
     },
     {
       target: '.preview',
       title: TOUR_TEXT[2].title,
       body: TOUR_TEXT[2].body,
-      onEnter: pickForTour,
+      onEnter: () => {
+        closeDetail()
+        pickForTour()
+      },
     },
     {
       target: '#list .item.on',
@@ -373,7 +378,18 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
       title: TOUR_TEXT[3].title,
       body: TOUR_TEXT[3].body,
       onEnter: () => {
+        closeDetail()
         if (!selId) pickForTour()
+      },
+    },
+    {
+      // 마지막: 상세를 열어 맨 위 TOP 3를 비춘다. 안내를 마치면 상세는 열린 채로 둔다(바로 둘러볼 수 있게)
+      target: '#detail.open .sec.worry',
+      title: TOUR_TEXT[4].title,
+      body: TOUR_TEXT[4].body,
+      onEnter: () => {
+        if (!selId) pickForTour()
+        openDetail()
       },
     },
   ]

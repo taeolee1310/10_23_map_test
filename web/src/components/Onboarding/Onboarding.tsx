@@ -77,6 +77,10 @@ export default function Onboarding({ steps, open, onClose }: Props) {
     const applyPulse = () => {
       if (step.pulse) document.querySelector(step.pulse)?.classList.add('tour-pulse')
     }
+    // 단계에 들어가며 연 화면(예: 상세)이 포커스를 가져가면 안내 카드 주 버튼으로 되돌린다(키보드 사용자가 카드를 계속 쓰도록)
+    const keepFocus = () => {
+      if (cardRef.current && !cardRef.current.contains(document.activeElement)) primaryRef.current?.focus({ preventScroll: true })
+    }
     timers.push(
       window.setTimeout(() => {
         const el = document.querySelector<HTMLElement>(step.target)
@@ -87,10 +91,11 @@ export default function Onboarding({ steps, open, onClose }: Props) {
         el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' })
         measure()
         applyPulse()
+        keepFocus()
       }, 120),
     )
     // 스크롤·화면 전환이 끝난 뒤 위치를 다시 맞춘다
-    timers.push(window.setTimeout(() => { measure(); applyPulse() }, 500), window.setTimeout(measure, 900))
+    timers.push(window.setTimeout(() => { measure(); applyPulse(); keepFocus() }, 500), window.setTimeout(measure, 900))
     return () => {
       timers.forEach((t) => window.clearTimeout(t))
       document.querySelectorAll('.tour-pulse').forEach((e) => e.classList.remove('tour-pulse'))
