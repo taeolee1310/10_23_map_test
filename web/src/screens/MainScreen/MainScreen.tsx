@@ -21,6 +21,7 @@ import PriceReport from '../../components/PriceReport'
 import Onboarding, { type TourStep } from '../../components/Onboarding'
 import { IconBanana, IconDrop, IconHelp, IconLocate, IconPin, IconSearch } from './Icons'
 import PlaceDetail from './PlaceDetail'
+import { worries } from './PlaceFacts'
 import PlaceList from './PlaceList'
 import PlacePreview from './PlacePreview'
 import './MainScreen.css'
@@ -36,7 +37,14 @@ const SORTS = [
   { value: 'name', label: '이름순' },
 ]
 const PAGE = 60
-const TOUR_KEY = 'tangbang:onboarding:v1' // 안내를 한 번 봤는지(이 브라우저에만 저장)
+const TOUR_KEY = 'tangbang:onboarding:v2' // 안내를 한 번 봤는지(이 브라우저에만 저장). v2: 미리보기 칩·핀 두 번 누르기에 맞춰 다시 만든 안내(2026-11-02)
+// 온보딩 4단계 문구
+const TOUR_TEXT = [
+  { title: '내 위치 먼저 확인', body: '내 주변 목욕탕 버튼을 누르면 가까운 곳부터 볼 수 있어요. 위치는 거리 계산에만 쓰고 저장하거나 보내지 않아요.' },
+  { title: '목욕탕 고르기', body: '목록에서 목욕탕을 누르면 지도에 위치가 나와요. 바나나우유를 누르면 담아 둘 수 있어요.' },
+  { title: '가기 전에 한눈에', body: "대인·소인 요금과 수건·드라이기·세신 정보를 카드에서 바로 볼 수 있어요. 진한 숫자는 확인한 요금이고 '예시'는 아직 확인 전인 요금이에요." },
+  { title: '자세히 보는 두 가지 방법', body: "카드의 '자세히 보기'를 누르거나, 지도에서 고른 핀을 한 번 더 누르면 자세한 정보로 넘어가요." },
+]
 const FAV_KEY = 'onsen_fav'
 
 type Loaded = { baseDate: string; places: Place[] }
@@ -331,29 +339,41 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
       /* 저장하지 못해도 안내는 닫힌다 */
     }
   }, [])
+  // 안내에서 비출 목욕탕: 미리보기 카드 칩(요금·TOP 3)이 가장 많이 나오는 곳. 지금 고른 곳에 TOP 3가 있으면 그대로 둔다.
+  const chipScore = (p: (typeof view)[number]) => worries(p.facts).length + (p.price?.adult != null ? 1 : 0) + (p.price?.child != null ? 1 : 0)
+  const pickForTour = () => {
+    const cur = view.find((p) => p.id === selId)
+    if (cur && worries(cur.facts).length) return
+    const shownList = view.slice(0, shown) // 목록에 그려진 카드 중에서 고른다(4단계에서 카드를 비춰야 하므로)
+    const pick = shownList.reduce<(typeof view)[number] | undefined>((best, p) => (!best || chipScore(p) > chipScore(best) ? p : best), undefined)
+    if (pick) select(pick.id, 'list')
+  }
   const tourSteps: TourStep[] = [
     {
       target: '.quick .qp',
-      title: '내 위치 먼저 확인',
-      body: '내 주변 목욕탕 버튼을 누르면 가까운 곳부터 볼 수 있어요. 위치는 거리 계산에만 쓰고 저장하거나 보내지 않아요.',
+      title: TOUR_TEXT[0].title,
+      body: TOUR_TEXT[0].body,
       action: { label: '내 위치 확인하기', run: goNear },
       onEnter: () => closeDetail(),
     },
     {
       target: '#list .item',
-      title: '목욕탕 정보 확인',
-      body: '목록에서 목욕탕을 누르면 지도에 위치가 나오고, 종류·요금·거리가 아래 카드에 요약돼요. 요금은 직접 확인한 곳만 숫자로 보여 드려요.',
+      title: TOUR_TEXT[1].title,
+      body: TOUR_TEXT[1].body,
+    },
+    {
+      target: '.preview',
+      title: TOUR_TEXT[2].title,
+      body: TOUR_TEXT[2].body,
+      onEnter: pickForTour,
     },
     {
       target: '#list .item.on',
       pulse: '#list .item.on .item-detail',
-      title: "'자세히 보기'를 눌러 확인하세요",
-      body: '가기 전 걱정 TOP 3, 세신 결제 방식과 여탕·남탕 수건, 드라이기를 요금 위에서 한눈에 볼 수 있어요. 아직 확인하지 못한 곳은 알려 주기 버튼이 나와요.',
-      // 비추는 카드에 실제 목욕탕이 보이도록, 고른 곳이 없으면 정보가 확인된 곳(없으면 맨 위)을 고른다
+      title: TOUR_TEXT[3].title,
+      body: TOUR_TEXT[3].body,
       onEnter: () => {
-        if (selId) return
-        const pick = view.find((p) => p.facts) ?? view[0]
-        if (pick) select(pick.id, 'list')
+        if (!selId) pickForTour()
       },
     },
   ]
