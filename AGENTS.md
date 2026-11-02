@@ -26,7 +26,7 @@ web/                     React 18 + Vite + TypeScript 화면
   src/components/
     BathhouseIntro/      첫 화면(Figma 에셋 + 캔버스 물줄기·수증기·오리·배경음)
     KakaoMap/            지도·핀·구별 묶음 마커 (SDK 주소는 맨 위 API 한 곳)
-    Onboarding/          첫 방문 스포트라이트 안내 3단계
+    Onboarding/          첫 방문 스포트라이트 안내 5단계(키 v3)
     PriceReport/         요금·시설 정보 제보 창
     GhostCursor/ OnsenLogo/ MilkLoader/ GlideSelect/ ElasticSlider/ PriceIcon/
   src/screens/MainScreen/  목록·미리보기·상세
