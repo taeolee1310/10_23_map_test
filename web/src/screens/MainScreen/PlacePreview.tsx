@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, priceClass, priceLabel, priceState, type LatLng, type PlaceWithDist } from '../../lib/onsen'
+import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, priceClass, priceLabel, priceState, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
+import PriceIcon, { type PriceIconName } from '../../components/PriceIcon/PriceIcon'
 import { HintPin, IconBanana } from './Icons'
+import { towelText, worries } from './PlaceFacts'
 
 type Props = {
   place: PlaceWithDist | null
@@ -11,7 +13,6 @@ type Props = {
   fav: boolean
   swapKey: string
   onFav: (id: string) => void
-  onDetail: () => void
   onReport: (id: string) => void
 }
 
@@ -56,9 +57,14 @@ function MapHint({ total, pricedCount, unconfirmedCount }: { total: number; pric
   )
 }
 
-export default function PlacePreview({ place: d, total, pricedCount, unconfirmedCount, me, fav, swapKey, onFav, onDetail, onReport }: Props) {
+export default function PlacePreview({ place: d, total, pricedCount, unconfirmedCount, me, fav, swapKey, onFav, onReport }: Props) {
   if (!d) return <MapHint total={total} pricedCount={pricedCount} unconfirmedCount={unconfirmedCount} />
   const near = d.parking && d.parking.length ? d.parking[0] : null
+  const fees: { icon: PriceIconName; text: string; example?: boolean }[] = []
+  if (d.price?.adult != null) fees.push({ icon: 'adult', text: '대인 ' + won(d.price.adult) })
+  if (d.price?.child != null) fees.push({ icon: 'child', text: '소인 ' + won(d.price.child) })
+  if (!d.price && d.price_example) fees.push({ icon: 'adult', text: '예시 · 대인 ' + won(d.price_example.adult), example: true }) // 가상 값은 항상 '예시'
+  const top3 = worries(d.facts)
   return (
     <div className="preview swap" id="preview" key={swapKey}>
       <div className="top">
@@ -73,12 +79,40 @@ export default function PlacePreview({ place: d, total, pricedCount, unconfirmed
       <div className="row">
         {d.kind && <span className={`pill kind ${KIND_CLASS[d.kind] || ''}`}>{d.kind}</span>}
         {d.women_only && <span className="pill women">여성전용</span>}
-        <span className={`pill price${priceClass(d)}`}>{priceLabel(d)}</span>
         {d.dist != null && <span className="pill dist">직선 {fmtDist(d.dist)}</span>}
         {near && <span className="pill">주차장 {near.dist}m</span>}
       </div>
+      {/* 요금 칩: 확인한 대인·소인 요금만 진하게. 확인 전이면 '예시'를 붙여 옅게 */}
+      <ul className="chips" aria-label="요금">
+        {fees.length ? (
+          fees.map((f) => (
+            <li key={f.icon} className={`icon-chip${f.example ? ' example' : ''}`}>
+              <PriceIcon name={f.icon} />
+              {f.text}
+            </li>
+          ))
+        ) : (
+          <li className={`pill price${priceClass(d)}`}>{priceLabel(d)}</li>
+        )}
+      </ul>
+      {/* 가기 전 걱정 TOP 3: 확인한 항목만 칩으로. 하나도 없으면 알려 주기 칩 */}
+      <ul className="chips" aria-label="가기 전 걱정 TOP 3">
+        {top3.length ? (
+          top3.map((w) => (
+            <li key={w.label} className="icon-chip worry">
+              <PriceIcon name={w.icon} />
+              {w.icon === 'towel' ? towelText(d.facts?.towel) : `${w.label} ${w.text}`}
+            </li>
+          ))
+        ) : (
+          <li>
+            <button type="button" className="icon-chip ask" onClick={() => onReport(d.id)}>
+              수건·드라이기·세신 정보 알려 주기
+            </button>
+          </li>
+        )}
+      </ul>
       <div className="actions" style={{ margin: 0 }}>
-        <button className="btn sm" onClick={onDetail}>자세히 보기</button>
         <a className="btn ghost sm" target="_blank" rel="noopener noreferrer" href={mapLinks(d, me).car}>길찾기</a>
       </div>
       {priceState(d) !== 'none' && (

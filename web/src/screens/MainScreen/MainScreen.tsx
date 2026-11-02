@@ -345,8 +345,8 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
       body: '목록에서 목욕탕을 누르면 지도에 위치가 나오고, 종류·요금·거리가 아래 카드에 요약돼요. 요금은 직접 확인한 곳만 숫자로 보여 드려요.',
     },
     {
-      target: '.preview',
-      pulse: '.preview .btn',
+      target: '#list .item.on',
+      pulse: '#list .item.on .item-detail',
       title: "'자세히 보기'를 눌러 확인하세요",
       body: '가기 전 걱정 TOP 3, 세신 결제 방식과 여탕·남탕 수건, 드라이기를 요금 위에서 한눈에 볼 수 있어요. 아직 확인하지 못한 곳은 알려 주기 버튼이 나와요.',
       // 비추는 카드에 실제 목욕탕이 보이도록, 고른 곳이 없으면 정보가 확인된 곳(없으면 맨 위)을 고른다
@@ -539,7 +539,6 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
             fav={!!selected && favs.has(selected.id)}
             swapKey={selected?.id ?? ''}
             onFav={toggleFav}
-            onDetail={openDetail}
             onReport={reportPrice}
           />
         </aside>

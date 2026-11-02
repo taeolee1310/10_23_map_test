@@ -71,15 +71,15 @@ export default function PlaceList({ list, total, shown, selId, hotId, favs, anim
             </div>
             </span>
           </button>
-          {priceState(d) !== 'none' && (
-            <div className="price-note">
-              {PRICE_NOTE[priceState(d) as 'confirmed' | 'estimate']}
-              {priceState(d) === 'estimate' && <button className="linkbtn" onClick={() => onReport(d.id)}>요금 제보</button>}
-            </div>
-          )}
-          {/* 모바일에서는 미리보기 카드가 위쪽 지도 아래에 있어서, 카드에서 바로 상세로 들어가는 버튼을 둔다(데스크톱에서는 숨김) */}
-          <div className="item-actions">
-            <button className="btn ghost sm" aria-label={`${d.name} 자세히 보기`} onClick={() => onDetail(d.id)}>
+          {/* 카드 아래 줄: 왼쪽은 요금 안내, 오른쪽 아래(바나나우유 아래)는 상세로 가는 버튼 */}
+          <div className="item-foot">
+            {priceState(d) !== 'none' && (
+              <div className="price-note">
+                {PRICE_NOTE[priceState(d) as 'confirmed' | 'estimate']}
+                {priceState(d) === 'estimate' && <button className="linkbtn" onClick={() => onReport(d.id)}>요금 제보</button>}
+              </div>
+            )}
+            <button className="btn ghost sm item-detail" aria-label={`${d.name} 자세히 보기`} onClick={() => onDetail(d.id)}>
               자세히 보기
             </button>
           </div>
