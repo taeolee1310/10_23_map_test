@@ -79,7 +79,7 @@ export default function PlacePreview({ place: d, total, pricedCount, unconfirmed
       </div>
       <div className="row">
         {d.kind && <Badge tone="facility">{d.kind}</Badge>} {/* 목록 카드와 같은 시설 배지 */}
-        {d.women_only && <span className="pill women">여성전용</span>}
+        {d.women_only && <Badge tone="women">여성전용</Badge>} {/* 목록 카드와 같은 배지 */}
         {d.dist != null && <span className="pill dist">직선 {fmtDist(d.dist)}</span>}
         {near && <span className="pill">주차장 {near.dist}m</span>}
       </div>
