@@ -149,9 +149,10 @@ export default function KakaoMap(props: Props) {
       const sel = selId === d.id
       const el = document.createElement('button')
       el.className = 'pin' + (sel ? ' sel' : '')
-      el.setAttribute('aria-label', d.name)
+      el.setAttribute('aria-label', sel ? `${d.name}, 한 번 더 누르면 자세히 보기` : d.name)
       el.innerHTML = '<span class="pin__body"></span><span class="pin__outline"></span><span class="pin__tub"></span>' + (sel ? '<i class="spl"><b></b><b></b><b></b></i>' : '')
-      el.addEventListener('click', () => cb.current.onSelect(d.id))
+      el.addEventListener('click', () => cb.current.onSelect(d.id)) // 고른 핀을 한 번 더 누르면 상세로 간다(MainScreen에서 판단)
+      el.addEventListener('dblclick', (e) => e.stopPropagation()) // 핀을 두 번 누를 때 지도가 확대되지 않게
       el.addEventListener('mouseenter', () => cb.current.onHover(d.id))
       el.addEventListener('mouseleave', () => cb.current.onHover(null))
       pinElsRef.current[d.id] = el

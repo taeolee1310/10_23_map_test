@@ -504,7 +504,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
               hotId={hotId}
               me={me}
               fit={fit}
-              onSelect={(id) => select(id, 'map')}
+              onSelect={(id) => (id === selId ? openDetail() : select(id, 'map'))} // 고른 핀을 한 번 더 누르면 상세로
               onHover={setHotId}
               onBounds={setBounds}
               onStatus={setMapStatus}
