@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
-import { FactsDetails, FeeDetails, TopWorries, hoursText, unknownList, worries } from './PlaceFacts'
+import { FactsDetails, FeeDetails, TopWorries, hoursText, unknownList } from './PlaceFacts'
 import { MiniMap } from '../../components/KakaoMap/KakaoMap'
 
 // 모바일(820px 이하, MainScreen.css와 같은 기준)에서만 상세에 작은 지도를 넣는다. 데스크톱은 옆에 큰 지도가 보인다
@@ -225,7 +225,6 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
   }, [open, d?.id, onClose])
 
   const l = d ? mapLinks(d, me) : null
-  const hasWorries = d ? worries(d.facts).length > 0 : false
   const kakao = d ? safeUrl(d.url) : ''
   const tel = d ? safeTel(d.tel) : ''
   return (
@@ -263,13 +262,12 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
           </div>
 
           {/* 1. 이용 결정에 필요한 핵심: 가기 전 걱정, 요금 */}
-          {hasWorries && <TopWorries facts={d.facts} />}
+          <TopWorries facts={d.facts} onAsk={() => onReport(d.id)} /> {/* 정보가 없어도 같은 자리에서 알려 주기를 보여 준다 */}
           <PriceBlock d={d} onReport={onReport} />
 
           {/* 2. 이용 전에 확인할 정보 */}
           <div className="grp">
             <p className="grp-label">가기 전에 확인해요</p>
-            {!hasWorries && <TopWorries facts={d.facts} onAsk={() => onReport(d.id)} />}
             <FactsDetails facts={d.facts} />
             <ParkingBlock d={d} />
             <section className="sec">

@@ -206,6 +206,7 @@
 .onsen-main .worry li { min-height: 52px; } /* 32px 아이콘이 들어가 한 줄 높이를 조금 키운다 */
 .onsen-main .worry li > span:not(.price-icon) { font-size: 12.5px; font-weight: 600; color: var(--muted); flex: 1; } /* 항목 이름(수건·드라이기·세신)은 세미볼드 */
 .onsen-main .worry li b { font-size: 15px; font-weight: 800; color: var(--ink); text-align: right; }
+.onsen-main .worry .worry-ask { display: inline-flex; align-items: center; min-height: 44px; } /* 일부만 아는 곳: 모르는 줄을 알려 달라는 링크(누르기 쉬운 높이) */
 .onsen-main .worry li b.none { font-size: 13px; font-weight: 600; color: var(--muted); } /* 확인 못 한 줄은 옅게 */
 /* 세부 정보 접이식 */
 .onsen-main .facts details { border-top: 1px solid var(--line); }

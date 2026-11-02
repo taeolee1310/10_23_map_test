@@ -90,7 +90,7 @@ function groups(f: Facts): { title: string; rows: Row[] }[] {
   return all.filter((g) => g.rows.length) // 데이터가 하나라도 있는 그룹만
 }
 
-/** 가기 전 걱정 TOP 3. 값이 하나도 없으면 비워 두지 않고, 아직 모른다는 안내와 함께 알려 주기 버튼을 보여 준다. */
+/** 가기 전 걱정 TOP 3. 상세에서 항상 요금 위 같은 자리에 둔다. 값이 하나도 없으면 아직 모른다는 안내와 알려 주기 버튼을, 일부만 있으면 모르는 줄은 '정보 없음'과 알려 주기 링크를 보여 준다. */
 export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: () => void }) {
   const list = worryRows(facts)
   if (!list.some((r) => r.text)) {
@@ -118,11 +118,16 @@ export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: () => void
           </li>
         ))}
       </ul>
+      {onAsk && list.some((r) => !r.text) && (
+        <button type="button" className="linkbtn worry-ask" onClick={onAsk}>
+          모르는 정보 알려 주기
+        </button>
+      )}
     </section>
   )
 }
 
-/** 상세 화면 요금 카드 안의 요금 줄. 대인·소인·찜질복·야간 입장·시간 초과를 아이콘 줄로 바로 보여 준다(Figma 437:9469). 값이 있는 줄만 넣고, 대인 말고는 줄이 없으면 통째로 숨긴다. */
+/** 상세 화면 요금 카드 안의 요금 줄. 대인·소인·찜질복·야간 입장·시간 초과를 아이콘 줄로 바로 보여 준다(Figma 437:9469). 값이 있는 줄만 넣는다. 대인만 있어도 보여 준다(상세는 정보를 최대한 보여 준다, 2026-11-02). */
 export function FeeDetails({ price, fees }: { price: Price; fees?: Facts['fees'] }) {
   const night = fees?.night
   const rows: { icon: PriceIconName; label: string; value: string; note?: string }[] = []
@@ -131,7 +136,7 @@ export function FeeDetails({ price, fees }: { price: Price; fees?: Facts['fees']
   if (fees?.clothes != null) rows.push({ icon: 'clothes', label: '찜질복', value: won(fees.clothes) })
   if (night) rows.push({ icon: 'night', label: '야간 입장', value: night.extra != null ? '+' + won(night.extra) : won(night.price), note: night.extra != null ? `야간 ${won(night.price)}` : '야간 요금' })
   if (fees?.overtime) rows.push({ icon: 'overtime', label: '시간 초과', value: '+' + won(fees.overtime.price), note: fees.overtime.label })
-  if (!rows.some((r) => r.icon !== 'adult')) return null
+  if (!rows.length) return null
   return (
     <div className="fee-list">
       {rows.map((r) => (
