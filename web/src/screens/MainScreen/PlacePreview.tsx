@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, priceClass, priceLabel, priceState, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
+import { PRICE_NOTE, fmtDist, mapLinks, priceClass, priceLabel, priceState, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
+import Badge from '../../components/Badge/Badge'
 import PriceIcon, { type PriceIconName } from '../../components/PriceIcon/PriceIcon'
 import { HintPin, IconBanana } from './Icons'
 import { towelText, worries } from './PlaceFacts'
@@ -77,7 +78,7 @@ export default function PlacePreview({ place: d, total, pricedCount, unconfirmed
         </button>
       </div>
       <div className="row">
-        {d.kind && <span className={`pill kind ${KIND_CLASS[d.kind] || ''}`}>{d.kind}</span>}
+        {d.kind && <Badge tone="facility">{d.kind}</Badge>} {/* 목록 카드와 같은 시설 배지 */}
         {d.women_only && <span className="pill women">여성전용</span>}
         {d.dist != null && <span className="pill dist">직선 {fmtDist(d.dist)}</span>}
         {near && <span className="pill">주차장 {near.dist}m</span>}
