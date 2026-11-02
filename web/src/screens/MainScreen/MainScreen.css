@@ -96,8 +96,8 @@
 .onsen-main .listhead b { color: var(--ink); font-size: 17px; font-weight: 800; letter-spacing: -.02em; }
 .onsen-main .lh-count { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 .onsen-main .gu-tag { font-style: normal; font-size: 12px; font-weight: 700; line-height: 1; padding: 5px 10px; border-radius: 999px; background: var(--card-bg-selected); border: 1px solid var(--card-border-selected); color: var(--secondary); white-space: nowrap; }
-.onsen-main #list { list-style: none; margin: 0; padding: 4px var(--gut) 16px; overflow-y: auto; flex: 1; display: grid; gap: 8px; align-content: start; }
-.onsen-main .item { position: relative; border-radius: 18px; border: 1px solid transparent; background: transparent; transition: background var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out); }
+.onsen-main #list { list-style: none; margin: 0; padding: 4px var(--gut) 16px; overflow-y: auto; flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-content: start; } /* 열 너비를 목록 폭에 묶어 카드 내용이 길어도 밖으로 밀려나지 않게 */
+.onsen-main .item { position: relative; min-width: 0; border-radius: 18px; border: 1px solid transparent; background: transparent; transition: background var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out); }
 .onsen-main .item.hot { background: var(--inset); box-shadow: var(--shadow-s); transform: translateY(-1px); }
 @media (hover: hover) and (pointer: fine) { .onsen-main .item:hover { background: var(--inset); box-shadow: var(--shadow-s); transform: translateY(-1px); } }
 .onsen-main .item.on { background: var(--info); border-color: var(--card-border-selected); box-shadow: inset 0 0 0 1px var(--card-border-selected), inset 4px 0 0 var(--card-border-selected); }
@@ -332,6 +332,7 @@
 .onsen-main { --gut: 12px; }
 .onsen-main .filters { padding: 12px var(--gut); }
 .onsen-main .item .item-detail { min-height: 44px; } /* 손가락으로 누르기 쉬운 높이 */
+.onsen-main .item .item-foot { padding-left: 14px; margin-top: 0; } /* 좁은 화면: 사진 폭(104px)만큼 밀지 않고 카드 안쪽 여백에서 시작해 안내 글과 버튼이 한 줄에 들어가게 */
 }
 @media (prefers-reduced-motion: reduce) {
 .onsen-main *, .onsen-main *::before, .onsen-main *::after { animation: none !important; transition-property: opacity, background-color, color, box-shadow, border-color !important; transition-duration: 200ms !important; translate: none !important; }
