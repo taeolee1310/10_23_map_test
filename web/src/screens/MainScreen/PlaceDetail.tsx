@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
-import { FactsDetails, FeeDetails, TopWorries, hoursText, unknownList } from './PlaceFacts'
+import { FactsDetails, FeeDetails, TopWorries, hoursText, towelText, unknownList } from './PlaceFacts'
 import { MiniMap } from '../../components/KakaoMap/KakaoMap'
 
 // 모바일(820px 이하, MainScreen.css와 같은 기준)에서만 상세에 작은 지도를 넣는다. 데스크톱은 옆에 큰 지도가 보인다
@@ -73,7 +73,12 @@ function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string) 
         <div className="total">예상 지출 (평일 성인 1인, 수건 포함) {won(p.adult + p.towel)}</div>
       )}
       <FeeDetails price={p} fees={d.facts?.fees} />
-      {p.adult != null && p.towel == null && <p className="small">수건·대여용품 같은 별도 비용은 알 수 없어요.</p>}
+      {/* 수건 요금을 모를 때: TOP 3에 수건 제공 정보가 있으면 그쪽을 가리키고, 없으면 수건까지 모른다고 쓴다(두 문장이 어긋나 보이지 않게) */}
+      {p.adult != null && p.towel == null && (
+        <p className="small">
+          {towelText(d.facts?.towel) ? '수건 제공은 위 TOP 3에서 볼 수 있어요. 대여용품 같은 별도 비용은 알 수 없어요.' : '수건·대여용품 같은 별도 비용은 알 수 없어요.'}
+        </p>
+      )}
       {p.none && <p className="small">추가 요금 없음 (확인됨)</p>}
       {p.memo && <p className="small">{p.memo}</p>}
       <p className="small">
