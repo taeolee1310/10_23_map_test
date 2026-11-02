@@ -163,11 +163,11 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
   const filtered = useMemo(() => filterPlaces(withDist, filters, favs), [withDist, filters, favs])
   // 지역 드롭다운 항목: 전체 목록에서 구별 곳 수를 센다(가나다순)
   // 구별 개수는 지역을 뺀 나머지 필터를 적용한 목록에서 센다(고르면 목록 숫자와 같아진다)
-  const guPool = useMemo(() => filterPlaces(places, { ...filters, gu: '' }, favs), [places, filters, favs])
+  const guPool = useMemo(() => filterPlaces(places, { ...filters, gu: [] }, favs), [places, filters, favs])
   const guList = useMemo(() => {
     const m = new Map<string, number>()
     for (const p of guPool) if (p.gu) m.set(p.gu, (m.get(p.gu) ?? 0) + 1)
-    if (filters.gu && !m.has(filters.gu)) m.set(filters.gu, 0) // 고른 구가 0곳이어도 선택 표시는 남긴다
+    for (const g of filters.gu) if (!m.has(g)) m.set(g, 0) // 고른 구가 0곳이어도 선택 표시는 남긴다
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], 'ko'))
   }, [guPool, filters.gu])
   const guOptions = useMemo(
@@ -383,7 +383,8 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
     const p = places.find((d) => d.id === id)
     setReportFor({ id, name: p?.name ?? id })
   }
-  const count = (filters.gu ? filters.gu + ' ' : '') + (inView && bounds ? `지도 안 ${view.length}곳` : `${view.length}곳`)
+  const guText = filters.gu.length > 1 ? `${filters.gu[0]} 외 ${filters.gu.length - 1}개 구` : filters.gu[0] ?? ''
+  const count = (guText ? guText + ' ' : '') + (inView && bounds ? `지도 안 ${view.length}곳` : `${view.length}곳`)
 
   return (
     <div className="onsen-main" id="shell">
@@ -427,13 +428,15 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
       <div id="app">
         <section id="panel" aria-label="목욕탕 목록">
           <div className="filters">
-            {/* 지역(구) 드롭다운: 고른 구는 선택 색으로 보이고, 목록 위 개수 앞에도 적힌다. 항목이 많아 메뉴 안에서 스크롤한다 */}
-            <span className={`sel-gu${filters.gu ? ' on' : ''}`}>
+            {/* 지역(구) 드롭다운: 여러 구를 고를 수 있다. 고른 구는 선택 색으로 보이고, 목록 위 개수 앞에도 적힌다. 항목이 많아 메뉴 안에서 스크롤한다 */}
+            <span className={`sel-gu${filters.gu.length ? ' on' : ''}`}>
               <GlideSelect
                 ariaLabel="지역"
                 options={guOptions}
-                value={filters.gu}
-                onChange={(v) => updateFilters({ gu: v })}
+                multiple
+                allValue=""
+                values={filters.gu}
+                onValuesChange={(v) => updateFilters({ gu: v })}
                 size={TOUCH ? 'lg' : 'md'}
                 radius={14}
                 menuWidth={184}
@@ -443,8 +446,8 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
                 highlightColor="var(--soft)"
                 textColor="var(--ink)"
               />
-              {filters.gu && (
-                <button type="button" className="sel-clear" aria-label={`${filters.gu} 선택 해제`} onClick={() => updateFilters({ gu: '' })}>
+              {filters.gu.length > 0 && (
+                <button type="button" className="sel-clear" aria-label={`${filters.gu.join(', ')} 선택 해제`} onClick={() => updateFilters({ gu: [] })}>
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M2 2l6 6M8 2L2 8" /></svg>
                 </button>
               )}

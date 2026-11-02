@@ -62,12 +62,12 @@ export type LatLng = { lat: number; lng: number }
 
 export type Filters = {
   q: string
-  gu: string // 서울 25개 구 중 하나(빈 값 = 전체 지역)
+  gu: string[] // 고른 구(여러 개 가능). 빈 목록 = 전체 지역
   priceOnly: boolean
   favOnly: boolean
 }
 
-export const DEFAULT_FILTERS: Filters = { q: '', gu: '', priceOnly: true, favOnly: false }
+export const DEFAULT_FILTERS: Filters = { q: '', gu: [], priceOnly: true, favOnly: false }
 
 export const KIND_CLASS: Record<string, string> = { 온천: 'k0', '온천 숙박': 'k1', '온천 목욕탕·사우나': 'k2', '목욕탕·사우나': 'k2' }
 
@@ -122,7 +122,7 @@ export function filterPlaces<T extends Place>(places: T[], f: Filters, favs: Set
   const q = f.q.trim().toLowerCase()
   return places.filter(
     (d) =>
-      (!f.gu || d.gu === f.gu) &&
+      (!f.gu.length || f.gu.includes(d.gu)) &&
       (!f.priceOnly || d.price) &&
       (!f.favOnly || favs.has(d.id)) &&
       (!q || (d.name + ' ' + d.addr).toLowerCase().includes(q)),

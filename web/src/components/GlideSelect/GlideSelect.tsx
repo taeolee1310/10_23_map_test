@@ -2,6 +2,7 @@
 // 다른 점: ① 아이콘(화살표·체크)을 @hugeicons 패키지 대신 같은 모양의 인라인 SVG로 그려서 패키지를 새로 설치하지 않는다.
 // ② maxMenuHeight: 항목이 많을 때 메뉴 안에서 스크롤한다(고른 항목을 가운데로, 키보드로 옮기면 보이는 곳까지 따라 스크롤,
 //    화면에 남은 공간만큼만 높이를 줄인다). 터치에서는 스크롤과 탭을 구분해 탭으로 고른다.
+// ③ multiple: 여러 개를 고르는 모드. 누를 때마다 켜고 끄며 메뉴는 열린 채로 남는다. allValue 항목(예: '전체 지역')을 누르면 모두 해제된다.
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react'
 import './GlideSelect.css'
 
@@ -65,6 +66,12 @@ export type GlideSelectProps = {
   disabled?: boolean
   ariaLabel?: string
   className?: string
+  /** 여러 개 고르기. 이때는 value 대신 values·onValuesChange를 쓴다 */
+  multiple?: boolean
+  values?: string[]
+  onValuesChange?: (values: string[]) => void
+  /** multiple에서 '전체'를 뜻하는 항목 값. 아무것도 안 고르면 이 항목이 선택된 것으로 보이고, 누르면 모두 해제된다 */
+  allValue?: string
 }
 
 type Phase = 'closed' | 'open' | 'closing'
@@ -92,11 +99,21 @@ export default function GlideSelect({
   disabled = false,
   ariaLabel = 'Select',
   className = '',
+  multiple = false,
+  values = [],
+  onValuesChange,
+  allValue = '',
 }: GlideSelectProps) {
   const items = options.map(norm)
   const [inner, setInner] = useState(defaultValue ?? '')
   const current = value ?? inner
-  const selected = items.findIndex((it) => it.value === current)
+  const isOn = (it: GlideOption) => (multiple ? (values.length ? values.includes(it.value) : it.value === allValue) : it.value === current)
+  const selected = items.findIndex(isOn) // 여러 개면 첫 번째(메뉴를 열 때 그 줄로 스크롤)
+  const multiLabel = () => {
+    const first = items.find((it) => it.value === values[0])
+    if (!first) return null
+    return values.length > 1 ? `${textOf(first)} 외 ${values.length - 1}` : first.label
+  }
   const [phase, setPhase] = useState<Phase>('closed')
   const [active, setActive] = useState<number | null>(null)
   const [side, setSide] = useState<'top' | 'bottom'>(placement)
@@ -203,6 +220,13 @@ export default function GlideSelect({
     const it = items[i]
     if (!it) {
       close('instant')
+      return
+    }
+    if (multiple) {
+      // 켜고 끄기만 하고 메뉴는 열어 둔다(이어서 더 고를 수 있게)
+      const next = it.value === allValue ? [] : values.includes(it.value) ? values.filter((v) => v !== it.value) : [...values, it.value]
+      onValuesChange?.(next)
+      setActive(i)
       return
     }
     if (it.value !== current) {
@@ -361,8 +385,8 @@ export default function GlideSelect({
         }}
         onKeyDown={onTriggerKey}
       >
-        <span className="glide-select__label" key={current} data-empty={selected < 0 ? '' : undefined}>
-          {selected >= 0 ? items[selected].label : placeholder}
+        <span className="glide-select__label" key={multiple ? values.join('|') : current} data-empty={selected < 0 ? '' : undefined}>
+          {multiple ? multiLabel() ?? items.find((it) => it.value === allValue)?.label ?? placeholder : selected >= 0 ? items[selected].label : placeholder}
         </span>
         <span className="glide-select__chevron" aria-hidden="true">
           <ChevronIcon size={12} />
@@ -375,6 +399,7 @@ export default function GlideSelect({
             id={`${id}-list`}
             role="listbox"
             aria-label={ariaLabel}
+            aria-multiselectable={multiple || undefined}
             className="glide-select__list"
             data-scroll={maxMenuHeight ? '' : undefined}
             data-live={active !== null ? '' : undefined}
@@ -390,10 +415,10 @@ export default function GlideSelect({
           >
             <span ref={pillRef} className="glide-select__pill" aria-hidden="true" />
             {items.map((it, i) => (
-              <div key={it.value} id={`${id}-${i}`} role="option" aria-selected={i === selected} data-index={i} className="glide-select__option">
+              <div key={it.value} id={`${id}-${i}`} role="option" aria-selected={isOn(it)} data-index={i} className="glide-select__option">
                 <span className="glide-select__name">{it.label}</span>
                 {showTags && it.tag ? <span className="glide-select__tag">{it.tag}</span> : null}
-                <span className="glide-select__check" data-on={i === selected ? '' : undefined} aria-hidden="true">
+                <span className="glide-select__check" data-on={isOn(it) ? '' : undefined} aria-hidden="true">
                   <TickIcon size={13} />
                 </span>
               </div>
