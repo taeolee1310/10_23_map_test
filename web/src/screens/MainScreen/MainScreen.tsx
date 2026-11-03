@@ -321,7 +321,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  // 온보딩: 처음 들어왔을 때 한 번만 자동으로 열고, '직접 확인한 곳만' 옆 '?' 사용법 버튼으로 다시 볼 수 있다.
+  // 온보딩: 처음 들어왔을 때 한 번만 자동으로 열고, 제목 옆 '어떻게 사용하는 거예요?' 버튼으로 다시 볼 수 있다.
   // 저장소를 못 쓰는 브라우저에서는 매번 띄우지 않는다.
   useEffect(() => {
     try {
@@ -413,7 +413,20 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
             </span>
             <div>
               <p className="eyebrow"><b>탕방</b> · 서울의 목욕탕을 찾아서</p>
-              <h1>오늘, 어디서 몸을 담글까요?</h1>
+              <div className="title-row">
+                <h1>오늘, 어디서 몸을 담글까요?</h1>
+                {/* 사용법(온보딩 다시 보기): 작은 '?' 아이콘은 리서치에서 사용법으로 읽히지 않아 글자 버튼으로 제목 옆에 둔다 */}
+                <button
+                  type="button"
+                  className="help"
+                  onClick={() => {
+                    closeDetail()
+                    setTourOpen(true)
+                  }}
+                >
+                  <IconHelp />어떻게 사용하는 거예요?
+                </button>
+              </div>
               <p className="sub">아직 몰랐던 서울의 목욕탕을 발견하는 즐거움.</p>
             </div>
           </div>
@@ -474,18 +487,6 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
                 <i />
                 <span>직접 확인한 곳만</span>
               </label>
-              <button
-                type="button"
-                className="help"
-                aria-label="탕방 사용법 보기"
-                title="탕방 사용법"
-                onClick={() => {
-                  closeDetail()
-                  setTourOpen(true)
-                }}
-              >
-                <IconHelp />
-              </button>
             </div>
           </div>
           {note && <div className="note">{note}</div>}
