@@ -9,7 +9,7 @@
 - 터미널은 PowerShell(Windows). 시간은 KST. 서비스는 **서울 전용**이다.
 
 ## 구조
-- `web/src/App.tsx` → `components/BathhouseIntro`(첫 화면) → `screens/MainScreen`(지도·목록·상세). 지도는 `components/KakaoMap`, 효과는 `components/GhostCursor`. 메인 화면 첫 안내(스포트라이트 온보딩 5단계: 내 위치 → 목욕탕 고르기 → 미리보기 카드 → 자세히 보는 두 가지 방법 → 상세 TOP 3)는 `components/Onboarding`이고 단계 내용은 `MainScreen.tsx`의 `TOUR_TEXT`에 있다. 첫 방문에만 열리며 제목 오른쪽 '어떻게 사용하는 거예요?' 버튼으로 다시 본다(작은 '?' 아이콘은 사용법으로 읽히지 않아 2026-11-03 글자 버튼으로 바꿈. 인트로에는 넣지 않는다). 저장 키는 `tangbang:onboarding:v3`. 요금·가기 전 걱정 정보(수건·드라이기·세신 결제) 제보는 `components/PriceReport`(제보 창) → `web/api/report.js`(Vercel 서버 기능, 운영자 구글 시트에 Apps Script로 추가. 설정은 `docs/report-setup.md`). 제보는 화면에 바로 반영하지 않고 사람이 확인한 뒤 `data/curated/`에만 넣는다. 확인·반영 절차는 `/price-report`(`.claude/skills/price-report`).
+- `web/src/App.tsx` → `components/BathhouseIntro`(첫 화면) → `screens/MainScreen`(지도·목록·상세). 지도는 `components/KakaoMap`, 효과는 `components/GhostCursor`. 메인 화면 첫 안내(스포트라이트 온보딩 5단계: 내 위치 → 목욕탕 고르기 → 미리보기 카드 → 자세히 보는 두 가지 방법 → 상세 TOP 3)는 `components/Onboarding`이고 단계 내용은 `MainScreen.tsx`의 `TOUR_TEXT`에 있다. 첫 방문에만 열리며 제목 오른쪽 '어떻게 사용하는 거예요?' 버튼(모바일은 검색창 위 왼쪽 '사용법')으로 다시 본다(작은 '?' 아이콘은 사용법으로 읽히지 않아 2026-11-03 글자 버튼으로 바꿈. 인트로에는 넣지 않는다). 저장 키는 `tangbang:onboarding:v3`. 요금·가기 전 걱정 정보(수건·드라이기·세신 결제) 제보는 `components/PriceReport`(제보 창) → `web/api/report.js`(Vercel 서버 기능, 운영자 구글 시트에 Apps Script로 추가. 설정은 `docs/report-setup.md`). 제보는 화면에 바로 반영하지 않고 사람이 확인한 뒤 `data/curated/`에만 넣는다. 확인·반영 절차는 `/price-report`(`.claude/skills/price-report`).
 - `web/src/styles/tangbang-colors.css`: 컬러 시스템. 색은 이 파일의 토큰만 쓴다. `web/src/styles/motion.css`: 움직임 곡선·길이.
 - 화면이 읽는 데이터는 `web/public/data/onsen.json` 하나. 만드는 법과 자료 분류는 `data/README.md`.
   - `python onsen_merge.py` → `data/merged/onsen_merged.csv`

@@ -402,6 +402,11 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
   const guText = filters.gu.length > 1 ? `${filters.gu[0]} 외 ${filters.gu.length - 1}개 구` : filters.gu[0] ?? ''
   const count = (guText ? guText + ' ' : '') + (inView && bounds ? `지도 안 ${view.length}곳` : `${view.length}곳`)
 
+  const openTour = () => {
+    closeDetail()
+    setTourOpen(true)
+  }
+
   return (
     <div className="onsen-main" id="shell">
       {TOUCH && <PullRefresh scrollerId="shell" onRefresh={onRefresh} />}
@@ -416,14 +421,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
               <div className="title-row">
                 <h1>오늘, 어디서 몸을 담글까요?</h1>
                 {/* 사용법(온보딩 다시 보기): 작은 '?' 아이콘은 리서치에서 사용법으로 읽히지 않아 글자 버튼으로 제목 옆에 둔다 */}
-                <button
-                  type="button"
-                  className="help"
-                  onClick={() => {
-                    closeDetail()
-                    setTourOpen(true)
-                  }}
-                >
+                <button type="button" className="help help--wide" onClick={openTour}>
                   <IconHelp />어떻게 사용하는 거예요?
                 </button>
               </div>
@@ -431,6 +429,10 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
             </div>
           </div>
           <div>
+          {/* 모바일: 제목 옆 대신 검색창 위 왼쪽에 짧게 '사용법'으로 둔다 */}
+          <button type="button" className="help help--narrow" onClick={openTour}>
+            <IconHelp />사용법
+          </button>
           <label className="search">
             <IconSearch />
             <span className="sr">목욕탕 검색</span>
