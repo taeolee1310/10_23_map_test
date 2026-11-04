@@ -1,5 +1,6 @@
 import { won, type DayKo, type DryerInfo, type Facts, type Price, type TowelMode } from '../../lib/onsen'
 import PriceIcon, { type PriceIconName } from '../../components/PriceIcon/PriceIcon'
+import { IconInfo } from './Icons'
 
 // 값이 있는 것만 문구로 만든다. 없는 칸은 null이라 화면에서 통째로 빠진다.
 const towelOne = (t: TowelMode) => (t.mode === 'unlimited' ? '무제한 제공' : t.count != null ? `${t.count}장 제공` : '장수 제한')
@@ -15,17 +16,36 @@ export function towelText(t: Facts['towel']): string | null {
 const dryerOne = (d: DryerInfo): string | null =>
   d.none ? '없음' : d.paid === true ? (d.price != null ? `유료 ${won(d.price)}` : '유료') : d.paid === false ? '무료' : d.has ? '있음' : null
 
+/** 근거가 후기 1건뿐인 값에 붙이는 안내. 값과 같은 위계로 쓰지 않고 (i) 아이콘 툴팁으로 둔다 */
+export const LOW_NOTE = '후기 1건 기준이라 실제와 다를 수 있어요'
+
+/** 보여 주는 드라이기 값 중 근거가 후기 1건뿐인 것이 있는지 */
+export function hairdryerLow(h: Facts['hairdryer']): boolean {
+  if (!h) return false
+  const w = h.women && dryerOne(h.women)
+  const m = h.men && dryerOne(h.men)
+  return !!((w && h.women?.low) || (m && h.men?.low) || (!w && !m && h.low))
+}
+
 /** 드라이기 문구(목록·미리보기·상세 공통). 탕별 값이 있으면 '여탕 유료 200원 · 남탕 무료'처럼 탕별로, 없으면 공통 값으로 */
 export function hairdryerText(h: Facts['hairdryer']): string | null {
   if (!h) return null
   const w = h.women && dryerOne(h.women)
   const m = h.men && dryerOne(h.men)
-  const low = [h.women, h.men].some((x) => x && dryerOne(x) && x.low) || (!w && !m && h.low)
   let text: string | null
   if (w && m) text = w === m ? w : `여탕 ${w} · 남탕 ${m}`
   else if (w || m) text = w ? `여탕 ${w}` : `남탕 ${m}`
   else text = dryerOne(h)
-  return text && text + (low ? ' (후기 1건 기준)' : '')
+  return text
+}
+
+/** (i) 아이콘 + 툴팁. 마우스를 올리거나 누르면(포커스) 안내가 뜬다. 화면 읽기 프로그램은 aria-label로 읽는다 */
+export function InfoTip({ text, align = 'end' }: { text: string; align?: 'start' | 'end' }) {
+  return (
+    <button type="button" className={`infotip infotip--${align}`} aria-label={text} data-tip={text} onClick={(e) => e.stopPropagation()}>
+      <IconInfo />
+    </button>
+  )
 }
 
 export function seshinPriceText(s: Facts['seshin']): string | null {
@@ -35,7 +55,7 @@ export function seshinPriceText(s: Facts['seshin']): string | null {
   return parts.length ? parts.join(' · ') : null
 }
 
-type WorryRow = { icon: PriceIconName; label: string; text: string | null } // text가 null이면 아직 확인하지 못한 항목
+type WorryRow = { icon: PriceIconName; label: string; text: string | null; note?: string } // text가 null이면 아직 확인하지 못한 항목, note는 (i) 툴팁 안내
 
 /** 가기 전 걱정 TOP 3 세 줄(수건·드라이기·세신, Figma 순서). 확인 못 한 줄은 text가 null이다. */
 function worryRows(f: Facts | undefined): WorryRow[] {
@@ -44,7 +64,7 @@ function worryRows(f: Facts | undefined): WorryRow[] {
   const hd = f?.hairdryer
   return [
     { icon: 'towel', label: '수건', text: towelText(f?.towel)?.replace(/수건 /g, '') ?? null }, // 줄 이름이 '수건'이라 값에서는 뺀다
-    { icon: 'hairdryer', label: '드라이기', text: hairdryerText(hd) },
+    { icon: 'hairdryer', label: '드라이기', text: hairdryerText(hd), note: hairdryerLow(hd) ? LOW_NOTE : undefined },
     { icon: 'scrub', label: '세신', text: price || pay ? [price, pay].filter(Boolean).join(' · ') : null }, // 요금·결제를 한 줄로
   ]
 }
@@ -106,6 +126,28 @@ function groups(f: Facts): { title: string; rows: Row[] }[] {
   return all.filter((g) => g.rows.length) // 데이터가 하나라도 있는 그룹만
 }
 
+/** 가기 전 알아 둘 것: 등록 정보와 실제가 다른 점(시설 운영 중단, 이른 마감). 후기에서 나온 것이라 날짜·출처·건수를 같이 보여 준다. 없으면 그리지 않는다 */
+export function Notices({ facts }: { facts?: Facts }) {
+  const list = facts?.notices ?? []
+  if (!list.length) return null
+  const ym = (d: string) => `${d.slice(0, 4)}년 ${Number(d.slice(5, 7))}월`
+  return (
+    <section className="sec notice" aria-labelledby="notice-h">
+      <h3 id="notice-h">가기 전 알아 둘 것</h3>
+      <ul>
+        {list.map((n) => (
+          <li key={n.text}>
+            <b>{n.text}</b>
+            <span>
+              {n.source ?? '후기'} {ym(n.date)} 기준{n.count && n.count > 1 ? ` · ${n.count}건` : ''}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 /** 가기 전 걱정 TOP 3. 상세에서 항상 요금 위 같은 자리에 둔다. 값이 하나도 없으면 아직 모른다는 안내와 알려 주기 버튼을, 일부만 있으면 모르는 줄은 '정보 없음'과 알려 주기 링크를 보여 준다. */
 export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: () => void }) {
   const list = worryRows(facts)
@@ -130,7 +172,14 @@ export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: () => void
           <li key={w.label}>
             <PriceIcon name={w.icon} />
             <span>{w.label}</span>
-            {w.text ? <b>{w.text}</b> : <b className="none">정보 없음</b>}
+            {w.text ? (
+              <b>
+                {w.text}
+                {w.note && <InfoTip text={w.note} />}
+              </b>
+            ) : (
+              <b className="none">정보 없음</b>
+            )}
           </li>
         ))}
       </ul>

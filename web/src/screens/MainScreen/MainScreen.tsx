@@ -42,7 +42,7 @@ const TOUR_KEY = 'tangbang:onboarding:v3' // 안내를 한 번 봤는지(이 브
 const TOUR_TEXT = [
   { title: '내 위치 먼저 확인', body: '내 주변 목욕탕 버튼을 누르면 가까운 곳부터 볼 수 있어요. 위치는 거리 계산에만 쓰고 저장하거나 보내지 않아요.' },
   { title: '목욕탕 고르기', body: '목록에서 목욕탕을 누르면 지도에 위치가 나와요. 바나나우유를 누르면 담아 둘 수 있어요.' },
-  { title: '가기 전에 한눈에', body: "대인·소인 요금과 수건·드라이기·세신 정보를 카드에서 바로 볼 수 있어요. 진한 숫자는 확인한 요금이고 '예시'는 아직 확인 전인 요금이에요." },
+  { title: '가기 전에 한눈에', body: "대인·소인 요금과 수건·드라이기·세신 정보를 카드에서 바로 볼 수 있어요." },
   { title: '자세히 보는 두 가지 방법', body: "카드의 '자세히 보기'를 누르거나, 지도에서 고른 핀을 한 번 더 누르면 자세한 정보로 넘어가요." },
   { title: '가기 전 걱정 TOP 3', body: '자세한 정보 맨 위에서 수건·드라이기·세신 정보를 먼저 확인하세요. 모르는 항목은 알려 주시면 확인한 뒤 반영해요.' },
 ]
@@ -439,8 +439,8 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
               <div className="title-row">
                 <h1>오늘, 어디서 몸을 담글까요?</h1>
                 {/* 사용법(온보딩 다시 보기): 작은 '?' 아이콘은 리서치에서 사용법으로 읽히지 않아 글자 버튼으로 제목 옆에 둔다 */}
-                <button type="button" className="help help--wide" onClick={openTour}>
-                  <IconHelp />어떻게 사용하는 거예요?
+                <button type="button" className="help help--wide" data-tip="클릭하면 사용법을 알려드려요" onClick={openTour}>
+                  어떻게 사용하는 거예요?<IconHelp />
                 </button>
               </div>
               <p className="sub">아직 몰랐던 서울의 목욕탕을 발견하는 즐거움.</p>
@@ -605,7 +605,6 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
       </div>
       <p className="graytip" style={{ margin: '0 8px 4px' }}>
         출처: 행정안전부 온천이용업소 현황, 서울시 목욕장업 인허가 정보, 카카오 로컬 API(장소·주차장 검색), 요금: 업체 가격표(네이버 플레이스)·행안부 착한가격업소, 지도: 카카오맵, 구 경계: 통계청 SGIS(공공누리 제1유형). 데이터 기준일 {data.baseDate}.
-        위치는 이 브라우저에서 거리 계산에만 쓰고 저장하거나 보내지 않아요. 지도 위치를 못 찾은 곳은 목록에만 나와요.
       </p>
       <PriceReport place={reportFor} onClose={() => setReportFor(null)} onMessage={showToast} />
       <Onboarding steps={tourSteps} open={tourOpen} onClose={closeTour} />

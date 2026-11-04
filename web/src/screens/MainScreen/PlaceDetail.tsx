@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
-import { FactsDetails, FeeDetails, TopWorries, hoursText, towelText, unknownList } from './PlaceFacts'
+import { FactsDetails, FeeDetails, Notices, TopWorries, hoursText, towelText, unknownList } from './PlaceFacts'
 import { MiniMap } from '../../components/KakaoMap/KakaoMap'
 
 // 모바일(820px 이하, MainScreen.css와 같은 기준)에서만 상세에 작은 지도를 넣는다. 데스크톱은 옆에 큰 지도가 보인다
@@ -33,7 +33,6 @@ function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string) 
           <b className="price-hero unknown">요금 미확인</b>
         )}
         <div className="price-note">
-          {PRICE_NOTE.estimate}
           <button className="linkbtn" onClick={() => onReport(d.id)}>요금 제보</button>
         </div>
         <p className="small">가기 전에 카카오맵 장소 페이지나 공식 채널에서 요금을 확인해 주세요.</p>
@@ -268,6 +267,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
 
           {/* 1. 이용 결정에 필요한 핵심: 가기 전 걱정, 요금 */}
           <TopWorries facts={d.facts} onAsk={() => onReport(d.id)} /> {/* 정보가 없어도 같은 자리에서 알려 주기를 보여 준다 */}
+          <Notices facts={d.facts} /> {/* 등록 정보와 실제가 다른 점(최근 후기 기준). 있을 때만 */}
           <PriceBlock d={d} onReport={onReport} />
 
           {/* 2. 이용 전에 확인할 정보 */}

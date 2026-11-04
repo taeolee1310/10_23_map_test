@@ -209,6 +209,13 @@
 .onsen-main .worry li b { font-size: 15px; font-weight: 800; color: var(--ink); text-align: right; }
 .onsen-main .worry .worry-ask { display: inline-flex; align-items: center; min-height: 44px; } /* 일부만 아는 곳: 모르는 줄을 알려 달라는 링크(누르기 쉬운 높이) */
 .onsen-main .worry li b.none { font-size: 13px; font-weight: 600; color: var(--muted); } /* 확인 못 한 줄은 옅게 */
+/* 가기 전 알아 둘 것: 후기에서 나온 '등록 정보와 다른 점' */
+.onsen-main .sec.notice { margin-top: 10px; padding: 10px 14px; border-radius: 12px; background: var(--color-state-warning-bg); color: var(--color-state-warning-text); }
+.onsen-main .notice h3 { margin: 0 0 4px; font-weight: 800; color: var(--color-state-warning-text); }
+.onsen-main .notice ul { margin: 0; padding: 0; list-style: none; }
+.onsen-main .notice li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; padding: 6px 0; }
+.onsen-main .notice li b { font-size: 14px; font-weight: 700; }
+.onsen-main .notice li span { font-size: 12px; }
 /* 세부 정보 접이식 */
 .onsen-main .facts details { border-top: 1px solid var(--line); }
 .onsen-main .facts details:first-of-type { border-top: 0; }
@@ -352,6 +359,12 @@
 .onsen-main .help svg { flex: none; width: 16px; height: 16px; }
 @media (hover: hover) and (pointer: fine) { .onsen-main .help:hover { background: var(--chip-bg-hover); } }
 .onsen-main .help:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+.onsen-main .help--wide { padding: 0 10px 0 var(--space-3); }
+/* 툴팁: 마우스를 올리거나 키보드로 포커스하면 버튼 아래에 안내를 띄운다(::before는 눌리는 영역이라 ::after를 쓴다) */
+.onsen-main .help--wide::after { content: attr(data-tip); position: absolute; top: calc(100% + 8px); left: 50%; z-index: 20; padding: 6px 10px; border-radius: var(--radius-sm); background: var(--color-bg-inverse); color: var(--color-text-inverse); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; pointer-events: none; opacity: 0; transform: translate(-50%, -4px); transition: opacity var(--dur-press) var(--ease-out), transform var(--dur-press) var(--ease-out); }
+@media (hover: hover) and (pointer: fine) { .onsen-main .help--wide:hover::after { opacity: 1; transform: translate(-50%, 0); transition-delay: 250ms; } }
+.onsen-main .help--wide:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
+@media (prefers-reduced-motion: reduce) { .onsen-main .help--wide::after { transition: none; transform: translate(-50%, 0); } }
 .onsen-main .help--narrow { display: none; }
 @media (max-width: 820px) {
   .onsen-main .help--wide { display: none; }
@@ -413,3 +426,17 @@
 .onsen-main > .hero { margin-top: var(--ptr, 0px); transition: margin-top 300ms var(--ease-out); }
 .onsen-main[data-ptr-drag] > .hero { transition: none; }
 @media (prefers-reduced-motion: reduce) { .onsen-main > .hero { transition: none !important; } }
+
+/* (i) 안내 툴팁: 근거가 후기 1건뿐인 값처럼 값보다 낮은 위계의 덧말. 값 옆 작은 아이콘, 올리거나 누르면(포커스) 말풍선 */
+.onsen-main .infotip { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-left: 2px; padding: 0; border: 0; border-radius: var(--radius-pill); background: none; color: var(--muted); vertical-align: middle; cursor: help; }
+.onsen-main .infotip::before { content: ""; position: absolute; inset: -10px; } /* 누르는 영역 44px */
+.onsen-main .infotip svg { width: 16px; height: 16px; }
+.onsen-main .infotip::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); z-index: 30; width: max-content; max-width: 220px; padding: 6px 10px; border-radius: var(--radius-sm); background: var(--color-bg-inverse); color: var(--color-text-inverse); font-size: 12px; line-height: 16px; font-weight: 500; text-align: left; white-space: normal; pointer-events: none; opacity: 0; transform: translateY(4px); transition: opacity var(--dur-press) var(--ease-out), transform var(--dur-press) var(--ease-out); }
+.onsen-main .infotip--end::after { right: -4px; }
+.onsen-main .infotip--start::after { left: -4px; }
+@media (hover: hover) and (pointer: fine) { .onsen-main .infotip:hover::after { opacity: 1; transform: none; transition-delay: 150ms; } .onsen-main .infotip:hover { color: var(--ink); } }
+.onsen-main .infotip:focus-visible, .onsen-main .infotip:focus { outline: none; color: var(--ink); }
+.onsen-main .infotip:focus-visible { box-shadow: 0 0 0 2px var(--color-border-focus); }
+.onsen-main .infotip:focus::after { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .onsen-main .infotip::after { transition: none; transform: none; } }
+.onsen-main .worry li b { display: inline-flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; }

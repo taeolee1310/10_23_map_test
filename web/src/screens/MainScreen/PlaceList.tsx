@@ -75,7 +75,7 @@ export default function PlaceList({ list, total, shown, selId, hotId, favs, anim
           <div className="item-foot">
             {priceState(d) !== 'none' && (
               <div className="price-note">
-                {PRICE_NOTE[priceState(d) as 'confirmed' | 'estimate']}
+                {priceState(d) === 'confirmed' && PRICE_NOTE.confirmed}
                 {priceState(d) === 'estimate' && <button className="linkbtn" onClick={() => onReport(d.id)}>요금 제보</button>}
               </div>
             )}

@@ -3,7 +3,7 @@ import { PRICE_NOTE, fmtDist, mapLinks, priceClass, priceLabel, priceState, won,
 import Badge from '../../components/Badge/Badge'
 import PriceIcon, { type PriceIconName } from '../../components/PriceIcon/PriceIcon'
 import { HintPin, IconBanana } from './Icons'
-import { towelText, worries } from './PlaceFacts'
+import { InfoTip, towelText, worries } from './PlaceFacts'
 
 type Props = {
   place: PlaceWithDist | null
@@ -103,6 +103,7 @@ export default function PlacePreview({ place: d, total, pricedCount, unconfirmed
             <li key={w.label} className="icon-chip worry">
               <PriceIcon name={w.icon} />
               {w.icon === 'towel' ? towelText(d.facts?.towel) : `${w.label} ${w.text}`}
+              {w.note && <InfoTip text={w.note} align="start" />}
             </li>
           ))
         ) : (
@@ -118,7 +119,7 @@ export default function PlacePreview({ place: d, total, pricedCount, unconfirmed
       </div>
       {priceState(d) !== 'none' && (
         <div className="price-note">
-          {PRICE_NOTE[priceState(d) as 'confirmed' | 'estimate']}
+          {priceState(d) === 'confirmed' && PRICE_NOTE.confirmed}
           {priceState(d) === 'estimate' && <button className="linkbtn" onClick={() => onReport(d.id)}>요금 제보</button>}
         </div>
       )}

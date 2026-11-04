@@ -56,6 +56,8 @@ export type Facts = {
   supplies?: { shampoo?: boolean; bodywash?: boolean }
   // closed_days: 가게가 등록한 휴무 문구 그대로('연중무휴' 등). hours: 요일별 영업시간(가게가 등록한 문구 그대로, 휴무일은 '정기휴무 …')
   convenience?: { parking_height_m?: number; open_24h?: boolean; sleeping_room?: boolean; closed_days?: string; hours?: Partial<Record<DayKo, string>> }
+  // 가기 전 알아 둘 것: 최근 1년 네이버 후기·블로그에서 자동으로 뽑은 '등록 정보와 실제가 다른 점'(judge_facts judge_notices). 후기 문장을 그대로 옮기지 않고 정해진 문장으로 만든다
+  notices?: { text: string; date: string; count?: number; source?: string }[]
   source?: string
   checked?: string
 }
@@ -102,7 +104,8 @@ export function priceLabel(p: Place) {
 // 확인한 요금은 그대로, 확인 못 한 곳은 '예시' 요금(옅은 칩)과 아래 한 줄로 확인 전임을 알린다.
 export const priceState = (p: Place): 'confirmed' | 'estimate' | 'none' =>
   p.price ? 'confirmed' : p.price_example || p.price_estimate ? 'estimate' : 'none'
-export const PRICE_NOTE = { confirmed: '가게가 올린 요금', estimate: '예시 요금이에요. 실제 요금은 아직 확인 전이에요' } as const
+// 예시 요금은 요금 칩의 '예시' 표시로 충분해 따로 안내 문장을 두지 않는다(사용자 결정 2026-11-04). 요금 제보 링크만 남긴다
+export const PRICE_NOTE = { confirmed: '가게가 올린 요금' } as const
 
 // 요금 칩은 확인한 요금만 진하게, 미확인은 옅은 회색
 export const priceClass = (p: Place) => (p.price ? '' : ' unknown')
