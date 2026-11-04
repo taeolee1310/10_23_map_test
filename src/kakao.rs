@@ -40,7 +40,8 @@ pub fn get(url: &str, params: &[(&str, String)]) -> Result<Value, String> {
         403 => return Err("⛔ 카카오맵 사용 설정을 켜 주세요".into()),
         c => return Err(format!("⛔ 카카오 응답 오류예요 (코드 {c})")),
     }
-    res.json::<Value>().map_err(|_| "⛔ 카카오 응답을 읽지 못했어요".to_string())
+    res.json::<Value>()
+        .map_err(|_| "⛔ 카카오 응답을 읽지 못했어요".to_string())
 }
 
 pub fn in_korea(lat: f64, lng: f64) -> bool {
@@ -48,7 +49,10 @@ pub fn in_korea(lat: f64, lng: f64) -> bool {
 }
 
 pub fn docs(v: &Value) -> Vec<Value> {
-    v.get("documents").and_then(|d| d.as_array()).cloned().unwrap_or_default()
+    v.get("documents")
+        .and_then(|d| d.as_array())
+        .cloned()
+        .unwrap_or_default()
 }
 
 /// 카카오 응답의 글자 좌표를 숫자로 (x=경도, y=위도).
@@ -73,7 +77,10 @@ pub struct Place {
 
 /// 카카오 키워드 장소 검색. 한국 밖 좌표는 버린다.
 pub fn search_place(query: &str, size: usize) -> Result<Vec<Place>, String> {
-    let v = get(KEYWORD, &[("query", query.to_string()), ("size", size.to_string())])?;
+    let v = get(
+        KEYWORD,
+        &[("query", query.to_string()), ("size", size.to_string())],
+    )?;
     let mut out = Vec::new();
     for d in docs(&v) {
         let (lat, lng) = (coord(&d, "y")?, coord(&d, "x")?); // y=위도, x=경도 (글자 → 숫자)
@@ -83,7 +90,12 @@ pub fn search_place(query: &str, size: usize) -> Result<Vec<Place>, String> {
         let road = s(&d, "road_address_name");
         out.push(Place {
             name: s(&d, "place_name").to_string(),
-            addr: if road.is_empty() { s(&d, "address_name") } else { road }.to_string(), // 도로명이 비면 지번
+            addr: if road.is_empty() {
+                s(&d, "address_name")
+            } else {
+                road
+            }
+            .to_string(), // 도로명이 비면 지번
             lat,
             lng,
         });

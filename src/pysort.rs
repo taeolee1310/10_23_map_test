@@ -7,11 +7,19 @@ pub fn keep_last<T, K: std::hash::Hash + Eq>(items: Vec<T>, key: impl Fn(&T) -> 
     for (i, it) in items.iter().enumerate().rev() {
         keep[i] = seen.insert(key(it));
     }
-    items.into_iter().zip(keep).filter(|(_, k)| *k).map(|(x, _)| x).collect()
+    items
+        .into_iter()
+        .zip(keep)
+        .filter(|(_, k)| *k)
+        .map(|(x, _)| x)
+        .collect()
 }
 
 /// 판다스 drop_duplicates(keep="first")
 pub fn keep_first<T, K: std::hash::Hash + Eq>(items: Vec<T>, key: impl Fn(&T) -> K) -> Vec<T> {
     let mut seen = std::collections::HashSet::new();
-    items.into_iter().filter(|it| seen.insert(key(it))).collect()
+    items
+        .into_iter()
+        .filter(|it| seen.insert(key(it)))
+        .collect()
 }

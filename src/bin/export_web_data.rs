@@ -16,7 +16,7 @@ const MERGED: &str = "data/merged/onsen_merged.csv";
 const PARKING_FILE: &str = "data/collected/onsen_parking.csv"; // 주차장 목록 (ego-lite로 수집)
 const PRICE_FILE: &str = "data/curated/onsen_prices.csv"; // 확인된 가격만 사람이 적는다
 const TANGBANG_PRICES: &str = "data/curated/tangbang_places_price_data.json"; // 요금 조사 자료(실측 확인 + 인근 평균 추정)
-// 한국소비자원 참가격 '목욕(성인 일반대중탕 1회)' 서울 값. 기준월 미표기·잠정치라 추정으로만 쓴다.
+                                                                              // 한국소비자원 참가격 '목욕(성인 일반대중탕 1회)' 서울 값. 기준월 미표기·잠정치라 추정으로만 쓴다.
 const SEOUL_REGION_ADULT: f64 = 11000.0;
 const SEOUL_REGION_BASIS: &str = "서울 일반 대중탕 지역 요금·참가격 잠정";
 const SEOUL_REGION_CHECKED: &str = "2026-10-24";
@@ -28,7 +28,11 @@ const OUT: &str = "web/public/data/onsen.json";
 
 const PRICE_COLS: [&str; 5] = ["성인_평일", "성인_주말", "수건", "주차", "어린이"];
 // 파이썬 urllib.parse.quote(u, safe="")와 같은 글자만 남긴다
-const QUOTE_ALL: &AsciiSet = &NON_ALPHANUMERIC.remove(b'-').remove(b'_').remove(b'.').remove(b'~');
+const QUOTE_ALL: &AsciiSet = &NON_ALPHANUMERIC
+    .remove(b'-')
+    .remove(b'_')
+    .remove(b'.')
+    .remove(b'~');
 
 re!(BASIS, r"\(인근 (.+?) 기준\)");
 
@@ -42,7 +46,10 @@ fn load_photos() -> Result<HashMap<String, String>> {
     for r in csvio::read_csv(PHOTO_FILE, false, Dtype::AllStr)?.records() {
         let u = g(&r, "사진URL");
         if u.starts_with("https://ldb-phinf.pstatic.net/") {
-            out.insert(g(&r, "카카오ID").to_string(), format!("{thumb}{}", utf8_percent_encode(u, QUOTE_ALL)));
+            out.insert(
+                g(&r, "카카오ID").to_string(),
+                format!("{thumb}{}", utf8_percent_encode(u, QUOTE_ALL)),
+            );
         }
     }
     Ok(out)
@@ -90,13 +97,20 @@ fn add_example_prices(places: &mut [Value]) {
         let (base, basis) = if xs.len() >= 3 {
             (median(&xs), format!("{gu} 확인 요금 {}곳 중앙값", xs.len()))
         } else {
-            (seoul, format!("서울 확인 요금 {}곳 중앙값", confirmed.len()))
+            (
+                seoul,
+                format!("서울 확인 요금 {}곳 중앙값", confirmed.len()),
+            )
         };
         let base = base.expect("⛔ 확인된 요금이 한 곳도 없어 예시 요금을 만들 수 없어요");
         let adult = (base / 500.0).round_ties_even() as i64 * 500; // 파이썬 round()처럼 짝수 쪽으로
-        p.as_object_mut()
-            .unwrap()
-            .insert("price_example".into(), obj(vec![("adult", Value::from(adult)), ("basis", Value::from(basis))]));
+        p.as_object_mut().unwrap().insert(
+            "price_example".into(),
+            obj(vec![
+                ("adult", Value::from(adult)),
+                ("basis", Value::from(basis)),
+            ]),
+        );
     }
 }
 
@@ -110,7 +124,11 @@ fn load_prices() -> Result<HashMap<String, Value>> {
         for r in csvio::read_csv(path, true, Dtype::Infer(&["카카오ID"]))?.records() {
             let num = |c: &str| {
                 let v = g(&r, c);
-                if v == "무료" { Some(0.0) } else { util::parse_num(v) } // '무료'는 0원
+                if v == "무료" {
+                    Some(0.0)
+                } else {
+                    util::parse_num(v)
+                } // '무료'는 0원
             };
             let vals: Vec<Option<f64>> = PRICE_COLS.iter().map(|c| num(c)).collect();
             if vals.iter().all(|v| v.is_none()) {
@@ -130,7 +148,10 @@ fn load_prices() -> Result<HashMap<String, Value>> {
                     ("parking", f(vals[3])),
                     ("child", f(vals[4])),
                     ("jjimjil", Value::Null),
-                    ("none", Value::from(["Y", "예", "O"].contains(&none.as_str()))),
+                    (
+                        "none",
+                        Value::from(["Y", "예", "O"].contains(&none.as_str())),
+                    ),
                     ("memo", Value::from(g(&r, "메모"))),
                     ("source", Value::from(g(&r, "출처"))),
                     ("checked", Value::from(g(&r, "확인일"))),
@@ -145,7 +166,11 @@ fn places_of(path: &str) -> Result<Map<String, Value>> {
     if !util::exists(path) {
         return Ok(Map::new());
     }
-    Ok(pyjson::load_file(path)?.get("places").and_then(|p| p.as_object()).cloned().unwrap_or_default())
+    Ok(pyjson::load_file(path)?
+        .get("places")
+        .and_then(|p| p.as_object())
+        .cloned()
+        .unwrap_or_default())
 }
 
 /// 자동 판정 위에 사람이 확인한 값을 항목별로 덮는다(사람 값이 없는 항목은 자동 값이 남는다).
@@ -159,7 +184,11 @@ fn overlay(auto: &Map<String, Value>, manual: &Map<String, Value>) -> Map<String
         out.insert(k.clone(), nv);
     }
     if pyjson::truthy(auto.get("source")) && pyjson::truthy(manual.get("source")) {
-        let s = format!("{} / {}", pyjson::py_str(&manual["source"]), pyjson::py_str(&auto["source"]));
+        let s = format!(
+            "{} / {}",
+            pyjson::py_str(&manual["source"]),
+            pyjson::py_str(&auto["source"])
+        );
         out.insert("source".into(), Value::from(s));
     }
     out
@@ -172,7 +201,10 @@ fn load_facts() -> Result<HashMap<String, Value>> {
     let mut out = HashMap::new();
     for kid in auto.keys().chain(manual.keys()) {
         let a = auto.get(kid).and_then(|v| v.as_object()).unwrap_or(&empty);
-        let m = manual.get(kid).and_then(|v| v.as_object()).unwrap_or(&empty);
+        let m = manual
+            .get(kid)
+            .and_then(|v| v.as_object())
+            .unwrap_or(&empty);
         out.insert(kid.clone(), Value::Object(overlay(a, m)));
     }
     Ok(out)
@@ -186,7 +218,11 @@ fn load_parking() -> Result<(HashMap<String, Vec<Value>>, Option<i64>)> {
         return Ok((parking, radius));
     }
     let rows = csvio::read_csv(PARKING_FILE, true, Dtype::Infer(&["카카오ID"]))?.records();
-    let int = |s: &str| util::parse_num(s).map(|x| x.trunc() as i64).expect("⛔ 주차장 거리·반경이 숫자가 아니에요");
+    let int = |s: &str| {
+        util::parse_num(s)
+            .map(|x| x.trunc() as i64)
+            .expect("⛔ 주차장 거리·반경이 숫자가 아니에요")
+    };
     if let Some(r) = rows.first() {
         radius = Some(int(g(r, "조회반경(m)")));
     }
@@ -242,12 +278,18 @@ fn load_tangbang_prices() -> Result<(TbStore, TbStore)> {
             adult: to_num(r.get("adult_price")),
             child: to_num(r.get("child_price")),
             jjimjil: to_num(r.get("jjimjil_extra")),
-            basis: BASIS.captures(&status).map(|c| c[1].to_string()).unwrap_or_default(),
+            basis: BASIS
+                .captures(&status)
+                .map(|c| c[1].to_string())
+                .unwrap_or_default(),
             checked: pyjson::py_str(&r["last_updated"]),
         };
         let nk = keys::name_key(&pyjson::py_str(&r["place_name"]));
         let addr = pyjson::py_str(&r["address"]);
-        for (store, key) in [(&mut by_addr, (nk.clone(), keys::addr_key(&addr))), (&mut by_sigungu, (nk.clone(), keys::sigungu_addr(&addr)))] {
+        for (store, key) in [
+            (&mut by_addr, (nk.clone(), keys::addr_key(&addr))),
+            (&mut by_sigungu, (nk.clone(), keys::sigungu_addr(&addr))),
+        ] {
             let replace = match store.get(&key) {
                 None => true,
                 Some(old) => info.confirmed && !old.confirmed, // 같은 곳이 둘이면 확인된 쪽을 쓴다
@@ -269,7 +311,9 @@ fn build() -> Result<Vec<Value>> {
     let photos = load_photos()?;
     let mut sigungu_count: HashMap<(String, String), usize> = HashMap::new();
     for r in &df {
-        *sigungu_count.entry((keys::name_key(g(r, "이름")), g(r, "시군구").to_string())).or_default() += 1;
+        *sigungu_count
+            .entry((keys::name_key(g(r, "이름")), g(r, "시군구").to_string()))
+            .or_default() += 1;
     }
 
     let mut places = Vec::new();
@@ -277,12 +321,17 @@ fn build() -> Result<Vec<Value>> {
         // 목욕탕·사우나가 아닌 곳은 지도에서 뺀다(줄 번호 i는 그대로 두어 다른 곳의 id가 안 바뀐다).
         //   '온천'·'온천 숙박', 그리고 구분이 비어 있는 행안부 자료(시설 미확인)
         let kind = g(r, "구분");
-        if kind == "온천" || kind == "온천 숙박" || (kind.is_empty() && g(r, "출처") == "행안부") {
+        if kind == "온천" || kind == "온천 숙박" || (kind.is_empty() && g(r, "출처") == "행안부")
+        {
             continue;
         }
         let kid = g(r, "카카오ID");
         // 요금: ① 사람이 적은 확인값(onsen_prices.csv) ② 요금 조사 자료의 확인값. 추정값은 확인된 요금과 따로 둔다.
-        let mut price = if kid.is_empty() { None } else { prices.get(kid).cloned() };
+        let mut price = if kid.is_empty() {
+            None
+        } else {
+            prices.get(kid).cloned()
+        };
         let mut estimate: Option<Value> = None;
         let nk = keys::name_key(g(r, "이름"));
         let mut hit = tb_addr.get(&(nk.clone(), keys::addr_key(g(r, "주소"))));
@@ -337,7 +386,14 @@ fn build() -> Result<Vec<Value>> {
         };
         let name = g(r, "이름");
         let mut p = vec![
-            ("id", Value::from(if kid.is_empty() { format!("m{i}") } else { kid.to_string() })), // 카카오ID가 없는 곳(행안부만)은 줄 번호로
+            (
+                "id",
+                Value::from(if kid.is_empty() {
+                    format!("m{i}")
+                } else {
+                    kid.to_string()
+                }),
+            ), // 카카오ID가 없는 곳(행안부만)은 줄 번호로
             ("name", Value::from(name)),
             ("addr", Value::from(g(r, "주소"))),
             ("gu", Value::from(g(r, "시군구"))), // 서울 25개 구. 화면의 지역 필터가 쓴다
@@ -352,8 +408,21 @@ fn build() -> Result<Vec<Value>> {
             ("price", price.unwrap_or(Value::Null)),
             ("price_estimate", estimate.unwrap_or(Value::Null)),
             // None=조회 안 됨, []=반경 안에 없음
-            ("parking", if kid.is_empty() { Value::Null } else { parking.get(kid).map(|v| Value::Array(v.clone())).unwrap_or(Value::Null) }),
-            ("parking_radius", radius.map(Value::from).unwrap_or(Value::Null)),
+            (
+                "parking",
+                if kid.is_empty() {
+                    Value::Null
+                } else {
+                    parking
+                        .get(kid)
+                        .map(|v| Value::Array(v.clone()))
+                        .unwrap_or(Value::Null)
+                },
+            ),
+            (
+                "parking_radius",
+                radius.map(Value::from).unwrap_or(Value::Null),
+            ),
         ];
         if let Some(fv) = facts.get(kid) {
             p.push(("facts", fv.clone()));
@@ -379,10 +448,20 @@ fn main() -> Result<()> {
         cnt(&|p| p.get("price_example").is_some()),
         cnt(&|p| p.get("photo").is_some()),
     );
-    let base_date = places.iter().filter_map(|p| p["checked_at"].as_str()).max().unwrap_or("").to_string();
-    let out = obj(vec![("baseDate", Value::from(base_date)), ("places", Value::Array(places))]);
+    let base_date = places
+        .iter()
+        .filter_map(|p| p["checked_at"].as_str())
+        .max()
+        .unwrap_or("")
+        .to_string();
+    let out = obj(vec![
+        ("baseDate", Value::from(base_date)),
+        ("places", Value::Array(places)),
+    ]);
     util::write_text(OUT, &pyjson::dumps(&out, &pyjson::DEFAULT))?;
     println!("저장: {OUT}");
-    println!("출처: 행정안전부 전국 온천이용업소 현황, 서울시 목욕장업 인허가 정보, 카카오 로컬 API");
+    println!(
+        "출처: 행정안전부 전국 온천이용업소 현황, 서울시 목욕장업 인허가 정보, 카카오 로컬 API"
+    );
     Ok(())
 }

@@ -19,13 +19,15 @@ const FIELDS: { key: Field; label: string; hint: string }[] = [
 ]
 const MEMO_MAX = 100
 // 가기 전 걱정 정보(TOP 3): 요금과 따로, 알고 있는 것만 고른다. 남탕·여탕이 다르면 덧붙일 말에 적는다.
-const INFO: { key: 'towelInfo' | 'hairdryer' | 'seshinPay'; label: string; options: string[] }[] = [
+const INFO: { key: keyof InfoState; label: string; options: string[] }[] = [
   { key: 'towelInfo', label: '수건', options: ['무제한', '1장', '2장', '3장 이상'] },
-  { key: 'hairdryer', label: '드라이기', options: ['무료', '유료'] },
+  // 드라이기는 여탕·남탕이 다른 곳이 많아(여탕만 동전) 나눠서 받는다. 아는 쪽만 고르면 된다
+  { key: 'hairdryerW', label: '여탕 드라이기', options: ['무료', '유료', '없음'] },
+  { key: 'hairdryerM', label: '남탕 드라이기', options: ['무료', '유료', '없음'] },
   { key: 'seshinPay', label: '세신 결제', options: ['현금만', '카드 가능'] },
 ]
-type InfoState = { towelInfo: string; hairdryer: string; seshinPay: string }
-const NO_INFO: InfoState = { towelInfo: '', hairdryer: '', seshinPay: '' }
+type InfoState = { towelInfo: string; hairdryerW: string; hairdryerM: string; seshinPay: string }
+const NO_INFO: InfoState = { towelInfo: '', hairdryerW: '', hairdryerM: '', seshinPay: '' }
 
 const ERRORS: Record<string, string> = {
   'not-ready': '제보 창구를 준비 중이에요',
@@ -118,7 +120,7 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (busy) return
-    const hasInfo = !!(info.towelInfo || info.hairdryer || info.seshinPay)
+    const hasInfo = !!(info.towelInfo || info.hairdryerW || info.hairdryerM || info.seshinPay)
     if (!vals.adult && !vals.towel && !vals.scrub && !hasInfo) return setErr({ msg: '알고 있는 요금이나 정보를 하나 이상 적어 주세요', field: 'any' })
     if (!source) return setErr({ msg: '어떻게 알게 됐는지 골라 주세요', field: 'source' })
     setBusy(true)

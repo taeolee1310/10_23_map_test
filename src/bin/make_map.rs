@@ -80,7 +80,10 @@ fn safe_json(v: &Value) -> String {
 
 /// JS 키만 담은 map_config.js 글자를 만든다.
 fn kakao_map_config(js_key: &str) -> String {
-    format!("window.KAKAO_JS_KEY = {};\n", safe_json(&Value::from(js_key)))
+    format!(
+        "window.KAKAO_JS_KEY = {};\n",
+        safe_json(&Value::from(js_key))
+    )
 }
 
 /// 마커를 찍는 카카오 지도 HTML. separate_key=true면 HTML에 키를 넣지 않고 map_config.js를 불러온다.
@@ -102,7 +105,9 @@ fn kakao_map_html(js_key: &str, markers: &[Place], separate_key: bool) -> String
             ])
         })
         .collect();
-    HTML.replace("__KEY_LOADER__", &loader).replace("__SDK__", SDK).replace("__MARKERS__", &safe_json(&Value::Array(m)))
+    HTML.replace("__KEY_LOADER__", &loader)
+        .replace("__SDK__", SDK)
+        .replace("__MARKERS__", &safe_json(&Value::Array(m)))
 }
 
 /// map.html과 map_config.js 두 파일만 보내는 작은 서버 (127.0.0.1에서만 열린다).
@@ -130,7 +135,9 @@ fn serve() -> std::io::Result<()> {
                 r.extend(body);
                 r
             }
-            None => b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_vec(),
+            None => {
+                b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_vec()
+            }
         };
         let _ = stream.write_all(&resp);
     }
@@ -167,7 +174,14 @@ fn main() {
         std::process::exit(1);
     }
     for (i, p) in places.iter().enumerate() {
-        println!("{}. {} | {} | ({}, {})", i + 1, p.name, p.addr, util::py_float(p.lat), util::py_float(p.lng));
+        println!(
+            "{}. {} | {} | ({}, {})",
+            i + 1,
+            p.name,
+            p.addr,
+            util::py_float(p.lat),
+            util::py_float(p.lng)
+        );
     }
     // map.html에는 키가 없고, 키는 map_config.js에만 있다
     if util::write_text("map.html", &kakao_map_html(&js_key, &places, true)).is_err()
@@ -176,8 +190,13 @@ fn main() {
         println!("⛔ map.html·map_config.js를 쓰지 못했어요");
         std::process::exit(1);
     }
-    println!("\n마커 {}개로 map.html을 만들었어요 (검색어: '{query}', 최대 10개)", places.len());
-    println!("키는 map.html이 아니라 map_config.js에만 있어요 (map_config.js는 GitHub에 안 올라가요)");
+    println!(
+        "\n마커 {}개로 map.html을 만들었어요 (검색어: '{query}', 최대 10개)",
+        places.len()
+    );
+    println!(
+        "키는 map.html이 아니라 map_config.js에만 있어요 (map_config.js는 GitHub에 안 올라가요)"
+    );
     println!("이 폴더에서 서버를 켜고 브라우저로 여세요:");
     println!("  cargo run --release --bin make_map -- --serve");
     println!("  http://localhost:8000/map.html");

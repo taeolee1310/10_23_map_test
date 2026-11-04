@@ -27,7 +27,16 @@ re!(ROAD, r"(\S+구)\s+(\S+(?:로|길)(?:\d+길)?)\s+(\d+(?:-\d+)?)");
 re!(ID_FILE, r"^\d+\.json$");
 
 const COLS: [&str; 10] = [
-    "네이버ID", "이름", "주소", "결제수단", "편의시설", "가격표항목수", "가격표이미지만", "세신·수건·결제 관련 글", "수집일", "카카오ID",
+    "네이버ID",
+    "이름",
+    "주소",
+    "결제수단",
+    "편의시설",
+    "가격표항목수",
+    "가격표이미지만",
+    "세신·수건·결제 관련 글",
+    "수집일",
+    "카카오ID",
 ];
 
 /// 주소를 '구|도로명|번지'까지만 줄여 비교한다. 네이버 주소 뒤의 층·건물명·'지도내비게이션' 같은 군더더기를 버린다.
@@ -43,8 +52,16 @@ fn load() -> Result<Vec<Value>> {
     // 파이썬 glob과 같은 순서(폴더가 돌려주는 순서)
     for e in std::fs::read_dir(SRC)? {
         let p = e?.path();
-        let b = p.file_name().and_then(|s| s.to_str()).unwrap_or("").to_string();
-        if !b.ends_with(".json") || SKIP.contains(&b.as_str()) || b.starts_with("probe") || !ID_FILE.is_match(&b) {
+        let b = p
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("")
+            .to_string();
+        if !b.ends_with(".json")
+            || SKIP.contains(&b.as_str())
+            || b.starts_with("probe")
+            || !ID_FILE.is_match(&b)
+        {
             continue;
         }
         rows.push(pyjson::load_file(p.to_str().unwrap())?);
@@ -53,13 +70,21 @@ fn load() -> Result<Vec<Value>> {
 }
 
 fn str_or_empty(v: Option<&Value>) -> String {
-    if pyjson::truthy(v) { pyjson::py_str(v.unwrap()) } else { String::new() }
+    if pyjson::truthy(v) {
+        pyjson::py_str(v.unwrap())
+    } else {
+        String::new()
+    }
 }
 
 fn flat(r: &Value) -> Row {
     let mut hints: Vec<String> = Vec::new();
     for tab in ["home", "information", "review/visitor"] {
-        if let Some(list) = r.get("hints").and_then(|h| h.get(tab)).and_then(|l| l.as_array()) {
+        if let Some(list) = r
+            .get("hints")
+            .and_then(|h| h.get(tab))
+            .and_then(|l| l.as_array())
+        {
             for h in list {
                 let t = PHONE.replace_all(&pyjson::py_str(h), "").into_owned();
                 let t = util::py_strip(&t).to_string();
@@ -69,7 +94,12 @@ fn flat(r: &Value) -> Row {
             }
         }
     }
-    let list = |k: &str| r.get(k).and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    let list = |k: &str| {
+        r.get(k)
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default()
+    };
     let amenities: Vec<String> = list("amenities").iter().map(pyjson::py_str).collect();
     let mut row = Row::new();
     row.insert("네이버ID".into(), pyjson::py_str(&r["id"]));
@@ -78,9 +108,20 @@ fn flat(r: &Value) -> Row {
     row.insert("결제수단".into(), str_or_empty(r.get("payment")));
     row.insert("편의시설".into(), amenities.join(" | "));
     row.insert("가격표항목수".into(), list("prices").len().to_string());
-    row.insert("가격표이미지만".into(), if pyjson::truthy(r.get("price_image_only")) { "True" } else { "False" }.into());
+    row.insert(
+        "가격표이미지만".into(),
+        if pyjson::truthy(r.get("price_image_only")) {
+            "True"
+        } else {
+            "False"
+        }
+        .into(),
+    );
     row.insert("세신·수건·결제 관련 글".into(), hints.join(" / "));
-    row.insert("수집일".into(), util::take_chars(&str_or_empty(r.get("collectedAt")), 10).to_string());
+    row.insert(
+        "수집일".into(),
+        util::take_chars(&str_or_empty(r.get("collectedAt")), 10).to_string(),
+    );
     row
 }
 
@@ -101,7 +142,10 @@ fn main() -> Result<()> {
     println!("같은 네이버ID 중복 제거: {}줄", n0 - df.len());
 
     let n1 = df.len();
-    let df: Vec<Row> = df.into_iter().filter(|r| g(r, "주소").starts_with("서울")).collect();
+    let df: Vec<Row> = df
+        .into_iter()
+        .filter(|r| g(r, "주소").starts_with("서울"))
+        .collect();
     println!("서울 아닌 주소 제외: {}줄", n1 - df.len());
 
     let k_of = |r: &Row| format!("{}|{}", keys::name_key(g(r, "이름")), addr_id(g(r, "주소")));
@@ -113,7 +157,10 @@ fn main() -> Result<()> {
     let m = csvio::read_csv(MERGED, false, Dtype::AllStr)?.records();
     let mut key2id: HashMap<String, HashSet<String>> = HashMap::new();
     for r in &m {
-        key2id.entry(k_of(r)).or_default().insert(g(r, "카카오ID").to_string());
+        key2id
+            .entry(k_of(r))
+            .or_default()
+            .insert(g(r, "카카오ID").to_string());
     }
     for r in df.iter_mut() {
         let kid = match key2id.get(&k_of(r)) {
@@ -124,12 +171,21 @@ fn main() -> Result<()> {
     }
     // 이름 표기만 달라 자동으로 못 붙은 곳: 사람이 확인한 짝을 붙인다. 이미 붙은 곳은 건드리지 않는다.
     let man = csvio::read_csv(MANUAL, true, Dtype::AllStr)?.records();
-    let mut taken: HashSet<String> = df.iter().map(|r| g(r, "카카오ID").to_string()).filter(|s| !s.is_empty()).collect();
+    let mut taken: HashSet<String> = df
+        .iter()
+        .map(|r| g(r, "카카오ID").to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
     let mut n_man = 0;
     for mr in &man {
         let (kid, nid) = (g(mr, "카카오ID").to_string(), g(mr, "네이버ID"));
-        let hit: Vec<usize> = (0..df.len()).filter(|&i| g(&df[i], "네이버ID") == nid && !nid.is_empty()).collect();
-        if !taken.contains(&kid) && !hit.is_empty() && hit.iter().all(|&i| g(&df[i], "카카오ID").is_empty()) {
+        let hit: Vec<usize> = (0..df.len())
+            .filter(|&i| g(&df[i], "네이버ID") == nid && !nid.is_empty())
+            .collect();
+        if !taken.contains(&kid)
+            && !hit.is_empty()
+            && hit.iter().all(|&i| g(&df[i], "카카오ID").is_empty())
+        {
             for &i in &hit {
                 df[i].insert("카카오ID".into(), kid.clone());
             }
@@ -147,21 +203,42 @@ fn main() -> Result<()> {
             *count.entry(k.to_string()).or_default() += 1;
         }
     }
-    let clash: HashSet<String> = count.into_iter().filter(|(_, n)| *n > 1).map(|(k, _)| k).collect();
+    let clash: HashSet<String> = count
+        .into_iter()
+        .filter(|(_, n)| *n > 1)
+        .map(|(k, _)| k)
+        .collect();
     for r in df.iter_mut() {
         if clash.contains(g(r, "카카오ID")) {
             r.insert("카카오ID".into(), String::new());
         }
     }
     let attached = df.iter().filter(|r| !g(r, "카카오ID").is_empty()).count();
-    println!("탕방 목록과 일대일로 붙음 {attached}줄 / 못 붙음 {}줄 / 충돌로 보류 {}곳", df.len() - attached, clash.len());
+    println!(
+        "탕방 목록과 일대일로 붙음 {attached}줄 / 못 붙음 {}줄 / 충돌로 보류 {}곳",
+        df.len() - attached,
+        clash.len()
+    );
 
     let ids: HashSet<&str> = df.iter().map(|r| g(r, "네이버ID")).collect();
-    let kids: Vec<&str> = df.iter().map(|r| g(r, "카카오ID")).filter(|s| !s.is_empty()).collect();
-    assert!(ids.len() == df.len() && kids.iter().collect::<HashSet<_>>().len() == kids.len(), "⛔ 중복이 남았어요");
+    let kids: Vec<&str> = df
+        .iter()
+        .map(|r| g(r, "카카오ID"))
+        .filter(|s| !s.is_empty())
+        .collect();
+    assert!(
+        ids.len() == df.len() && kids.iter().collect::<HashSet<_>>().len() == kids.len(),
+        "⛔ 중복이 남았어요"
+    );
     csvio::write_rows(OUT, &COLS, &df)?;
-    let has = df.iter().filter(|r| !g(r, "세신·수건·결제 관련 글").is_empty()).count();
+    let has = df
+        .iter()
+        .filter(|r| !g(r, "세신·수건·결제 관련 글").is_empty())
+        .count();
     let pay = df.iter().filter(|r| !g(r, "결제수단").is_empty()).count();
-    println!("저장: {OUT} {}줄 (관련 글이 있는 곳 {has}곳, 결제수단이 있는 곳 {pay}곳)", df.len());
+    println!(
+        "저장: {OUT} {}줄 (관련 글이 있는 곳 {has}곳, 결제수단이 있는 곳 {pay}곳)",
+        df.len()
+    );
     Ok(())
 }

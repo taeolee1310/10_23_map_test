@@ -33,7 +33,11 @@ fn parse_line(line: &str) -> Option<(String, String)> {
     if line.is_empty() || SEP_LINE.is_match(&line) {
         return None; // 빈 줄, | --- | 구분선
     }
-    let cells: Vec<&str> = line.split('|').map(util::py_strip).filter(|c| !c.is_empty() && !is_digits(c)).collect();
+    let cells: Vec<&str> = line
+        .split('|')
+        .map(util::py_strip)
+        .filter(|c| !c.is_empty() && !is_digits(c))
+        .collect();
     if cells.len() < 2 || ["이름", "가게", "가게명", "식당"].contains(&cells[0]) {
         return None; // 머리글 줄은 건너뜀
     }
@@ -72,7 +76,9 @@ fn norm(text: &str) -> String {
 fn same_name(want: &str, found: &str) -> bool {
     let (want, found) = (norm(want), norm(found));
     let pattern: Vec<String> = want.split('*').map(regex::escape).collect();
-    Regex::new(&format!("^(?:{})", pattern.join("."))).map(|re| re.is_match(&found)).unwrap_or(false)
+    Regex::new(&format!("^(?:{})", pattern.join(".")))
+        .map(|re| re.is_match(&found))
+        .unwrap_or(false)
 }
 
 /// 주소 첫 단어(서울특별시/서울)는 표기가 달라서 뺀다.
@@ -89,7 +95,10 @@ fn same_address(want: &str, found: &str) -> bool {
             return false;
         }
     }
-    if let Some(road) = want_t.iter().find(|t| Some(**t) != gu && ROAD_ANY.is_match(t)) {
+    if let Some(road) = want_t
+        .iter()
+        .find(|t| Some(**t) != gu && ROAD_ANY.is_match(t))
+    {
         let stem = HANGUL.find(road).map(|m| m.as_str()).unwrap_or(""); // '강남대로96길' -> '강남대로'
         return found_t.join(" ").contains(stem);
     }
@@ -137,7 +146,10 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let area = match args.get(1) {
         Some(a) => a.clone(),
-        None => util::py_strip(&util::input("동네(예: 서울특별시 강남구, 그냥 Enter면 주소에서 읽음): ")).to_string(),
+        None => util::py_strip(&util::input(
+            "동네(예: 서울특별시 강남구, 그냥 Enter면 주소에서 읽음): ",
+        ))
+        .to_string(),
     };
     let path = args.get(2).cloned().unwrap_or_else(|| FILE.to_string());
     let Ok(text) = std::fs::read_to_string(&path) else {
@@ -153,9 +165,25 @@ fn main() {
     }
 
     let (mut ok, mut maybe, mut no) = (0usize, 0usize, 0usize);
-    println!("동네: {} / 검사할 가게: {}개\n", if area.is_empty() { "주소에서 읽음" } else { &area }, rows.len());
+    println!(
+        "동네: {} / 검사할 가게: {}개\n",
+        if area.is_empty() {
+            "주소에서 읽음"
+        } else {
+            &area
+        },
+        rows.len()
+    );
     for (i, (name, addr)) in rows.iter().enumerate() {
-        let a = if area.is_empty() { util::py_split(addr).into_iter().take(2).collect::<Vec<_>>().join(" ") } else { area.clone() };
+        let a = if area.is_empty() {
+            util::py_split(addr)
+                .into_iter()
+                .take(2)
+                .collect::<Vec<_>>()
+                .join(" ")
+        } else {
+            area.clone()
+        };
         let (mark, found_name, found_addr) = match judge(&a, name, addr) {
             Ok(x) => x,
             Err(e) => {

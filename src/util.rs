@@ -10,7 +10,32 @@ pub fn exists(p: &str) -> bool {
 /// 오늘 날짜(KST, YYYY-MM-DD). 한국은 서머타임이 없어 +9시간 고정.
 pub fn today_kst() -> String {
     let kst = chrono::FixedOffset::east_opt(9 * 3600).unwrap();
-    chrono::Utc::now().with_timezone(&kst).format("%Y-%m-%d").to_string()
+    chrono::Utc::now()
+        .with_timezone(&kst)
+        .format("%Y-%m-%d")
+        .to_string()
+}
+
+/// 오늘(KST)에서 n일 전 날짜 'YYYY-MM-DD'
+pub fn kst_days_ago(n: i64) -> String {
+    (chrono::NaiveDate::parse_from_str(&today_kst(), "%Y-%m-%d").unwrap() - chrono::Duration::days(n))
+        .format("%Y-%m-%d")
+        .to_string()
+}
+
+/// 양질의 정보 기준(사용자 지침 2026-11-04): 후기·블로그(사진 속 요금 같은 정보 포함)는 최근 1년(오늘 KST에서 365일) 안의 것만 쓴다
+pub const FRESH_DAYS: i64 = 365;
+pub fn fresh_from() -> String {
+    kst_days_ago(FRESH_DAYS)
+}
+
+/// 네이버 업체 사진 주소의 올린 날: 'https://ldb-phinf.pstatic.net/20200606_5/...' → '2020-06-06'. 못 읽으면 None(오래된 것으로 본다)
+pub fn photo_posted(url: &str) -> Option<String> {
+    let seg = url.split("pstatic.net/").nth(1)?.get(0..8)?;
+    if !seg.bytes().all(|b| b.is_ascii_digit()) {
+        return None;
+    }
+    Some(format!("{}-{}-{}", &seg[0..4], &seg[4..6], &seg[6..8]))
 }
 
 /// 파이썬 str.isspace()와 같은 공백 판정.
@@ -68,7 +93,11 @@ pub fn json_float(f: f64) -> String {
     if f.is_nan() {
         "NaN".into()
     } else if f.is_infinite() {
-        if f > 0.0 { "Infinity".into() } else { "-Infinity".into() }
+        if f > 0.0 {
+            "Infinity".into()
+        } else {
+            "-Infinity".into()
+        }
     } else {
         py_float(f)
     }
@@ -116,7 +145,11 @@ pub fn value_counts<'a>(vals: impl IntoIterator<Item = &'a str>) -> Vec<(String,
 /// 파이썬 open(path, "w", encoding="utf-8")처럼 쓴다. 윈도우에서는 줄바꿈이 \r\n이 된다.
 pub fn write_text(path: &str, content: &str) -> anyhow::Result<()> {
     ensure_parent(path)?;
-    let body = if cfg!(windows) { content.replace('\n', "\r\n") } else { content.to_string() };
+    let body = if cfg!(windows) {
+        content.replace('\n', "\r\n")
+    } else {
+        content.to_string()
+    };
     std::fs::write(path, body)?;
     Ok(())
 }

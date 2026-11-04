@@ -1,4 +1,4 @@
-import { won, type DayKo, type Facts, type Price, type TowelMode } from '../../lib/onsen'
+import { won, type DayKo, type DryerInfo, type Facts, type Price, type TowelMode } from '../../lib/onsen'
 import PriceIcon, { type PriceIconName } from '../../components/PriceIcon/PriceIcon'
 
 // 값이 있는 것만 문구로 만든다. 없는 칸은 null이라 화면에서 통째로 빠진다.
@@ -10,6 +10,22 @@ export function towelText(t: Facts['towel']): string | null {
   if (!w && !m) return null
   if (w && m && w.mode === m.mode && w.count === m.count) return '수건 ' + towelOne(w)
   return [w && '여탕 수건 ' + towelOne(w), m && '남탕 수건 ' + towelOne(m)].filter(Boolean).join(' · ')
+}
+
+const dryerOne = (d: DryerInfo): string | null =>
+  d.none ? '없음' : d.paid === true ? (d.price != null ? `유료 ${won(d.price)}` : '유료') : d.paid === false ? '무료' : d.has ? '있음' : null
+
+/** 드라이기 문구(목록·미리보기·상세 공통). 탕별 값이 있으면 '여탕 유료 200원 · 남탕 무료'처럼 탕별로, 없으면 공통 값으로 */
+export function hairdryerText(h: Facts['hairdryer']): string | null {
+  if (!h) return null
+  const w = h.women && dryerOne(h.women)
+  const m = h.men && dryerOne(h.men)
+  const low = [h.women, h.men].some((x) => x && dryerOne(x) && x.low) || (!w && !m && h.low)
+  let text: string | null
+  if (w && m) text = w === m ? w : `여탕 ${w} · 남탕 ${m}`
+  else if (w || m) text = w ? `여탕 ${w}` : `남탕 ${m}`
+  else text = dryerOne(h)
+  return text && text + (low ? ' (후기 1건 기준)' : '')
 }
 
 export function seshinPriceText(s: Facts['seshin']): string | null {
@@ -28,7 +44,7 @@ function worryRows(f: Facts | undefined): WorryRow[] {
   const hd = f?.hairdryer
   return [
     { icon: 'towel', label: '수건', text: towelText(f?.towel)?.replace(/수건 /g, '') ?? null }, // 줄 이름이 '수건'이라 값에서는 뺀다
-    { icon: 'hairdryer', label: '드라이기', text: hd ? (hd.paid ? '유료' : '무료') + (hd.low ? ' (후기 1건 기준)' : '') : null },
+    { icon: 'hairdryer', label: '드라이기', text: hairdryerText(hd) },
     { icon: 'scrub', label: '세신', text: price || pay ? [price, pay].filter(Boolean).join(' · ') : null }, // 요금·결제를 한 줄로
   ]
 }

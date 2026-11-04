@@ -8,16 +8,17 @@
 //! - 대상: data/merged/onsen_merged.csv 중 네이버ID가 있는 곳 (naver_places.csv + curated/naver_match_manual.csv)
 //! - 방문자 리뷰는 작성자 이름·원문을 저장하지 않고, 키워드가 든 문장만 '방문자리뷰(날짜없음)'으로 남긴다.
 //!
-//! 실행(프로젝트 폴더에서): cargo run --release --bin collect_home -- [--gu 강남구] [--limit 3] [--max 150]
+//! - --refresh-days N: 수집일이 N일 넘게 지난 곳도 다시 받는다(오래된 곳부터). 다시 받은 페이지가 저장되면 그 곳의 줄을 새 내용으로 바꾼다.
+//!
+//! 실행(프로젝트 폴더에서): cargo run --release --bin collect_home -- [--gu 강남구] [--limit 3] [--max 150] [--refresh-days 30]
 //! 다음 단계: judge_facts → onsen_merge → export_web_data
 
 use anyhow::Result;
 use clap::Parser;
-use regex::Regex;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use tangbang_data::csvio::{self, g, Dtype, Row};
-use tangbang_data::naver::{self, COLS, OUT};
-use tangbang_data::{pysort, util};
+use tangbang_data::naver::{self, targets, COLS, OUT};
+use tangbang_data::util;
 
 const TODO: &str = "data/collected/naver_home_todo.csv";
 
@@ -30,50 +31,9 @@ struct Args {
     /// 한 번에 ego로 열 곳 수 상한
     #[arg(long, default_value_t = 150)]
     max: usize,
-}
-
-fn read(path: &str) -> Result<Vec<Row>> {
-    Ok(csvio::read_csv(path, true, Dtype::AllStr)?.records())
-}
-
-fn targets(gu: Option<&str>, limit: Option<usize>) -> Result<Vec<Row>> {
-    let m = read("data/merged/onsen_merged.csv")?;
-    let n = read("data/collected/naver_places.csv")?;
-    let mm = read("data/curated/naver_match_manual.csv")?;
-    let pairs: Vec<(String, String)> = n
-        .iter()
-        .chain(mm.iter())
-        .map(|r| (g(r, "카카오ID").to_string(), g(r, "네이버ID").to_string()))
-        .filter(|(k, v)| !k.is_empty() && !v.is_empty())
-        .collect();
-    let map: HashMap<String, String> = pysort::keep_first(pairs, |p| p.0.clone()).into_iter().collect();
-    let mut t: Vec<Row> = m
-        .iter()
-        .filter_map(|r| {
-            map.get(g(r, "카카오ID")).map(|nid| {
-                let mut r = r.clone();
-                r.insert("네이버ID".into(), nid.clone());
-                r
-            })
-        })
-        .collect();
-    let ex_path = "data/collected/excluded_candidates.csv";
-    if util::exists(ex_path) {
-        let sure: HashSet<String> =
-            read(ex_path)?.iter().filter(|r| g(r, "확신") == "확실").map(|r| g(r, "카카오ID").to_string()).collect();
-        println!("제외 후보(확실) {}곳은 수집에서 뺌", sure.len());
-        t.retain(|r| !sure.contains(g(r, "카카오ID")));
-    }
-    println!("목록 {}곳 중 네이버ID 있음 {}곳 (없는 {}곳은 건너뜀)", m.len(), t.len(), m.len() as i64 - t.len() as i64);
-    if let Some(gu) = gu {
-        let re = Regex::new(gu)?;
-        t.retain(|r| re.is_match(g(r, "주소")));
-        println!("조건: 주소에 '{gu}' 포함 → {}곳", t.len());
-    }
-    if let Some(l) = limit.filter(|l| *l > 0) {
-        t.truncate(l);
-    }
-    Ok(t)
+    /// 수집일이 이 날수보다 오래된 곳은 다시 받는다(없으면 다시 받지 않음)
+    #[arg(long)]
+    refresh_days: Option<i64>,
 }
 
 fn main() -> Result<()> {
@@ -85,20 +45,104 @@ fn main() -> Result<()> {
     } else {
         (COLS.iter().map(|s| s.to_string()).collect(), vec![])
     };
-    let seen: HashSet<String> = done.iter().map(|r| g(r, "네이버ID").to_string()).collect();
-    let t: Vec<Row> = t.into_iter().filter(|r| !seen.contains(g(r, "네이버ID"))).collect();
-    println!("이어받기: 이미 받은 {}곳 제외 → 남은 {}곳", seen.len(), t.len());
-
     let today = util::today_kst();
-    let (mut added, mut bad) = (0, 0);
+    let kst = chrono::FixedOffset::east_opt(9 * 3600).unwrap();
+    let file_day = |path: &str| -> Option<String> {
+        let t = std::fs::metadata(path).and_then(|m| m.modified()).ok()?;
+        Some(
+            chrono::DateTime::<chrono::Utc>::from(t)
+                .with_timezone(&kst)
+                .format("%Y-%m-%d")
+                .to_string(),
+        )
+    };
+    // 다시 받을 기준일: 오늘(KST) − N일. 수집일이 이보다 앞이면 오래된 곳
+    let cutoff = a.refresh_days.map(|n| {
+        let d = chrono::NaiveDate::parse_from_str(&today, "%Y-%m-%d").unwrap()
+            - chrono::Duration::days(n);
+        d.format("%Y-%m-%d").to_string()
+    });
+    let mut index: HashMap<String, usize> = HashMap::new();
+    for (i, r) in done.iter().enumerate() {
+        index.insert(g(r, "네이버ID").to_string(), i); // 같은 곳이 여러 줄이면 마지막 줄이 기준
+    }
+    let parse_row = |r: &Row, text: &str, day: String| -> Row {
+        let mut row: Row = COLS
+            .iter()
+            .map(|c| (c.to_string(), String::new()))
+            .collect();
+        for c in ["카카오ID", "네이버ID", "이름"] {
+            row.insert(c.into(), g(r, c).to_string());
+        }
+        row.insert("수집일".into(), day); // 수집일 = 파일을 저장한 날(KST)
+        row.extend(naver::parse(text));
+        row.insert("상태".into(), "ok".into());
+        row
+    };
+
+    let (mut added, mut refreshed, mut bad) = (0, 0, 0);
     let mut todo: Vec<Vec<String>> = Vec::new();
+    let mut stale: Vec<(String, Vec<String>)> = Vec::new(); // (수집일, 받을 줄) — 오래된 곳부터 받으려고 모은다
+    let new_count = t
+        .iter()
+        .filter(|r| !index.contains_key(g(r, "네이버ID")))
+        .count();
+    println!(
+        "이어받기: 이미 받은 {}곳, 아직 안 받은 {}곳",
+        index.len(),
+        new_count
+    );
+    if let Some(c) = &cutoff {
+        println!(
+            "다시 받기: 수집일이 {c} 이전인 곳(오늘 {today} 기준 {}일 넘게 지남)",
+            a.refresh_days.unwrap()
+        );
+    }
     for r in &t {
         let nid = g(r, "네이버ID");
         let path = naver::home_file(nid);
-        let Some(text) = naver::read_page(&path) else {
-            if todo.len() < a.max {
-                todo.push(vec![g(r, "카카오ID").into(), nid.into(), g(r, "이름").into(), naver::home_url(nid), path]);
+        let row_url = vec![
+            g(r, "카카오ID").into(),
+            nid.into(),
+            g(r, "이름").into(),
+            naver::home_url(nid),
+            path.clone(),
+        ];
+        if let Some(&i) = index.get(nid) {
+            // 이미 받은 곳: 기록보다 새로 저장된 페이지가 있으면 그 내용으로 바꾸고, 오래됐으면 다시 받을 목록에 넣는다
+            let old_day = g(&done[i], "수집일").to_string();
+            let saved = file_day(&path);
+            if let (Some(day), Some(text)) = (saved.clone(), naver::read_page(&path)) {
+                if day > old_day {
+                    if naver::blocked(&text) {
+                        println!("⛔ 캡차·차단 화면이 저장돼 있어요 ({}: {path}). 우회하지 않고 멈춥니다. 파일을 지우고 나중에 다시 받으세요.", g(r, "이름"));
+                        return Ok(());
+                    }
+                    if naver::valid_home(&text) {
+                        done[i] = parse_row(r, &text, day);
+                        refreshed += 1;
+                        println!(
+                            "{} 새로 받은 페이지로 바꿈 ({old_day} → {})",
+                            g(r, "이름"),
+                            g(&done[i], "수집일")
+                        );
+                        continue;
+                    }
+                }
             }
+            if let Some(c) = &cutoff {
+                if old_day.as_str() < c.as_str() {
+                    let mut line = row_url;
+                    line.push("1".into());
+                    stale.push((old_day, line));
+                }
+            }
+            continue;
+        }
+        let Some(text) = naver::read_page(&path) else {
+            let mut line = row_url;
+            line.push(String::new());
+            todo.push(line);
             continue;
         };
         if naver::blocked(&text) {
@@ -111,30 +155,33 @@ fn main() -> Result<()> {
             bad += 1;
             continue;
         }
-        let mut row: Row = COLS.iter().map(|c| (c.to_string(), String::new())).collect();
-        for c in ["카카오ID", "네이버ID", "이름"] {
-            row.insert(c.into(), g(r, c).to_string());
-        }
-        // 수집일 = 파일을 저장한 날(KST). 알 수 없으면 오늘
-        let day = std::fs::metadata(&path)
-            .and_then(|m| m.modified())
-            .map(|t| {
-                let kst = chrono::FixedOffset::east_opt(9 * 3600).unwrap();
-                chrono::DateTime::<chrono::Utc>::from(t).with_timezone(&kst).format("%Y-%m-%d").to_string()
-            })
-            .unwrap_or_else(|_| today.clone());
-        row.insert("수집일".into(), day);
-        row.extend(naver::parse(&text));
-        row.insert("상태".into(), "ok".into());
-        done.push(row);
+        let day = file_day(&path).unwrap_or_else(|| today.clone());
+        done.push(parse_row(r, &text, day));
+        index.insert(nid.to_string(), done.len() - 1);
         added += 1;
         println!("{} ok", g(r, "이름"));
     }
-    if added > 0 {
+    // 새 곳 먼저, 그다음 오래된 곳부터. 합쳐서 --max까지
+    stale.sort_by(|x, y| x.0.cmp(&y.0));
+    let stale_total = stale.len();
+    todo.extend(stale.into_iter().map(|(_, l)| l));
+    todo.truncate(a.max);
+    if added > 0 || refreshed > 0 {
         csvio::write_rows(OUT, &cols, &done)?;
     }
-    csvio::write_csv(TODO, &["카카오ID", "네이버ID", "이름", "주소", "저장할파일"], &todo)?;
-    println!("저장된 페이지에서 추가 {added}곳 → {OUT} / 홈 페이지가 아닌 파일 {bad}개");
-    println!("ego로 열 곳 {}곳 (상한 {}) → {TODO}", todo.len(), a.max);
+    csvio::write_csv(
+        TODO,
+        &[
+            "카카오ID",
+            "네이버ID",
+            "이름",
+            "주소",
+            "저장할파일",
+            "다시받기",
+        ],
+        &todo,
+    )?;
+    println!("저장된 페이지에서 추가 {added}곳 · 새 내용으로 바꿈 {refreshed}곳 → {OUT} / 홈 페이지가 아닌 파일 {bad}개");
+    println!("ego로 열 곳 {}곳 (새 곳 {new_count} 중 남은 것 + 오래된 곳 {stale_total}, 상한 {}) → {TODO}", todo.len(), a.max);
     Ok(())
 }

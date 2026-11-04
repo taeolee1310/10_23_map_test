@@ -41,12 +41,15 @@ export type Place = {
 
 // 가기 전에 알고 싶은 세부 정보. 직접 확인한 곳에만 있고, 없는 칸은 키 자체가 없다(추측으로 채우지 않는다).
 export type DayKo = '월' | '화' | '수' | '목' | '금' | '토' | '일'
+export type DryerInfo = { paid?: boolean; none?: boolean; has?: boolean; price?: number; low?: boolean }
 export type TowelMode ={ mode: 'unlimited' | 'limited'; count?: number }
 export type Facts = {
   // 전신 세신 금액: 남녀가 같으면 price_full, 다르면 price_men·price_women (한쪽만 확인된 곳은 그쪽만)
   seshin?: { payment?: 'cash_only' | 'card_ok'; price_full?: number; price_men?: number; price_women?: number; price_mini?: number; beds?: number; reservation?: boolean }
   towel?: { women?: TowelMode; men?: TowelMode } // 여탕·남탕이 다를 수 있다
-  hairdryer?: { paid: boolean; low?: boolean } // low: 근거가 후기 1건뿐이라 신뢰도가 낮다
+  // 드라이기: 맨 위는 어느 탕인지 모르는 공통 값, women·men은 탕별 값(여탕은 유료인 곳이 많다).
+  // paid: 무료·유료, none: 없음, has: 있다고만 확인(무료·유료 모름), price: 유료 금액, low: 근거가 후기 1건뿐이라 신뢰도가 낮다
+  hairdryer?: DryerInfo & { women?: DryerInfo; men?: DryerInfo }
   // 가격표의 추가 요금. night.extra는 (야간 − 주간)을 코드로 계산한 값, overtime.label은 가게가 적은 문구 그대로
   fees?: { clothes?: number; night?: { price: number; extra?: number }; overtime?: { price: number; label?: string } }
   facility?: { baths?: { name: string; temp_c?: number }[]; sauna?: string[]; open_air?: boolean; water?: string }

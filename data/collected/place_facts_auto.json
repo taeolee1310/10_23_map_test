@@ -1,5 +1,5 @@
 {
- "_설명": "scripts/judge_facts.py가 만든다. 사람이 확인한 data/curated/place_facts.json이 항목별로 우선한다.",
+ "_설명": "judge_facts(cargo run --release --bin judge_facts)가 만든다. 사람이 확인한 data/curated/place_facts.json이 항목별로 우선한다.",
  "places": {
   "480929361": {
    "hairdryer": {
@@ -23,6 +23,9 @@
    "seshin": {
     "price_men": 20000,
     "price_women": 30000
+   },
+   "hairdryer": {
+    "has": true
    },
    "convenience": {
     "closed_days": "정기휴무 매일18시입장마감",
@@ -76,7 +79,10 @@
   },
   "16591015": {
    "hairdryer": {
-    "paid": false
+    "paid": false,
+    "women": {
+     "has": true
+    }
    },
    "supplies": {
     "shampoo": true
@@ -112,6 +118,9 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "684737250": {
+   "hairdryer": {
+    "has": true
+   },
    "supplies": {
     "shampoo": true,
     "bodywash": true
@@ -151,29 +160,13 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
-  "436826235": {
-   "convenience": {
-    "hours": {
-     "월": "11:00 - 21:45",
-     "화": "정기휴무 (매주 화요일)",
-     "수": "11:00 - 21:45",
-     "목": "11:00 - 21:45",
-     "금": "11:00 - 21:45",
-     "토": "11:00 - 21:45",
-     "일": "11:00 - 21:45"
-    }
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
   "2136431144": {
    "seshin": {
     "price_men": 30000,
     "price_women": 40000
    },
    "hairdryer": {
-    "paid": false,
-    "low": true
+    "has": true
    },
    "supplies": {
     "shampoo": true,
@@ -196,7 +189,10 @@
   },
   "lic3220000-202-2003-00009": {
    "hairdryer": {
-    "paid": true
+    "women": {
+     "paid": true,
+     "price": 200
+    }
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -227,10 +223,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "16765958": {
-   "hairdryer": {
-    "paid": false,
-    "low": true
-   },
    "convenience": {
     "hours": {
      "월": "06:00 - 21:00",
@@ -262,10 +254,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "13137446": {
-   "hairdryer": {
-    "paid": false,
-    "low": true
-   },
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
@@ -289,6 +277,9 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1254694952": {
+   "hairdryer": {
+    "has": true
+   },
    "supplies": {
     "shampoo": true,
     "bodywash": true
@@ -322,10 +313,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1841131290": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
@@ -343,7 +330,8 @@
   },
   "411481792": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 300
    },
    "fees": {
     "night": {
@@ -373,14 +361,6 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
-  "lic3240000-202-2007-00001": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
   "9762379": {
    "convenience": {
     "hours": {
@@ -397,10 +377,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "24375482": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
    "towel": {
     "women": {
      "mode": "limited",
@@ -437,10 +413,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "9118313": {
-   "hairdryer": {
-    "paid": false,
-    "low": true
-   },
    "convenience": {
     "closed_days": "매달 2, 4번째 화요일 정기 휴무",
     "hours": {
@@ -579,7 +551,8 @@
   },
   "20741467": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 100
    },
    "towel": {
     "women": {
@@ -631,17 +604,10 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
-  "16791133": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
   "20740919": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 100
    },
    "convenience": {
     "hours": {
@@ -734,10 +700,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "20741296": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
    "convenience": {
     "hours": {
      "월": "05:00 - 18:00",
@@ -768,10 +730,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "446947563": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
    "convenience": {
     "hours": {
      "월": "05:00 - 18:00",
@@ -786,9 +744,17 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
+  "1637275351": {
+   "hairdryer": {
+    "has": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
   "16593580": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 100
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -810,27 +776,14 @@
   },
   "741430264": {
    "hairdryer": {
-    "paid": true
+    "women": {
+     "paid": true
+    }
    },
    "towel": {
     "women": {
      "mode": "limited",
      "count": 2
-    }
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
-  "1390956086": {
-   "convenience": {
-    "hours": {
-     "월": "07:00 - 23:00",
-     "화": "07:00 - 23:00",
-     "수": "07:00 - 23:00",
-     "목": "07:00 - 23:00 · - 오전7시~8시30분은 전일 예약 필수",
-     "금": "07:00 - 23:00",
-     "토": "07:00 - 23:00",
-     "일": "07:00 - 23:00"
     }
    },
    "checked": "2026-10-30",
@@ -846,7 +799,8 @@
   },
   "1933810947": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 200
    },
    "towel": {
     "women": {
@@ -908,6 +862,9 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1138255627": {
+   "hairdryer": {
+    "has": true
+   },
    "convenience": {
     "hours": {
      "월": "10:00 - 20:00 · 14:00 - 15:00 휴게시간",
@@ -953,6 +910,9 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1274037828": {
+   "hairdryer": {
+    "has": true
+   },
    "convenience": {
     "hours": {
      "월": "09:00 - 18:00",
@@ -968,6 +928,10 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "16505463": {
+   "hairdryer": {
+    "paid": true,
+    "price": 200
+   },
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
@@ -983,24 +947,10 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
-  "16379471": {
-   "convenience": {
-    "hours": {
-     "월": "정보없음",
-     "화": "정보없음",
-     "수": "정보없음",
-     "목": "정보없음",
-     "금": "정보없음",
-     "토": "정보없음",
-     "일": "정보없음"
-    }
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
   "15244123": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 200
    },
    "towel": {
     "women": {
@@ -1073,6 +1023,9 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "973448009": {
+   "hairdryer": {
+    "has": true
+   },
    "convenience": {
     "closed_days": "매달 1번째 수요일 정기 휴무",
     "hours": {
@@ -1132,24 +1085,13 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
-  "lic3200000-202-2004-00001": {
-   "convenience": {
-    "hours": {
-     "월": "정보없음",
-     "화": "정기휴무 (매주 화요일)",
-     "수": "정보없음",
-     "목": "정보없음",
-     "금": "정보없음",
-     "토": "정보없음",
-     "일": "정보없음"
-    }
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
   "202977425": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 100,
+    "women": {
+     "paid": true
+    }
    },
    "towel": {
     "women": {
@@ -1257,15 +1199,8 @@
   },
   "lic3040000-202-2001-00003": {
    "hairdryer": {
-    "paid": true
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
-  "580405909": {
-   "hairdryer": {
     "paid": true,
-    "low": true
+    "price": 200
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -1310,10 +1245,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1136727366": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
    "fees": {
     "clothes": 2000,
     "night": {
@@ -1350,14 +1281,6 @@
   "lic3160000-202-2000-00001": {
    "seshin": {
     "price_full": 15000
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
-  "16420656": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -1498,7 +1421,8 @@
   },
   "1222007254": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 100
    },
    "convenience": {
     "open_24h": true,
@@ -1653,10 +1577,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "16056800": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
    "fees": {
     "clothes": 2000
    },
@@ -1762,9 +1682,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "19213088": {
-   "hairdryer": {
-    "paid": true
-   },
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
@@ -1791,21 +1708,6 @@
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
-  "lic3050000-202-2006-00001": {
-   "convenience": {
-    "hours": {
-     "월": "06:00 - 23:00",
-     "화": "06:00 - 23:00",
-     "수": "06:00 - 23:00",
-     "목": "06:00 - 23:00 · - 설추석명절 연휴 휴관",
-     "금": "06:00 - 23:00",
-     "토": "07:00 - 19:00",
-     "일": "정기휴무 (매주 일요일)"
-    }
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -1865,7 +1767,10 @@
   },
   "10393366": {
    "hairdryer": {
-    "paid": true
+    "women": {
+     "paid": true,
+     "price": 200
+    }
    },
    "towel": {
     "women": {
@@ -1877,10 +1782,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1371446443": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
    "towel": {
     "women": {
      "mode": "limited",
@@ -1999,26 +1900,7 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
-  "113950393": {
-   "convenience": {
-    "hours": {
-     "월": "07:00 - 22:00",
-     "화": "07:00 - 22:00",
-     "수": "07:00 - 22:00",
-     "목": "07:00 - 22:00",
-     "금": "07:00 - 22:00",
-     "토": "07:00 - 22:00",
-     "일": "07:00 - 22:00"
-    }
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
   "8032536": {
-   "hairdryer": {
-    "paid": false,
-    "low": true
-   },
    "convenience": {
     "open_24h": true,
     "hours": {
@@ -2080,10 +1962,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1534238244": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
    "fees": {
     "night": {
      "price": 12000,
@@ -2105,14 +1983,6 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
-  "8579288": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
   "lic3120000-202-1999-00952": {
    "convenience": {
     "hours": {
@@ -2129,9 +1999,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "7963443": {
-   "hairdryer": {
-    "paid": true
-   },
    "towel": {
     "women": {
      "mode": "limited",
@@ -2341,10 +2208,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "16906741": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
    "convenience": {
     "hours": {
      "월": "06:00 - 18:00",
@@ -2426,7 +2289,8 @@
   },
   "605985110": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 200
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -2473,9 +2337,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "25421609": {
-   "hairdryer": {
-    "paid": true
-   },
    "towel": {
     "women": {
      "mode": "limited",
@@ -2502,8 +2363,7 @@
   },
   "15930709": {
    "hairdryer": {
-    "paid": true,
-    "low": true
+    "has": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -2587,7 +2447,9 @@
   },
   "9103007": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 200,
+    "low": true
    },
    "convenience": {
     "closed_days": "연중무휴"
@@ -2687,10 +2549,6 @@
    "seshin": {
     "price_full": 25000
    },
-   "hairdryer": {
-    "paid": false,
-    "low": true
-   },
    "convenience": {
     "hours": {
      "월": "06:00 - 18:00",
@@ -2705,11 +2563,15 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
-  "11373593": {
+  "10158172": {
    "hairdryer": {
-    "paid": false,
+    "has": true,
     "low": true
    },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "11373593": {
    "fees": {
     "clothes": 2000
    },
@@ -2721,6 +2583,9 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "321314006": {
+   "hairdryer": {
+    "has": true
+   },
    "supplies": {
     "shampoo": true,
     "bodywash": true
@@ -2763,7 +2628,9 @@
   },
   "17103308": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 100,
+    "low": true
    },
    "convenience": {
     "open_24h": true,
@@ -2791,10 +2658,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1899417213": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
    "towel": {
     "women": {
      "mode": "limited",
@@ -2813,7 +2676,10 @@
   },
   "11480254": {
    "hairdryer": {
-    "paid": true
+    "women": {
+     "paid": true,
+     "price": 200
+    }
    },
    "supplies": {
     "shampoo": true
@@ -2897,7 +2763,9 @@
   },
   "10895295": {
    "hairdryer": {
-    "paid": false
+    "women": {
+     "paid": false
+    }
    },
    "convenience": {
     "open_24h": true,
@@ -2908,7 +2776,9 @@
   },
   "16273034": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 100,
+    "low": true
    },
    "convenience": {
     "hours": {
@@ -2933,10 +2803,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "10282010": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
    "fees": {
     "night": {
      "price": 11000,
@@ -2966,10 +2832,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "192022696": {
-   "hairdryer": {
-    "paid": false,
-    "low": true
-   },
    "fees": {
     "clothes": 1000
    },
@@ -3002,7 +2864,8 @@
   },
   "11806333": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 100
    },
    "convenience": {
     "hours": {
@@ -3129,26 +2992,12 @@
   },
   "9179865": {
    "hairdryer": {
-    "paid": true
+    "women": {
+     "paid": true
+    }
    },
    "fees": {
     "clothes": 1000
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
-  "lic3180000-202-2007-00006": {
-   "convenience": {
-    "closed_days": "매주 금요일 휴무",
-    "hours": {
-     "월": "워터파크\t정기휴무 (매주 월요일) · 사우나\t07:00 - 21:00 · 찜질방\t정기휴무 (매주 월요일)",
-     "화": "워터파크\t휴무 · 사우나\t휴무 · 찜질방\t휴무",
-     "수": "워터파크\t휴무 · 사우나\t휴무 · 찜질방\t휴무",
-     "목": "워터파크\t휴무 · 사우나\t휴무 · 찜질방\t휴무 · 워터파크 - 11/03-11/18 휴무 · 워터파크 - 2026년 11월3일(화)~18일(수) 전체휴장입니다. · 사우나 - 2026년 11월3일(화)~18일(수) 전체휴장입니다. · 찜질방 - 2026년 11월3일(화)~18일(수) 전체휴장입니다.",
-     "금": "워터파크\t정기휴무 (매주 금요일) · 사우나\t07:00 - 21:00 · 찜질방\t정기휴무 (매주 금요일)",
-     "토": "워터파크\t10:00 - 19:00 · 사우나\t07:00 - 22:00 · 찜질방\t07:00 - 21:30",
-     "일": "워터파크\t10:00 - 19:00 · 사우나\t07:00 - 22:00 · 찜질방\t07:00 - 21:30"
-    }
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -3173,10 +3022,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "172791007": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
@@ -3239,8 +3084,11 @@
   },
   "8959499": {
    "hairdryer": {
-    "paid": true,
-    "low": true
+    "women": {
+     "paid": true,
+     "price": 400,
+     "low": true
+    }
    },
    "convenience": {
     "hours": {
@@ -3372,7 +3220,8 @@
   },
   "226597105": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 200
    },
    "fees": {
     "night": {
@@ -3387,18 +3236,7 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
-  "191551362": {
-   "hairdryer": {
-    "paid": false
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
   "1971245957": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
    "fees": {
     "night": {
      "price": 12000,
@@ -3441,27 +3279,7 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
-  "1744824533": {
-   "convenience": {
-    "closed_days": "정기 휴무일 변경 안내 (매주수요일 →화요일로 변경)",
-    "hours": {
-     "월": "09:00 - 22:00",
-     "화": "정기휴무 (매주 화요일)",
-     "수": "09:00 - 22:00",
-     "목": "09:00 - 22:00 · - 마지막 예약 타임은 오후 8시 화요일 휴무",
-     "금": "09:00 - 22:00",
-     "토": "09:00 - 22:00",
-     "일": "09:00 - 22:00"
-    }
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
   "20742780": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
    "convenience": {
     "hours": {
      "월": "05:30 - 18:30",
@@ -3471,21 +3289,6 @@
      "금": "05:30 - 18:30",
      "토": "05:30 - 18:30",
      "일": "05:30 - 18:30"
-    }
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
-  "1107409550": {
-   "convenience": {
-    "hours": {
-     "월": "정기휴무 (매주 월요일)",
-     "화": "정기휴무 (매주 화요일)",
-     "수": "정기휴무 (매주 수요일)",
-     "목": "정기휴무 (매주 목요일)",
-     "금": "10:00 - 22:00",
-     "토": "정기휴무 (매주 토요일)",
-     "일": "정기휴무 (매주 일요일)"
     }
    },
    "checked": "2026-10-30",
@@ -3544,14 +3347,6 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
-  "20744989": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
   "17381337": {
    "hairdryer": {
     "paid": false
@@ -3604,6 +3399,7 @@
   "23399231": {
    "hairdryer": {
     "paid": true,
+    "price": 200,
     "low": true
    },
    "convenience": {
@@ -3627,7 +3423,9 @@
     "price_women": 30000
    },
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 200,
+    "low": true
    },
    "convenience": {
     "hours": {
@@ -3663,10 +3461,6 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "11523307": {
-   "hairdryer": {
-    "paid": false,
-    "low": true
-   },
    "convenience": {
     "hours": {
      "월": "09:00 - 21:00",
@@ -3691,21 +3485,6 @@
      "금": "06:00 - 20:00",
      "토": "06:00 - 20:00",
      "일": "06:00 - 20:00"
-    }
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
-  "1533896867": {
-   "convenience": {
-    "hours": {
-     "월": "07:00 - 22:00",
-     "화": "07:00 - 22:00",
-     "수": "07:00 - 22:00",
-     "목": "07:00 - 22:00",
-     "금": "07:00 - 22:00",
-     "토": "07:00 - 22:00",
-     "일": "07:00 - 22:00"
     }
    },
    "checked": "2026-10-30",
@@ -3740,7 +3519,8 @@
   },
   "11290336": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 200
    },
    "towel": {
     "women": {
@@ -3758,7 +3538,8 @@
   },
   "9761522": {
    "hairdryer": {
-    "paid": false
+    "paid": false,
+    "low": true
    },
    "convenience": {
     "hours": {
@@ -3781,32 +3562,10 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
-  "9029922": {
-   "convenience": {
-    "hours": {
-     "월": "09:00 - 다음 날 03:00",
-     "화": "09:00 - 다음 날 03:00",
-     "수": "09:00 - 다음 날 03:00",
-     "목": "09:00 - 다음 날 03:00 · - am 09:00 ~ am 03:00 (Next Day)",
-     "금": "09:00 - 다음 날 03:00",
-     "토": "09:00 - 다음 날 03:00",
-     "일": "09:00 - 다음 날 03:00"
-    }
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
   "1910188383": {
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
-  "239811140": {
-   "seshin": {
-    "price_full": 99000
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -3878,14 +3637,6 @@
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
-  "9838754": {
-   "hairdryer": {
-    "paid": true,
-    "low": true
-   },
-   "checked": "2026-10-30",
-   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
-  },
   "10619023": {
    "convenience": {
     "hours": {
@@ -3903,7 +3654,8 @@
   },
   "16705862": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 200
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -4000,6 +3752,13 @@
     }
    },
    "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "16649342": {
+   "hairdryer": {
+    "paid": true
+   },
+   "checked": "2026-11-04",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   }
  }

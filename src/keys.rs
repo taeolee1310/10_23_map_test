@@ -18,7 +18,11 @@ pub fn key_addr(s: &str) -> String {
 /// 시·도 표기가 달라도(경기/경기도) 같게 비교하려고 첫 토큰을 빼고, 괄호·공백도 뺀다.
 pub fn addr_key(addr: &str) -> String {
     let t = util::py_split(addr);
-    let rest = if t.len() > 1 { t[1..].join(" ") } else { String::new() };
+    let rest = if t.len() > 1 {
+        t[1..].join(" ")
+    } else {
+        String::new()
+    };
     key_addr(&rest)
 }
 

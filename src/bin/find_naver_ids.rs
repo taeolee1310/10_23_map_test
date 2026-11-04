@@ -21,7 +21,16 @@ use tangbang_data::{difflib, re, util};
 
 const FOUND: &str = "data/collected/naver_id_found.csv";
 const TODO: &str = "data/collected/naver_find_todo.csv";
-const FCOLS: [&str; 8] = ["카카오ID", "이름", "주소", "네이버ID", "네이버이름", "네이버주소", "결과", "확인일"];
+const FCOLS: [&str; 8] = [
+    "카카오ID",
+    "이름",
+    "주소",
+    "네이버ID",
+    "네이버이름",
+    "네이버주소",
+    "결과",
+    "확인일",
+];
 re!(BATH, r"목욕|사우나|찜질|온천|한증"); // 네이버 업종 기준. '스파'·'피부' 업종은 마사지·미용이라 뺀다
 re!(PAREN, r"\(.*?\)");
 re!(SEOUL_GU, r"^서울(특별시)?\s*\S+구\s*");
@@ -31,7 +40,12 @@ re!(MY_NAME, r"마이플레이스\n(.+?)\n");
 re!(MY_ADDR, r"\n주소\n(.+?)\n");
 re!(PLACE_ID, r"/place/(\d{5,})");
 // 파이썬 urllib.parse.quote(q) 기본값(safe="/")
-const QUOTE: &AsciiSet = &NON_ALPHANUMERIC.remove(b'-').remove(b'_').remove(b'.').remove(b'~').remove(b'/');
+const QUOTE: &AsciiSet = &NON_ALPHANUMERIC
+    .remove(b'-')
+    .remove(b'_')
+    .remove(b'.')
+    .remove(b'~')
+    .remove(b'/');
 
 #[derive(Parser)]
 struct Args {
@@ -67,8 +81,15 @@ fn main() -> Result<()> {
     let today = util::today_kst();
 
     let m = read("data/merged/onsen_merged.csv")?;
-    let mut have: HashSet<String> = read("data/collected/naver_places.csv")?.iter().map(|r| g(r, "카카오ID").to_string()).collect();
-    have.extend(read("data/curated/naver_match_manual.csv")?.iter().map(|r| g(r, "카카오ID").to_string()));
+    let mut have: HashSet<String> = read("data/collected/naver_places.csv")?
+        .iter()
+        .map(|r| g(r, "카카오ID").to_string())
+        .collect();
+    have.extend(
+        read("data/curated/naver_match_manual.csv")?
+            .iter()
+            .map(|r| g(r, "카카오ID").to_string()),
+    );
     let (fcols_file, mut found) = if util::exists(FOUND) {
         let tb = csvio::read_csv(FOUND, true, Dtype::AllStr)?;
         (csvio::union_cols(&tb.cols, &FCOLS), tb.records())
@@ -78,14 +99,24 @@ fn main() -> Result<()> {
     let done_ids: HashSet<String> = found.iter().map(|r| g(r, "카카오ID").to_string()).collect();
     let todo: Vec<Row> = m
         .iter()
-        .filter(|r| !g(r, "카카오ID").is_empty() && !have.contains(g(r, "카카오ID")) && !done_ids.contains(g(r, "카카오ID")))
+        .filter(|r| {
+            !g(r, "카카오ID").is_empty()
+                && !have.contains(g(r, "카카오ID"))
+                && !done_ids.contains(g(r, "카카오ID"))
+        })
         .cloned()
         .collect();
     let facts_tb = csvio::read_csv(naver::OUT, true, Dtype::AllStr)?;
     let facts_cols = csvio::union_cols(&facts_tb.cols, COLS);
     let mut facts = facts_tb.records();
-    let mut facts_ids: HashSet<String> = facts.iter().map(|r| g(r, "네이버ID").to_string()).collect();
-    println!("합친 목록 {}곳 중 ID 없음·미처리 {}곳 / 이번에 ego로 열 페이지 상한 {}개", m.len(), todo.len(), a.max);
+    let mut facts_ids: HashSet<String> =
+        facts.iter().map(|r| g(r, "네이버ID").to_string()).collect();
+    println!(
+        "합친 목록 {}곳 중 ID 없음·미처리 {}곳 / 이번에 ego로 열 페이지 상한 {}개",
+        m.len(),
+        todo.len(),
+        a.max
+    );
 
     let mut need: Vec<Vec<String>> = Vec::new();
     let mut judged = 0;
@@ -95,8 +126,17 @@ fn main() -> Result<()> {
         let sp = search_file(kid);
         let Some(html) = naver::read_page(&sp) else {
             let q = format!("{} {}", g(r, "시군구"), norm_name(g(r, "이름")));
-            let url = format!("https://m.search.naver.com/search.naver?query={}", utf8_percent_encode(&q, QUOTE));
-            need.push(vec![kid.into(), g(r, "이름").into(), "검색 결과(outerHTML)".into(), url, sp]);
+            let url = format!(
+                "https://m.search.naver.com/search.naver?query={}",
+                utf8_percent_encode(&q, QUOTE)
+            );
+            need.push(vec![
+                kid.into(),
+                g(r, "이름").into(),
+                "검색 결과(outerHTML)".into(),
+                url,
+                sp,
+            ]);
             continue;
         };
         if naver::blocked(&html) {
@@ -110,7 +150,10 @@ fn main() -> Result<()> {
             }
         }
         cands.truncate(3);
-        let mut res: Row = FCOLS.iter().map(|c| (c.to_string(), String::new())).collect();
+        let mut res: Row = FCOLS
+            .iter()
+            .map(|c| (c.to_string(), String::new()))
+            .collect();
         for c in ["카카오ID", "이름", "주소"] {
             res.insert(c.into(), g(r, c).to_string());
         }
@@ -120,7 +163,13 @@ fn main() -> Result<()> {
         for cid in &cands {
             let hp = naver::home_file(cid);
             let Some(t2) = naver::read_page(&hp) else {
-                need.push(vec![kid.into(), g(r, "이름").into(), "후보 홈(naver_page_text.js)".into(), naver::home_url(cid), hp]);
+                need.push(vec![
+                    kid.into(),
+                    g(r, "이름").into(),
+                    "후보 홈(naver_page_text.js)".into(),
+                    naver::home_url(cid),
+                    hp,
+                ]);
                 pending = true; // 앞 후보부터 차례로 봐야 해서 다음 실행에서 이어 판정한다
                 break;
             };
@@ -143,7 +192,10 @@ fn main() -> Result<()> {
                 res.insert("네이버주소".into(), na);
                 res.insert("결과".into(), "일치".into());
                 if !facts_ids.contains(cid) {
-                    let mut full: Row = COLS.iter().map(|c| (c.to_string(), String::new())).collect();
+                    let mut full: Row = COLS
+                        .iter()
+                        .map(|c| (c.to_string(), String::new()))
+                        .collect();
                     full.extend(row);
                     full.insert("카카오ID".into(), kid.to_string());
                     full.insert("네이버ID".into(), cid.clone());
@@ -160,7 +212,12 @@ fn main() -> Result<()> {
         if pending {
             continue;
         }
-        println!("{} → {} {}", g(r, "이름"), g(&res, "결과"), g(&res, "네이버이름"));
+        println!(
+            "{} → {} {}",
+            g(r, "이름"),
+            g(&res, "결과"),
+            g(&res, "네이버이름")
+        );
         found.push(res);
         judged += 1;
     }
@@ -171,7 +228,11 @@ fn main() -> Result<()> {
         csvio::write_rows(FOUND, &fcols_file, &found)?;
     }
     need.truncate(a.max);
-    csvio::write_csv(TODO, &["카카오ID", "이름", "받을것", "주소", "저장할파일"], &need)?;
+    csvio::write_csv(
+        TODO,
+        &["카카오ID", "이름", "받을것", "주소", "저장할파일"],
+        &need,
+    )?;
     println!("이번에 판정 {judged}곳 → {FOUND}");
     println!("ego로 열 페이지 {}개 (상한 {}) → {TODO}", need.len(), a.max);
     Ok(())

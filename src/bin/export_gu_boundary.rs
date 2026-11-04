@@ -58,7 +58,9 @@ fn round5(v: &Value) -> Value {
 fn main() -> Result<()> {
     let data = pyjson::load_file(SRC)?;
     let mut out = Map::new();
-    let features = data["features"].as_array().ok_or_else(|| anyhow!("⛔ features가 없어요"))?;
+    let features = data["features"]
+        .as_array()
+        .ok_or_else(|| anyhow!("⛔ features가 없어요"))?;
     for f in features {
         let code = pyjson::py_str(&f["properties"]["code"]);
         if !code.starts_with("11") {
@@ -66,24 +68,46 @@ fn main() -> Result<()> {
         }
         let geom = &f["geometry"];
         let coords = geom["coordinates"].as_array().unwrap();
-        let polys: Vec<&Value> = if geom["type"] == "Polygon" { vec![&geom["coordinates"]] } else { coords.iter().collect() };
+        let polys: Vec<&Value> = if geom["type"] == "Polygon" {
+            vec![&geom["coordinates"]]
+        } else {
+            coords.iter().collect()
+        };
         let mut rings = Vec::new();
         for poly in polys {
             let ring = poly[0].as_array().unwrap(); // 바깥 고리만
-            let pts: Vec<(f64, f64)> = ring.iter().map(|p| (p[0].as_f64().unwrap(), p[1].as_f64().unwrap())).collect();
+            let pts: Vec<(f64, f64)> = ring
+                .iter()
+                .map(|p| (p[0].as_f64().unwrap(), p[1].as_f64().unwrap()))
+                .collect();
             let s = simplify(&pts, TOL);
             if s.len() >= 4 {
                 rings.push(Value::Array(
-                    s.iter().map(|&i| Value::Array(vec![round5(&ring[i][0]), round5(&ring[i][1])])).collect(),
+                    s.iter()
+                        .map(|&i| Value::Array(vec![round5(&ring[i][0]), round5(&ring[i][1])]))
+                        .collect(),
                 ));
             }
         }
-        out.insert(pyjson::py_str(&f["properties"]["name"]), Value::Array(rings));
+        out.insert(
+            pyjson::py_str(&f["properties"]["name"]),
+            Value::Array(rings),
+        );
     }
-    util::write_text(DST, &pyjson::dumps(&Value::Object(out.clone()), &pyjson::COMPACT))?;
+    util::write_text(
+        DST,
+        &pyjson::dumps(&Value::Object(out.clone()), &pyjson::COMPACT),
+    )?;
     let ring_count: usize = out.values().map(|v| v.as_array().unwrap().len()).sum();
-    let pts: usize = out.values().flat_map(|v| v.as_array().unwrap()).map(|r| r.as_array().unwrap().len()).sum();
-    println!("서울 {}개 구 / 고리 {ring_count}개 / 점 {pts}개 (조건: 시군구 코드가 11로 시작)", out.len());
+    let pts: usize = out
+        .values()
+        .flat_map(|v| v.as_array().unwrap())
+        .map(|r| r.as_array().unwrap().len())
+        .sum();
+    println!(
+        "서울 {}개 구 / 고리 {ring_count}개 / 점 {pts}개 (조건: 시군구 코드가 11로 시작)",
+        out.len()
+    );
     println!("저장: {DST}");
     Ok(())
 }

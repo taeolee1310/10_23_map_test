@@ -17,7 +17,14 @@ fn main() {
         println!("'{query}'을(를) 찾지 못했어요");
     }
     for (i, p) in places.iter().enumerate() {
-        println!("{}. {} | {} | ({}, {})", i + 1, p.name, p.addr, util::py_float(p.lat), util::py_float(p.lng));
+        println!(
+            "{}. {} | {} | ({}, {})",
+            i + 1,
+            p.name,
+            p.addr,
+            util::py_float(p.lat),
+            util::py_float(p.lng)
+        );
     }
     println!("출처: 카카오 로컬 API (키워드로 장소 검색)");
 }

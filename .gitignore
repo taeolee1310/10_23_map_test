@@ -15,6 +15,7 @@ data/collected/seoul_bath_license_geo.csv
 data/collected/naver_places.csv
 data/collected/naver_home_facts.csv
 data/collected/naver_reviews.jsonl
+data/collected/naver_blogs.jsonl
 data/collected/review_targets.json
 # ego 브라우저로 저장한 네이버 페이지 글자·받을 목록 (후기 문장이 들어 있다)
 data/collected/naver_pages/
@@ -57,3 +58,14 @@ D08_1023_파이썬_카카오지도_판다스.md
 
 # 설치 파일 (85MB, 올리지 않는다)
 Miniforge3-*.sh
+
+# 탕방 데이터 수집 도구(collector/) — 빌드 결과·PC마다 쌓이는 수집 기록은 올리지 않는다
+collector/node_modules/
+collector/dist/
+collector/src-tauri/target/
+collector/src-tauri/gen/
+data/collected/ego_fetch_job.json
+data/collected/ego_fetch_status.json
+data/collected/ego_fetch_stop
+data/collected/collector_runs.jsonl
+data/curated/place_photos.csv.bak

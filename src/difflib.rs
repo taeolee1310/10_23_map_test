@@ -57,7 +57,11 @@ fn longest(
                 if j >= bhi {
                     break;
                 }
-                let prev = if j > 0 { j2len.get(&(j - 1)).copied().unwrap_or(0) } else { 0 };
+                let prev = if j > 0 {
+                    j2len.get(&(j - 1)).copied().unwrap_or(0)
+                } else {
+                    0
+                };
                 let k = prev + 1;
                 new.insert(j, k);
                 if k > bestsize {
@@ -74,7 +78,10 @@ fn longest(
         bestj -= 1;
         bestsize += 1;
     }
-    while besti + bestsize < ahi && bestj + bestsize < bhi && a[besti + bestsize] == b[bestj + bestsize] {
+    while besti + bestsize < ahi
+        && bestj + bestsize < bhi
+        && a[besti + bestsize] == b[bestj + bestsize]
+    {
         bestsize += 1;
     }
     (besti, bestj, bestsize)

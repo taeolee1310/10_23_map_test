@@ -32,10 +32,13 @@ pub fn decode(bytes: &[u8]) -> Result<(String, &'static str)> {
     if let Ok(s) = std::str::from_utf8(b) {
         return Ok((s.to_string(), "utf-8-sig"));
     }
-    if let Some(s) = encoding_rs::EUC_KR.decode_without_bom_handling_and_without_replacement(bytes) {
+    if let Some(s) = encoding_rs::EUC_KR.decode_without_bom_handling_and_without_replacement(bytes)
+    {
         return Ok((s.into_owned(), "cp949"));
     }
-    Err(anyhow!("⛔ CSV 인코딩을 읽지 못했어요 (utf-8-sig·cp949 모두 실패)"))
+    Err(anyhow!(
+        "⛔ CSV 인코딩을 읽지 못했어요 (utf-8-sig·cp949 모두 실패)"
+    ))
 }
 
 /// na_default=true면 판다스 기본 빈칸 표시("", "NA", "nan" 등)를 빈칸으로 본다(keep_default_na=True).
@@ -59,7 +62,13 @@ pub fn read_csv_enc(path: &str, na_default: bool, dtype: Dtype) -> Result<(Table
         recs.push(r.iter().map(String::from).collect());
     }
     if recs.is_empty() {
-        return Ok((Table { cols: vec![], rows: vec![] }, enc));
+        return Ok((
+            Table {
+                cols: vec![],
+                rows: vec![],
+            },
+            enc,
+        ));
     }
     let cols = recs.remove(0);
     let n = cols.len();
@@ -100,15 +109,25 @@ fn infer_column(rows: &mut [Vec<String>], na: &[Vec<bool>], ci: usize) {
         return;
     }
     let has_na = vals.len() < rows.len();
-    if vals.iter().all(|v| INT.is_match(v) && v.parse::<i64>().is_ok()) {
+    if vals
+        .iter()
+        .all(|v| INT.is_match(v) && v.parse::<i64>().is_ok())
+    {
         for (ri, r) in rows.iter_mut().enumerate() {
             if na[ri][ci] {
                 continue;
             }
             let i: i64 = r[ci].parse().unwrap();
-            r[ci] = if has_na { util::py_float(i as f64) } else { i.to_string() };
+            r[ci] = if has_na {
+                util::py_float(i as f64)
+            } else {
+                i.to_string()
+            };
         }
-    } else if vals.iter().all(|v| util::parse_num(v).is_some() && util::py_strip(v) == *v) {
+    } else if vals
+        .iter()
+        .all(|v| util::parse_num(v).is_some() && util::py_strip(v) == *v)
+    {
         for (ri, r) in rows.iter_mut().enumerate() {
             if na[ri][ci] {
                 continue;
@@ -120,14 +139,19 @@ fn infer_column(rows: &mut [Vec<String>], na: &[Vec<bool>], ci: usize) {
 
 impl Table {
     pub fn empty(cols: &[&str]) -> Table {
-        Table { cols: cols.iter().map(|s| s.to_string()).collect(), rows: vec![] }
+        Table {
+            cols: cols.iter().map(|s| s.to_string()).collect(),
+            rows: vec![],
+        }
     }
 
     pub fn ci(&self, c: &str) -> Result<usize> {
-        self.cols
-            .iter()
-            .position(|x| x == c)
-            .ok_or_else(|| anyhow!("⛔ 칸 '{c}'이(가) 없어요 (있는 칸: {})", self.cols.join(", ")))
+        self.cols.iter().position(|x| x == c).ok_or_else(|| {
+            anyhow!(
+                "⛔ 칸 '{c}'이(가) 없어요 (있는 칸: {})",
+                self.cols.join(", ")
+            )
+        })
     }
 
     pub fn records(&self) -> Vec<Row> {
@@ -186,7 +210,11 @@ pub fn write_csv<S: AsRef<str>>(path: &str, cols: &[S], rows: &[Vec<String>]) ->
 pub fn write_rows<S: AsRef<str>>(path: &str, cols: &[S], rows: &[Row]) -> Result<()> {
     let body: Vec<Vec<String>> = rows
         .iter()
-        .map(|r| cols.iter().map(|c| get(r, c.as_ref()).to_string()).collect())
+        .map(|r| {
+            cols.iter()
+                .map(|c| get(r, c.as_ref()).to_string())
+                .collect()
+        })
         .collect();
     write_csv(path, cols, &body)
 }

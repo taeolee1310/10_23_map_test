@@ -13,11 +13,23 @@ pub struct Style {
 }
 
 /// json.dumps 기본값 (", ", ": ")
-pub const DEFAULT: Style = Style { item: ", ", key: ": ", indent: None };
+pub const DEFAULT: Style = Style {
+    item: ", ",
+    key: ": ",
+    indent: None,
+};
 /// separators=(",", ":")
-pub const COMPACT: Style = Style { item: ",", key: ":", indent: None };
+pub const COMPACT: Style = Style {
+    item: ",",
+    key: ":",
+    indent: None,
+};
 /// indent=1
-pub const INDENT1: Style = Style { item: ",", key: ": ", indent: Some(1) };
+pub const INDENT1: Style = Style {
+    item: ",",
+    key: ": ",
+    indent: Some(1),
+};
 
 pub fn dumps(v: &Value, st: &Style) -> String {
     let mut out = String::new();
@@ -192,7 +204,13 @@ pub fn truthy(v: Option<&Value>) -> bool {
 pub fn py_str(v: &Value) -> String {
     match v {
         Value::Null => "None".into(),
-        Value::Bool(b) => if *b { "True".into() } else { "False".into() },
+        Value::Bool(b) => {
+            if *b {
+                "True".into()
+            } else {
+                "False".into()
+            }
+        }
         Value::Number(n) => {
             if n.is_f64() {
                 util::py_float(n.as_f64().unwrap())

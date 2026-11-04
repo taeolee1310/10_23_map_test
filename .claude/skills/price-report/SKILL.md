@@ -46,7 +46,7 @@ Claude가 **직접 볼 수 있는 근거**로만 확인한다.
 
 ## 5. 반영 (승인된 일치 건만)
 - 입장료·수건·주차 가격 → `data/curated/onsen_prices.csv`의 해당 카카오ID 줄(없으면 새 줄). 칸: 카카오ID, 성인_평일, 성인_주말, 수건, 주차, 어린이, 추가요금_없음확인, 메모, 출처, 확인일. 출처에는 **제보가 아니라 확인한 근거**(예: 네이버 플레이스 가격표)를 적고, 확인일은 오늘(KST).
-- 세신 금액·수건 정책·드라이기·**세신 결제** → `data/curated/place_facts.json`(제보의 수건 안내 `무제한/1장/2장/3장 이상`은 `towel`의 `mode`·`count`로, 드라이기 `무료/유료`는 `hairdryer.paid`로, 세신 결제 `현금만/카드 가능`은 `seshin.payment`의 `cash_only/card_ok`로 옮긴다. 남탕·여탕이 다르다는 메모가 있으면 성별을 나눠 적는다. 근거를 확인한 것만)의 `places[카카오ID]`. 기존 모양(`seshin.price_full`, `towel.women/men`, `hairdryer.paid`, `checked`, `source`)을 따르고, **없는 칸은 적지 않는다**(추측 금지).
+- 세신 금액·수건 정책·드라이기·**세신 결제** → `data/curated/place_facts.json`(제보의 수건 안내 `무제한/1장/2장/3장 이상`은 `towel`의 `mode`·`count`로, 드라이기는 `여탕 유료 · 남탕 무료`처럼 탕별로 오며 `hairdryer.women`·`hairdryer.men`의 `paid`(무료·유료)·`none: true`(없음)로, 탕 구분 없는 예전 제보 `무료/유료`는 `hairdryer.paid`로, 세신 결제 `현금만/카드 가능`은 `seshin.payment`의 `cash_only/card_ok`로 옮긴다. 남탕·여탕이 다르다는 메모가 있으면 성별을 나눠 적는다. 근거를 확인한 것만)의 `places[카카오ID]`. 기존 모양(`seshin.price_full`, `towel.women/men`, `hairdryer.paid`·`hairdryer.women/men`, `checked`, `source`)을 따르고, **없는 칸은 적지 않는다**(추측 금지).
 - 파일 인코딩은 `utf-8-sig`(BOM 포함), CSV는 번호 칸 없이 쓴다. 기존 줄 모양(따옴표·줄 끝)을 그대로 따른다.
 - 이어서 `cargo run --release --bin export_web_data`로 화면 데이터를 다시 만들고, 반영 전후의 확인된 요금 업체 수를 조건과 함께 비교해 보여 준다. 그다음 `web`에서 `npm run build`가 통과하는지 확인한다.
 - **커밋·푸시는 사용자가 말할 때만** 한다. 하기 전에 `git status`를 보여 주고 이번 작업과 관계없는 변경은 넣지 않는다.

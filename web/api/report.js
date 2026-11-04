@@ -9,7 +9,7 @@ import { createHash } from 'node:crypto'
 const SOURCES = ['현장 가격표', '직접 냈어요', '공식 홈페이지·네이버', '기타']
 const LIMIT_PER_HOUR = 5
 const TOWEL = ['무제한', '1장', '2장', '3장 이상']
-const DRYER = ['무료', '유료']
+const DRYER = ['무료', '유료', '없음']
 const PAY = ['현금만', '카드 가능']
 const pick = (list, v) => (list.includes(v) ? v : '') // 정해진 값만 받는다
 // 한 사람당 보낼 수 있는 횟수(시트에서 센다). 사람은 브라우저가 만든 익명 기기 ID로, 같은 접속 주소의 보조 한도는 시트 쪽(LIMIT_PER_IP)에 있다.
@@ -72,7 +72,10 @@ export default async function handler(req, res) {
   const scrub = won(b.scrub)
   const source = SOURCES.includes(b.source) ? b.source : ''
   const towelInfo = pick(TOWEL, b.towelInfo)
-  const hairdryer = pick(DRYER, b.hairdryer)
+  // 드라이기는 여탕·남탕을 따로 받아 시트의 '드라이기' 한 칸에 '여탕 유료 · 남탕 무료'처럼 적는다(시트 칸은 그대로)
+  const dryW = pick(DRYER, b.hairdryerW)
+  const dryM = pick(DRYER, b.hairdryerM)
+  const hairdryer = [dryW && `여탕 ${dryW}`, dryM && `남탕 ${dryM}`].filter(Boolean).join(' · ') || pick(DRYER, b.hairdryer)
   const seshinPay = pick(PAY, b.seshinPay)
   let memo = text(b.memo, 100)
   if (!placeId || !placeName) return res.status(400).json({ ok: false, error: 'place' })
