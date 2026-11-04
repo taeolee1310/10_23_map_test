@@ -9,7 +9,7 @@
 | `raw/` | 내려받은 **원본** 그대로 (행안부 CSV, 서울시 인허가 등) | 사람이 받아 둔다 | 올리지 않는다 (`.gitkeep`만) |
 | `collected/` | 원본에서 **정리·수집한** 목록 (이름·주소·좌표·전화) | ego-lite 브라우저로 수집 / 스크립트 | 올린다 (`naver_raw.jsonl`, 좌표 캐시는 제외) |
 | `curated/` | **사람이 확인·작성한** 자료 (요금, 제외 목록) | 사람 | 올린다 |
-| `merged/` | 위 자료를 **합친 결과** | `onsen_merge.py` | 올린다 |
+| `merged/` | 위 자료를 **합친 결과** | `onsen_merge` | 올린다 |
 
 원칙: 사람이 손으로 확인한 값은 `curated/`에만 둔다. 스크립트가 다시 돌아도 덮어쓰지 않게 하려는 것이다. `collected/`와 `merged/`는 다시 만들 수 있는 파일이다.
 
@@ -20,7 +20,7 @@
 |---|---|---|---|
 | `skorea-municipalities-2018-geo.json` | 전국 시군구 경계 (18MB) | 통계청 SGIS 2018, 공공누리 제1유형. `southkorea/southkorea-maps` 저장소 `kostat/2018/json/`에서 받음 | 2018-12-24 |
 
-`python export_gu_boundary.py` → `web/public/data/seoul-gu.json`(서울 25개 구 경계, 약 50KB, 점 간격 약 9m로 줄임). 내 위치가 어느 구인지 알려 주는 데 쓴다.
+`cargo run --release --bin export_gu_boundary` → `web/public/data/seoul-gu.json`(서울 25개 구 경계, 약 50KB, 점 간격 약 9m로 줄임). 내 위치가 어느 구인지 알려 주는 데 쓴다.
 
 ### `collected/` — 수집·정리한 목록
 | 파일 | 줄 | 내용 | 출처 | 기준일 |
@@ -31,13 +31,13 @@
 | `onsen_official_clean.csv` | 6 | 행안부 온천이용업소(서울) | 행정안전부 전국 온천이용업소 현황 | 2026-08-27 |
 | `onsen_parking.csv` | 27 | 온천 근처 주차장(반경 안) | 카카오 로컬(PK6) | 2026-10-23 |
 | `naver_raw.jsonl` | 9 | 네이버 플레이스 수집 원자료 (올리지 않음) | 네이버 플레이스 | 2026-10-26 |
-| `naver_home_facts.csv` | 398 | 곳마다 네이버 플레이스 홈 페이지의 영업시간·가격표·편의와, 수건·세신·드라이기 등 키워드가 든 문장(근거, 출처·날짜 표시). **올리지 않음**(후기 문장이 들어 있음) | `scripts/collect_home.py` | 수집일 칸 |
-| `naver_id_found.csv` | 74 | 네이버 ID가 없던 곳을 이름으로 검색한 결과(일치 10곳, 못 찾음 64곳). 주소가 같고 이름이 비슷하고 네이버 업종이 목욕·사우나·찜질·온천일 때만 '일치' | `scripts/find_naver_ids.py` | 2026-10-30 |
+| `naver_home_facts.csv` | 398 | 곳마다 네이버 플레이스 홈 페이지의 영업시간·가격표·편의와, 수건·세신·드라이기 등 키워드가 든 문장(근거, 출처·날짜 표시). **올리지 않음**(후기 문장이 들어 있음) | `collect_home`(페이지는 ego 브라우저) | 수집일 칸 |
+| `naver_id_found.csv` | 74 | 네이버 ID가 없던 곳을 이름으로 검색한 결과(일치 10곳, 못 찾음 64곳). 주소가 같고 이름이 비슷하고 네이버 업종이 목욕·사우나·찜질·온천일 때만 '일치' | `find_naver_ids`(페이지는 ego 브라우저) | 2026-10-30 |
 | `naver_reviews.jsonl` | 395 | 방문자 후기 탭에서 키워드(수건·드라이기·세신·샴푸·폐업 등)가 든 문장과 **방문일**. 작성자 이름은 저장하지 않음. **올리지 않음. 2026-10-30에 로컬에서 삭제함**(판정 결과는 `place_facts_auto.json`에 남아 있음, 다시 판정하려면 `collect_reviews.mjs`로 재수집) | `scripts/collect_reviews.mjs`(ego-browser) | 수집일 칸 |
 | `naver_hours.jsonl` | 395 | 홈 페이지 '영업시간 펼쳐보기'를 눌러 받은 요일별 영업시간·휴무 문구(요일표가 있는 곳 158곳, 24시간 영업 등은 표 없음) | `scripts/collect_hours.mjs`(ego-browser) | 수집일 칸 |
-| `price_auto.csv` | | 가격표에서 뽑은 입장료(대인 평일·주말·소인). 사람이 확인한 `onsen_prices.csv`에 없는 곳만 서비스에 쓴다 | `scripts/judge_facts.py` | 수집일 칸 |
-| `place_facts_auto.json` | | 위 근거로 판정한 세신 금액·수건·드라이기·샴푸·24시간. 근거가 모자라거나 엇갈리면 키를 넣지 않는다 | `scripts/judge_facts.py` | 수집일 칸 |
-| `facts_judged.csv` | | 곳마다 판정 결과와 신뢰도, '불명' 사유(검산용) | `scripts/judge_facts.py` | |
+| `price_auto.csv` | | 가격표에서 뽑은 입장료(대인 평일·주말·소인). 사람이 확인한 `onsen_prices.csv`에 없는 곳만 서비스에 쓴다 | `judge_facts` | 수집일 칸 |
+| `place_facts_auto.json` | | 위 근거로 판정한 세신 금액·수건·드라이기·샴푸·24시간. 근거가 모자라거나 엇갈리면 키를 넣지 않는다 | `judge_facts` | 수집일 칸 |
+| `facts_judged.csv` | | 곳마다 판정 결과와 신뢰도, '불명' 사유(검산용) | `judge_facts` | |
 | `excluded_candidates.csv` | 36 | 이름으로 거른 피트니스 후보(확실/애매) | 이름 기준 | 2026-10-30 |
 | `naver_photo_candidates.jsonl` | 395 | 사진 탭의 **업체 등록 사진** 후보 주소(곳당 최대 6장, 방문자 사진은 받지 않음). 업체 사진이 없는 곳 131곳 | ego-browser(`~/ego/tangbang-photo-20261101/collect.mjs`, 곳당 10초·150곳씩) | 2026-11-01 |
 
@@ -46,7 +46,7 @@
 |---|---|---|---|
 | `onsen_prices.csv` | 151 | **확인된 요금** (성인 평일·주말, 수건, 주차, 어린이, 메모, 확인일) | 네이버 플레이스 가격표 145곳(2026-10-27), 서울시 착한가격업소·상한가격 6곳(2026-09-30) |
 | `naver_notfound_exclude.csv` | 187 | 네이버 플레이스에서 같은 주소의 시설을 못 찾아 **제외한 곳** | 직접 확인(2026-10-27) |
-| `excluded.csv` | | **폐업·피트니스(체인 포함)·마사지 중심이라 뺀 곳**(이름·주소·사유·근거·확인일). 스크립트는 줄을 추가만 하고 고치지 않는다. 되살리려면 줄을 지운다 | `scripts/judge_facts.py`가 추가, 사람이 검토 |
+| `excluded.csv` | | **폐업·피트니스(체인 포함)·마사지 중심이라 뺀 곳**(이름·주소·사유·근거·확인일). 스크립트는 줄을 추가만 하고 고치지 않는다. 되살리려면 줄을 지운다 | `judge_facts`가 추가, 사람이 검토 |
 | `place_facts.json` | 32 | 사람이 확인한 세신·수건·드라이기 등. **자동 판정(`place_facts_auto.json`)보다 항목별로 우선** | 직접 확인 |
 | `tangbang_places_price_data.json` | 2 | 요금 조사 자료(실측 확인 / 인근 평균 추정) | 직접 조사 |
 | `place_photos.csv` | 242 | 목록 대표 사진. 후보를 눈으로 보고 **탕·외관·내부만** 곳마다 한 장(`종류` 칸). 가격표·전단·로고·사람이 크게 나온 사진은 고르지 않음(22곳은 고를 사진 없음) | 네이버 플레이스 업체 등록 사진, 직접 확인(2026-11-01) |
@@ -59,33 +59,33 @@
 출처별 구성: 카카오 395 · 서울시 인허가 66 · 행안부+카카오 2 · 행안부 2.
 
 ### 화면용 최종본
-`web/public/data/onsen.json` (`export_web_data.py`가 만든다) — 합친 목록에 요금·주차장을 붙인 것. 464곳 중 확인된 요금 194곳, 추정 요금 212곳(화면에는 "요금 미확인"으로 표시), 요금 정보 없음 58곳. 세부 정보(facts)가 있는 곳 154곳(수건 27, 드라이기 52, 세신 10).
+`web/public/data/onsen.json` (`export_web_data`가 만든다) — 합친 목록에 요금·주차장을 붙인 것. 464곳 중 확인된 요금 194곳, 추정 요금 212곳(화면에는 "요금 미확인"으로 표시), 요금 정보 없음 58곳. 세부 정보(facts)가 있는 곳 154곳(수건 27, 드라이기 52, 세신 10).
 
 ## 만드는 순서
 
 ```
 collected/*  ─┐
-curated/naver_notfound_exclude.csv ─┤→ onsen_merge.py → merged/onsen_merged.csv ─┐
-                                    │                                            ├→ export_web_data.py → web/public/data/onsen.json
+curated/naver_notfound_exclude.csv ─┤→ onsen_merge    → merged/onsen_merged.csv ─┐
+                                    │                                            ├→ export_web_data → web/public/data/onsen.json
 curated/onsen_prices.csv ───────────┴────────────────────────────────────────────┤
 collected/onsen_parking.csv, curated/tangbang_places_price_data.json ────────────┘
 ```
 
 ```
-python onsen_merge.py       # 목록 합치기 → data/merged/onsen_merged.csv
-python export_web_data.py   # 요금·주차장 붙이기 → web/public/data/onsen.json
+cargo run --release --bin onsen_merge       # 목록 합치기 → data/merged/onsen_merged.csv
+cargo run --release --bin export_web_data   # 요금·주차장 붙이기 → web/public/data/onsen.json
 ```
 
 ### 네이버 홈 페이지 수집 → 판정 → 서비스 반영 (곳이 늘어도 같은 순서)
 
 ```
-python scripts/collect_home.py   # 곳당 10초 간격, 한 번에 최대 150곳. 연속 3회 실패하면 멈추고, 다시 돌리면 받은 곳은 건너뜀
+cargo run --release --bin collect_home     # 받을 곳 목록(naver_home_todo.csv) → ego로 저장 → 다시 돌려 저장된 페이지를 읽음. 받은 곳은 건너뜀
 ego-browser nodejs -e "await import('file:///<절대경로>/run.mjs')"   # 후기 탭 수집(scripts/collect_reviews.mjs를 가져오는 ASCII 경로 파일). 한 번에 60곳, 곳당 약 17초. 캡차·차단이면 멈춤
 ego-browser nodejs -e "await import('file:///<절대경로>/run.mjs')"   # 영업시간 수집(scripts/collect_hours.mjs를 가져오는 ASCII 경로 파일). 한 번에 60곳, 곳당 약 10초. 캡차·차단이면 멈춤
-python scripts/find_naver_ids.py # (네이버 ID가 없는 곳이 있을 때) 이름 검색으로 ID를 찾고 맞으면 홈 페이지도 수집. 같은 속도 제한
-python scripts/judge_facts.py    # 근거 문장 판정 + 제외 목록 추가(excluded.csv)
-python onsen_merge.py            # excluded.csv에 있는 곳을 뺌
-python export_web_data.py        # place_facts_auto.json 위에 place_facts.json(사람 값)을 덮어 facts를 만듦
+cargo run --release --bin find_naver_ids   # (네이버 ID가 없는 곳이 있을 때) 받을 검색·후보 페이지 목록(naver_find_todo.csv) → ego로 저장 → 다시 돌려 판정
+cargo run --release --bin judge_facts      # 근거 문장 판정 + 제외 목록 추가(excluded.csv)
+cargo run --release --bin onsen_merge      # excluded.csv에 있는 곳을 뺌
+cargo run --release --bin export_web_data  # place_facts_auto.json 위에 place_facts.json(사람 값)을 덮어 facts를 만듦
 ```
 
 - 판정 규칙: 세신은 가격표의 금액(남녀가 같으면 `price_full`, 다르면 `price_men`·`price_women`, 한쪽만 있으면 그쪽만), 수건은 성별이 보이는 안내 문장의 장수, 드라이기는 '무료'·'유료·금액' 문장. **근거가 없거나 엇갈리면 '불명'**. 근거가 낮은 것(오래된 글·날짜 없는 후기)은 2건 이상 일치해야 쓰되, 드라이기만 1건이어도 `low: true`로 반영하고 화면에 "(후기 1건 기준)"이라 밝힌다.
@@ -94,6 +94,15 @@ python export_web_data.py        # place_facts_auto.json 위에 place_facts.json
 - 요금 세부(`fees`): 가격표에서 찜질복, 야간 입장(주간 요금이 있으면 야간−주간을 코드로 계산해 `extra`), 시간 초과. 값이 하나로 정해지지 않거나 야간 금액이 5천 원 미만이라 추가금인지 총액인지 모르면 넣지 않는다. 상세 화면의 요금 카드 안에 대인·소인과 함께 아이콘 줄로 바로 나온다.
 - 제외 규칙: 이름이 휘트니스·피트니스·스포츠클럽·짐인 곳, 가격표에 트레이너·레슨(PT)이 있는 곳, 가격표가 마사지·테라피 중심(세신은 마사지가 아니라 남김)인 곳. 폐업은 업체 영업 표시에 '폐업·휴업'이 직접 적힌 곳만 뺀다(영업 정보가 비어 있다고 폐업으로 보지 않는다).
 - 로그는 `logs/`, 후기 문장이 든 수집 파일은 깃에 올리지 않는다(`.gitignore`).
+
+### 네이버 수집 (ego 브라우저가 페이지를 열고, 러스트는 저장된 파일만 읽는다)
+
+러스트 도구는 브라우저를 띄우지 않는다(헤드리스 수집은 쓰지 않는다, 사용자 결정 2026-11-04).
+1. `collect_home`(또는 `find_naver_ids`)를 돌리면 받을 페이지 목록이 `data/collected/naver_home_todo.csv`(`naver_find_todo.csv`)에 생긴다. 칸: 주소, 저장할파일.
+2. ego 브라우저로 목록의 주소를 하나씩 연다. 홈 페이지는 `scripts/naver_page_text.js`를 실행한 결과를, 검색 결과는 `document.documentElement.outerHTML`을 '저장할파일'(`data/collected/naver_pages/…`)에 그대로 저장한다.
+   - 페이지마다 10초 간격, 한 번에 150곳(검색은 120개)까지. **캡차·'보안 확인'·차단 화면이 보이거나 3번 연속 비면 바로 멈춘다.** 세션을 새로 열거나 위장하는 식으로 피해 가지 않는다.
+3. 같은 도구를 다시 돌리면 저장된 페이지를 읽어 `naver_home_facts.csv`·`naver_id_found.csv`에 더한다. 캡차 화면이 저장돼 있으면 기록하지 않고 멈춘다(그 파일을 지우고 나중에 다시 받는다).
+- `naver_pages/`와 받을 목록 파일은 후기 문장이 들어 있어 깃에 올리지 않는다.
 
 ## 자주 쓰는 칸
 
@@ -104,7 +113,7 @@ python export_web_data.py        # place_facts_auto.json 위에 place_facts.json
 
 ## 알아 둘 점
 
-- **수집은 ego-lite 브라우저로 한다.** 예전에 쓰던 수집 스크립트(카카오 API·공공데이터·네이버 크롤링)와 Streamlit 앱은 지웠다. 새 자료는 ego-lite로 모아 `collected/`에 같은 칸으로 저장하면 된다. 예외로 네이버 홈 페이지 수집·판정만 `scripts/`에 있다(위 흐름 참고). 루트의 파이썬은 `onsen_merge.py`(합치기), `export_web_data.py`(화면용 JSON), `onsen_official.py`(시도 이름 표·시군구 뽑기 함수를 합치기 스크립트가 가져다 쓴다) 세 개다.
+- **수집은 ego-lite 브라우저로 한다.** 예전에 쓰던 수집 스크립트(카카오 API·공공데이터·네이버 크롤링)와 Streamlit 앱은 지웠다. 새 자료는 ego-lite로 모아 `collected/`에 같은 칸으로 저장하면 된다. 데이터 도구는 모두 러스트(`src/bin/`, 2026-11-04 파이썬에서 옮김)이고 `cargo run --release --bin <이름>`으로 돌린다: `onsen_official`(행안부 원본 정리), `onsen_merge`(합치기), `export_web_data`(화면용 JSON), `export_gu_boundary`(구 경계), `naver_import`·`collect_home`·`find_naver_ids`·`judge_facts`(네이버 자료 정리·판정). 파이썬 때와 같은 입력에서 같은 파일이 나오는 것을 바이트 단위로 확인했다(`onsen_official`은 원본 CSV가 없어 확인 못 함).
 - 폐업은 네이버 업체 영업 표시에 직접 적힌 곳만 뺐다(0곳). 영업 정보가 비어 있는 동네 목욕탕이 약 40곳 있는데, 폐업이 아니라 정보가 없는 것으로 보고 남겼다. 공공데이터의 영업상태(서울 인허가 원본)는 아직 대조하지 않았다.
 - `raw/`에는 지금 원본이 없다. 행안부 원본 CSV는 삭제했고(공공데이터포털에서 다시 받을 수 있다), 서울시 인허가 원본은 보관하지 않았다.
 - 시도 표기는 파일마다 다르다 (`서울` / `서울특별시`). 합칠 때 `주소`가 `서울`로 시작하는 줄만 남긴다.

@@ -141,7 +141,7 @@ export function sortPlaces(list: PlaceWithDist[], sort: string, hasMe: boolean) 
   return a
 }
 
-// 서울 25개 구 경계(통계청 SGIS 2018, 공공누리 제1유형). export_gu_boundary.py가 만든 seoul-gu.json을 읽는다.
+// 서울 25개 구 경계(통계청 SGIS 2018, 공공누리 제1유형). export_gu_boundary(러스트)가 만든 seoul-gu.json을 읽는다.
 export type GuBoundary = Record<string, [number, number][][]>
 
 function inRing(x: number, y: number, ring: [number, number][]) {

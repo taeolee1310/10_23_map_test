@@ -14,7 +14,7 @@
 |---|---|
 | 화면 | React 18 + Vite 5 + TypeScript (`web/`) |
 | 지도 | 카카오 JavaScript SDK (JS 키만 브라우저에 사용) |
-| 데이터 정리 | 파이썬 + 판다스 (`onsen_merge.py`, `export_web_data.py`) |
+| 데이터 정리 | 러스트 (`src/bin/onsen_merge.rs`, `src/bin/export_web_data.rs` 등, 2026-11-04 파이썬에서 옮김) |
 | 데이터 수집 | ego-lite 브라우저로 직접 수집 (수집 스크립트는 만들지 않음) |
 | 화면이 읽는 데이터 | `web/public/data/onsen.json` 한 파일 |
 | 디자인 기준 | `web/src/styles/tangbang-colors.css` (컬러 시스템), Figma 인트로 v3 |
@@ -59,14 +59,14 @@ data/                           README.md 에 파일별 설명·출처·만드�
 ├─ raw/ (올리지 않음)  collected/  curated/(사람이 확인)  merged/
 ```
 
-데이터 만드는 순서: `python onsen_merge.py` → `data/merged/onsen_merged.csv` → `python export_web_data.py` → `web/public/data/onsen.json`.
-(`onsen_official.py`는 병합 스크립트가 쓰는 함수가 있어서 남아 있음. 루트의 `place.py`, `geo.py`, `make_map.py`, `factcheck.py`, `map.html`은 수업 연습 파일로 React 화면과 무관하며 지울지는 미정.)
+데이터 만드는 순서: `cargo run --release --bin onsen_merge` → `data/merged/onsen_merged.csv` → `cargo run --release --bin export_web_data` → `web/public/data/onsen.json`.
+(`onsen_official`은 행안부 원본 정리. `place`, `geo`, `make_map`, `factcheck`, `map.html`은 수업 연습 도구로 React 화면과 무관.)
 
 ## 데이터 현황
 
 - 서울 461곳 (카카오 393 · 서울시 인허가 66 · 행안부+카카오 2, `onsen.json` 기준일 2026-10-24). 서울 외 데이터는 모두 삭제함.
 - 확인된 요금 194곳(약 42%), 추정만 있는 곳 212곳(화면에는 "요금 미확인"), 요금 정보 없음 55곳. 목욕탕·사우나가 아닌 3곳(온천 1, 시설 미확인 행안부 2)은 2026-11-01에 뺐다.
-- 시설 유형 버튼은 없앴다(2026-11-01). 온천·숙박 묶음이 3곳뿐이라 '전체'와 '목욕탕·사우나'가 거의 같아졌기 때문. 그 3곳(신세계센트럴시티, 엘비젼, 리트릿 시그니엘 스파)은 데이터에서도 뺐다(`export_web_data.py`).
+- 시설 유형 버튼은 없앴다(2026-11-01). 온천·숙박 묶음이 3곳뿐이라 '전체'와 '목욕탕·사우나'가 거의 같아졌기 때문. 그 3곳(신세계센트럴시티, 엘비젼, 리트릿 시그니엘 스파)은 데이터에서도 뺐다(`export_web_data`).
 - 행안부 원본 CSV는 삭제했고 `.gitignore` 대상이라 깃에서 복구할 수 없습니다(공공데이터포털에서 다시 받아야 함).
 - 요금은 Claude가 직접 확인할 수 있는 것(네이버 플레이스 가격표, 공식 홈페이지, 공공데이터)으로만 확인하고, 전화 확인은 제안하지 않습니다.
 

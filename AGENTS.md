@@ -35,13 +35,13 @@ web/                     React 18 + Vite + TypeScript 화면
   api/report.js          제보 → 구글 시트 (Vercel 서버 기능)
   public/data/onsen.json 화면이 읽는 유일한 데이터
 data/  raw(원본, 깃에 없음) · collected(수집) · curated(사람이 확인) · merged(합친 결과)
-onsen_merge.py, export_web_data.py   데이터 만들기
-scripts/                 네이버 홈 수집·판정 (허락된 예외)
-place.py geo.py make_map.py factcheck.py map.html   수업 연습 파일, 화면과 무관
+src/bin/  데이터 도구(러스트): onsen_merge, export_web_data 등. cargo run --release --bin <이름> (새 PC는 scripts/setup.ps1 · setup.sh 먼저)
+scripts/naver_page_text.js  ego 브라우저로 네이버 페이지 글자 뽑기 (헤드리스 수집 안 함)
+place geo make_map factcheck(src/bin) map.html   수업 연습 도구, 화면과 무관
 ```
 
 ## 데이터 흐름
-`data/collected/*` + `data/curated/*` → `python onsen_merge.py` → `data/merged/onsen_merged.csv` → `python export_web_data.py` → `web/public/data/onsen.json`
+`data/collected/*` + `data/curated/*` → `cargo run --release --bin onsen_merge` → `data/merged/onsen_merged.csv` → `cargo run --release --bin export_web_data` → `web/public/data/onsen.json`
 
 ## 실행
 `web/`에서 `npm run dev` → **`http://localhost:5173`** 으로 연다(`127.0.0.1`이면 지도 안 뜸). `npm run build`는 타입 검사 + 빌드. 설치 명령은 제안만 한다.

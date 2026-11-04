@@ -26,7 +26,7 @@ import PlaceList from './PlaceList'
 import PlacePreview from './PlacePreview'
 import './MainScreen.css'
 
-const DATA_URL = '/data/onsen.json' // export_web_data.py가 만든다
+const DATA_URL = '/data/onsen.json' // export_web_data(러스트)가 만든다
 const LOAD_TIMEOUT = 15000 // 이보다 오래 걸리면 실패로 보고 로딩 화면에서 풀어 준다
 // 손가락이 주 입력인 기기에서는 드롭다운 항목을 크게(누르기 쉬운 높이)
 const TOUCH = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
@@ -91,7 +91,7 @@ export default function MainScreen() {
   } else if (!data.places.length) {
     body = (
       <div className="onsen-main" id="shell">
-        <p className="note">목욕탕 목록이 비어 있어요. python onsen_merge.py와 python export_web_data.py를 다시 실행해 주세요</p>
+        <p className="note">목욕탕 목록이 비어 있어요. 데이터 만들기(onsen_merge → export_web_data)를 다시 실행해 주세요</p>
       </div>
     )
   } else {

@@ -30,7 +30,7 @@ Vercel 프로젝트 `tangbang` > Settings > Environment Variables에 두 개를 
 ## 검토하는 법
 - 시트의 **상태** 칸을 `새 제보 → 확인함 → 반영 완료 / 반려`로 바꿔 가며 관리한다. `표시` 칸에 이상값·연락처 의심 등이 적혀 있다.
 - **같은 값 횟수**가 클수록 여러 사람이 같은 값을 말한 것이다.
-- 제보는 단서일 뿐이다. 근거(네이버 가격표·공식 홈페이지)를 확인한 값만 `data/curated/`에 넣고 `python export_web_data.py`로 화면 데이터를 다시 만든다.
+- 제보는 단서일 뿐이다. 근거(네이버 가격표·공식 홈페이지)를 확인한 값만 `data/curated/`에 넣고 `cargo run --release --bin export_web_data`로 화면 데이터를 다시 만든다.
 
 ## 주의
 - Apps Script 웹 앱 URL이 새면 누구나 요청을 보낼 수 있지만, 비밀 값이 맞아야만 줄이 추가된다. 의심되면 `REPORT_SECRET`과 `REPORT_SHEET_SECRET`을 같이 바꾼다.

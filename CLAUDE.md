@@ -1,24 +1,24 @@
 # 탕방 · 서울 목욕탕·사우나 지도 서비스 (React + Vite)
 
-서울의 목욕탕·사우나·온천 461곳을 지도와 목록으로 보여 주고, 확인된 요금을 알려 주는 서비스. 화면은 React + Vite(`web/`), 데이터 정리는 판다스(파이썬 3개), 지도는 카카오 JavaScript SDK.
+서울의 목욕탕·사우나·온천 461곳을 지도와 목록으로 보여 주고, 확인된 요금을 알려 주는 서비스. 화면은 React + Vite(`web/`), 데이터 정리는 러스트(`src/bin/`, 2026-11-04 파이썬에서 옮김), 지도는 카카오 JavaScript SDK.
 줄마다 (왜)와 → 검사가 있다. 규칙 한 줄 = 검사 한 줄.
 
 ## 환경
 - 화면: Node, `web/`에서 `npm run dev`(주소 `http://localhost:5173`), `npm run build`(타입 검사 + 빌드). 설치 명령(`npm install` 등)은 제안만 하고 직접 돌리지 않는다.
-- 데이터: Python 3.11, conda `myvenv`. 설치는 `pip install -r requirements.txt`(제안만).
+- 데이터: 러스트. 실행은 프로젝트 폴더에서 `cargo run --release --bin <이름>`(이름은 `src/bin/` 파일 이름). **새 PC는 먼저 `scripts/setup.ps1`(윈도우) 또는 `scripts/setup.sh`(맥·리눅스)를 돌린다**: 러스트 설치, 윈도우에서 VS C++ 도구가 없으면 GNU 툴체인 + MinGW(`dlltool`), 경로에 한글·공백이 있으면 영문 빌드 폴더를 `.cargo/config.toml`(PC마다 만듦, 깃에 안 올림)에 적고 빌드까지 한다. (왜: 윈도우 GNU 링커가 한글 경로에서 실패함) → 검사: 스크립트 끝에 도구 목록이 나옴. 새 크레이트는 `Cargo.toml`에 적는다.
 - 터미널은 PowerShell(Windows). 시간은 KST. 서비스는 **서울 전용**이다.
 
 ## 구조
 - `web/src/App.tsx` → `components/BathhouseIntro`(첫 화면) → `screens/MainScreen`(지도·목록·상세). 지도는 `components/KakaoMap`, 효과는 `components/GhostCursor`. 메인 화면 첫 안내(스포트라이트 온보딩 5단계: 내 위치 → 목욕탕 고르기 → 미리보기 카드 → 자세히 보는 두 가지 방법 → 상세 TOP 3)는 `components/Onboarding`이고 단계 내용은 `MainScreen.tsx`의 `TOUR_TEXT`에 있다. 첫 방문에만 열리며 제목 오른쪽 '어떻게 사용하는 거예요?' 버튼(모바일은 검색창 위 왼쪽 '사용법')으로 다시 본다(작은 '?' 아이콘은 사용법으로 읽히지 않아 2026-11-03 글자 버튼으로 바꿈. 인트로에는 넣지 않는다). 저장 키는 `tangbang:onboarding:v3`. 요금·가기 전 걱정 정보(수건·드라이기·세신 결제) 제보는 `components/PriceReport`(제보 창) → `web/api/report.js`(Vercel 서버 기능, 운영자 구글 시트에 Apps Script로 추가. 설정은 `docs/report-setup.md`). 제보는 화면에 바로 반영하지 않고 사람이 확인한 뒤 `data/curated/`에만 넣는다. 확인·반영 절차는 `/price-report`(`.claude/skills/price-report`).
 - `web/src/styles/tangbang-colors.css`: 컬러 시스템. 색은 이 파일의 토큰만 쓴다. `web/src/styles/motion.css`: 움직임 곡선·길이.
 - 화면이 읽는 데이터는 `web/public/data/onsen.json` 하나. 만드는 법과 자료 분류는 `data/README.md`.
-  - `python onsen_merge.py` → `data/merged/onsen_merged.csv`
-  - `python export_web_data.py` → `web/public/data/onsen.json`
-- 수집은 ego-lite 브라우저로 한다. 새 수집 스크립트는 만들지 않는다. 새 자료는 `data/collected/`에 같은 칸으로 저장한다. **예외(사용자 허락, 2026-10-30)**: 네이버 홈 페이지 수집 `scripts/collect_home.py`·`scripts/find_naver_ids.py`(Scrapling)와 판정 `scripts/judge_facts.py`. 요청 제한을 피해 가는 방식(세션 새로 열기 등)은 쓰지 않고, 곳당 10초 간격·한 번에 150곳·연속 3회 실패 시 멈춤을 지킨다. 흐름은 `data/README.md`.
-- 남아 있는 파이썬 연습 파일(`place.py`, `geo.py`, `make_map.py`, `factcheck.py`, `map.html`, `map_config.js`)은 React 화면과 무관하다.
+  - `cargo run --release --bin onsen_merge` → `data/merged/onsen_merged.csv`
+  - `cargo run --release --bin export_web_data` → `web/public/data/onsen.json`
+- 수집은 ego-lite 브라우저로 한다. 새 수집 스크립트는 만들지 않는다. 새 자료는 `data/collected/`에 같은 칸으로 저장한다. 네이버 홈 페이지도 ego 브라우저가 열어 저장하고(`scripts/naver_page_text.js`), 러스트 `collect_home`·`find_naver_ids`는 받을 목록을 만들고 저장된 파일만 읽는다. 판정은 `judge_facts`. **러스트에서 헤드리스 브라우저로 수집하지 않는다**(사용자 결정 2026-11-04. 헤드리스는 네이버가 429·보안 확인으로 막음). 요청 제한을 피해 가는 방식(세션 새로 열기·지문 위장 등)은 쓰지 않고, 곳당 10초 간격·한 번에 150곳·캡차가 보이거나 연속 3회 실패 시 멈춤을 지킨다. 흐름은 `data/README.md`의 '네이버 수집'.
+- 수업 연습 도구(`place`, `geo`, `make_map`, `factcheck`, `map.html`, `map_config.js`)는 React 화면과 무관하다. `make_map -- --serve`가 `map.html`·`map_config.js` 두 파일만 `127.0.0.1:8000`으로 보낸다.
 
 ## 두 개의 열쇠 규칙
-- REST 키(`KAKAO_REST_API_KEY`)는 파이썬에서만 `os.getenv`로 읽는다. 헤더 `Authorization: KakaoAK 키`. (왜: REST 키는 금고 키) → 검사: `web/`에 REST 키 이름·값 없음
+- REST 키(`KAKAO_REST_API_KEY`)는 러스트 `src/kakao.rs`에서만 `std::env::var`로 읽는다(`.env`는 `dotenvy`). 헤더 `Authorization: KakaoAK 키`. (왜: REST 키는 금고 키) → 검사: `web/`에 REST 키 이름·값 없음
 - **REST 키는 HTML·번들·화면 어디에도 넣지 않는다.** `vite.config.ts`의 `envPrefix: 'KAKAO_JS_'`를 바꾸지 않는다. (왜: 브라우저로 가면 누구나 봄) → 검사: `npm run build` 뒤 `dist`에서 REST 키 앞 6글자 검색 → 0건
 - 지도에는 `KAKAO_JS_KEY`만 쓴다(`import.meta.env.KAKAO_JS_KEY`). (왜: JS 키는 브라우저로 가는 게 정상, 대신 카카오 콘솔에 등록한 주소에서만 켜짐) → 검사: `.env`에 두 키가 다른 값으로 있음
 - 카카오 콘솔 JavaScript SDK 도메인에 `http://localhost:5173`(배포 주소 포함)을 등록한다. **`127.0.0.1`로 열면 지도가 안 뜬다.** 로컬 확인은 항상 `localhost:5173`. (왜: 등록한 주소에서만 켜짐) → 검사: 안내 문장
@@ -39,7 +39,7 @@
 - 목록·지도·숫자는 **필터한 하나의 목록**에서 만든다. (왜: 숫자와 지도가 다르면 신뢰를 잃음) → 검사: 필터 바꾸고 셋 비교
 - 결과가 0개면 안내 문구를 보여 준다. → 검사: 필터를 극단으로
 - 화면 맨 아래에 출처와 **데이터 기준일**. "실시간"이라고 쓰지 않는다. → 검사: 캡션
-- 숫자는 코드로 계산한다. 화면 문구의 숫자는 변수에서 온다. 요금은 **확인된 것만 진한 숫자로**. 확인 못 한 곳은 가상 `price_example`(구별 확인 요금 중앙값, `export_web_data.py`)을 옅은 색에 **반드시 '예시'를 붙여** 보여 준다(사용자 결정, 2026-11-01). 예시 값은 `data/curated/`에 넣지 않는다. → 검사: 문구 속 숫자 출처, 예시 요금에 '예시' 표시
+- 숫자는 코드로 계산한다. 화면 문구의 숫자는 변수에서 온다. 요금은 **확인된 것만 진한 숫자로**. 확인 못 한 곳은 가상 `price_example`(구별 확인 요금 중앙값, `export_web_data`)을 옅은 색에 **반드시 '예시'를 붙여** 보여 준다(사용자 결정, 2026-11-01). 예시 값은 `data/curated/`에 넣지 않는다. → 검사: 문구 속 숫자 출처, 예시 요금에 '예시' 표시
 - 색은 `tangbang-colors.css`의 semantic(`--color-*`)·component(`--button-*` 등) 토큰만 쓴다. primitive(`--tb-*`)는 화면 CSS에서 직접 쓰지 않는다. 기준 8색(`#FDF6D0` `#FFFDF5` `#342C25` `#57483B` `#527C77` `#A64B31` `#E8D9AE` `#E7A36E`)의 값은 바꾸지 않는다. 원천은 Figma `탕방 디자인 시스템`(파일 `ojmQos2N59L7GQE76L26J6`, 노드 `418:131`)이고, Bath Teal은 선택·포인트, Terracotta는 주요 버튼(CTA)에만 쓴다. 구조·명암비는 `docs/color-system.md`. 로고 캐릭터는 윤곽선 `--color-outline`, 물 `--color-water`, 김 `--color-steam`으로 칠하고, 인트로 그림 색(`--tb-cream-sun` `--tb-bottle-brown`)은 인트로에서만 쓴다. `--tb-character-blue`는 쓰지 않는다. 새 색 값을 직접 쓰지 않는다. → 검사: 새로 넣은 색이 토큰인지, 글자색은 4.5:1 이상인지
 - **개발자가 확인하기 편하려고 만든 기능(설정 패널, `?preview`, 디버그 UI)은 사용자 화면에 넣지 않는다.** (왜: 서비스는 사용자에게 맞춰 만든다) → 검사: 화면에 보이는 컨트롤은 사용자 기능뿐
 - 상세 화면으로 가는 길은 두 가지를 유지한다: 목록 카드 오른쪽 아래 '자세히 보기'(바나나우유 아래), 선택된 지도 핀을 한 번 더 누르기. 미리보기 카드에는 자세히 보기 버튼을 두지 않는다. (왜: 정성 리서치에서 미리보기 카드의 버튼을 못 찾음, 2026-11-02) → 검사: 두 경로로 상세가 열림
@@ -56,21 +56,21 @@
 - 물줄기(`stream-strip.png`)는 원본 일러스트에서 뽑은 질감 띠다. 원본이 바뀌면 다시 뽑는다.
 - 예외: 수면을 떠다니는 오리(`duck-float-sheet.png`·`.json`, `BathhouseIntro/Duck.tsx`)는 Figma 에셋이 아니라 **사용자가 직접 지정해 준 스프라이트**다(2026-10-29). 오리는 장식이라 클릭을 막지 않고(`pointer-events: none`), 움직임 줄이기에서는 멈추며, 이동 구간은 수면(mask-water) 안으로만 둔다. 인트로에는 로고 캐릭터를 두지 않는다(배경음악은 첫 클릭·키 입력에 시작).
 
-## 판다스·데이터 규칙
+## 데이터 규칙 (러스트 `src/csvio.rs`가 예전 판다스 동작을 그대로 따른다)
 - 데이터는 서울만 남긴다. 동네로 거를 때는 **시·도까지 붙인 이름**(`"서울특별시 강남구"`)으로 거른다. (왜: `"남구"`는 `"강남구"`에도 들어 있음) → 검사: 걸러진 주소 앞부분이 모두 같음
 - 분류: `data/raw`(원본) · `collected`(수집) · `curated`(사람이 확인) · `merged`(합친 결과). **사람이 확인한 값은 `curated/`에만 두고** 스크립트가 덮어쓰지 않는다. → 검사: `data/README.md`
-- CSV는 `utf-8-sig` → `cp949` 순서로 시도해 읽고, 읽은 인코딩을 출력한다. 저장은 `encoding="utf-8-sig"`, `index=False`. → 검사: 출력에 인코딩 이름
-- 읽은 뒤 항상 줄 수·칸 수·빈칸 개수(`shape`, `isna().sum()`)부터 보여 준다. → 검사: 출력 첫 줄들
-- 숫자 칸은 `pd.to_numeric(..., errors="coerce")`. "무료" 같은 글자는 먼저 0으로. → 검사: 평균 요금이 숫자로 나옴
-- 칸 이름은 **파일에 실제로 있는 이름**만 쓴다. 모르면 `df.columns`를 먼저 출력한다. 새 칸은 사용자가 "새로 만들어"라고 했을 때만. `데이터기준일자`는 남긴다. → 검사: KeyError 없음
+- CSV는 `utf-8-sig` → `cp949` 순서로 시도해 읽고, 읽은 인코딩을 출력한다. 저장은 utf-8-sig·번호 칸 없음(`csvio::read_csv`·`write_csv`). → 검사: 출력에 인코딩 이름
+- 읽은 뒤 항상 줄 수·칸 수·빈칸 개수(`(줄, 칸)`, 칸별 빈칸 수)부터 보여 준다. → 검사: 출력 첫 줄들
+- 숫자 칸은 `util::parse_num`(숫자가 아니면 빈 값). "무료" 같은 글자는 먼저 0으로. → 검사: 평균 요금이 숫자로 나옴
+- 칸 이름은 **파일에 실제로 있는 이름**만 쓴다. 모르면 칸 목록(`Table.cols`)을 먼저 출력한다. 새 칸은 사용자가 "새로 만들어"라고 했을 때만. `데이터기준일자`는 남긴다. → 검사: "칸이 없어요" 오류 없음
 - 개수·평균은 **코드로 계산**하고 어떤 조건으로 셌는지 출력에 적는다. 엑셀 필터로 검산할 수 있게. → 검사: 조건이 출력에 있음
 - 개인 이름·휴대폰 번호는 데이터에 넣지 않는다. 기관 대표번호는 둬도 된다. → 검사: 칸 목록
 - 요금·영업 정보는 Claude가 직접 확인할 수 있는 것(네이버 플레이스 가격표, 공식 홈페이지, 공공데이터)으로만 확인한다. 전화 확인은 제안하거나 넘기지 않는다. 확정 못 하면 "확인 못 함"과 근거 출처를 보고한다. → 검사: 확인 못 한 곳은 "요금 미확인"
-- 빈 좌표를 카카오 API로 채울 때는 **최대 30줄**, 호출마다 `time.sleep(0.1)`, `⛔`로 시작하는 에러가 나면 바로 멈춘다. → 검사: 코드에 한도·sleep·멈춤
+- 빈 좌표를 카카오 API로 채울 때는 **최대 30줄**, 호출마다 0.1초 쉬고, `⛔`로 시작하는 에러가 나면 바로 멈춘다. → 검사: 코드에 한도·sleep·멈춤
 - 삭제는 사용자가 말했을 때만, 지우기 전에 대상을 확인한다. 한 번 지우면 되돌릴 수 없는 파일(깃에 없는 원본)은 먼저 알린다. → 검사: 삭제 전 `git ls-files`
 
 ## 공통 규칙
-- 새 패키지는 `requirements.txt`(파이썬) 또는 `web/package.json`(화면)에 추가하고 설치는 제안만. import와 파일이 짝이어야 한다.
+- 새 패키지는 `Cargo.toml`(데이터) 또는 `web/package.json`(화면)에 추가하고 설치는 제안만. import와 파일이 짝이어야 한다.
 - 커밋·푸시·머지는 사용자가 요청할 때만 한다. 하기 전에 `git status`를 보여 주고, 이번 작업과 관계없는 변경은 포함하지 않는다. 커밋 메시지는 한국어로 변경 이유를 쓴다.
 - 조 작업: Issue 하나 = 브랜치 하나 = PR 하나. 남의 담당 파일은 고치지 않고, main에서 직접 작업하지 않는다. 각자 `.env`에 각자 키, 키를 Slack·Issue·PR에 붙이지 않는다.
 
