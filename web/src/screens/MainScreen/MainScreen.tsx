@@ -292,6 +292,22 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
     updateFilters(DEFAULT_FILTERS)
   }
 
+  // 로고 = 홈: 메인 화면을 처음 연 상태로 되돌린다(상세 닫기, 선택·필터·검색·정렬 초기화, 맨 위로). 담아 둔 목욕탕은 그대로 둔다
+  const goHome = () => {
+    setLogoRun((n) => n + 1)
+    window.clearTimeout(queryTimer.current)
+    closeDetail()
+    setSelId(null)
+    setHotId(null)
+    setSort('auto')
+    setInView(false)
+    setNote('')
+    reset()
+    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    document.getElementById('shell')?.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' })
+    window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' })
+  }
+
   // 눌렀을 때 퍼지는 물결
   // 상세를 열 때 브라우저 기록에 한 단계를 쌓는다: 모바일의 뒤로가기(iPhone 가장자리 스와이프, 안드로이드 뒤로 제스처)가 곧 '목록으로'가 된다.
   const detailPushed = useRef(false)
@@ -345,7 +361,8 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
   const pickForTour = () => {
     const cur = view.find((p) => p.id === selId)
     if (cur && worries(cur.facts).length) return
-    const shownList = view.slice(0, shown) // 목록에 그려진 카드 중에서 고른다(4단계에서 카드를 비춰야 하므로)
+    // 목록 위쪽 카드 중에서 고른다(4단계에서 카드를 비춘다. 아래쪽을 고르면 화면이 수천 px 스크롤돼 안내가 길을 잃는다)
+    const shownList = view.slice(0, Math.min(shown, 6))
     const pick = shownList.reduce<(typeof view)[number] | undefined>((best, p) => (!best || chipScore(p) > chipScore(best) ? p : best), undefined)
     if (pick) select(pick.id, 'list')
   }
@@ -413,9 +430,10 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
       <header className="hero">
         <div className="hero-copy">
           <div className="brand">
-            <span className="brand-badge" onMouseEnter={() => setLogoRun((n) => n + 1)} onClick={() => setLogoRun((n) => n + 1)}>
+            {/* 로고 = 홈: 누르면 메인 화면 처음 상태로 돌아간다 */}
+            <button type="button" className="brand-badge" aria-label="탕방 홈으로" onMouseEnter={() => setLogoRun((n) => n + 1)} onClick={goHome}>
               <OnsenLogo height="clamp(52px, 5.6vw, 72px)" title="탕방" playKey={logoRun} />
-            </span>
+            </button>
             <div>
               <p className="eyebrow"><b>탕방</b> · 서울의 목욕탕을 찾아서</p>
               <div className="title-row">

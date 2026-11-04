@@ -45,12 +45,16 @@ export default function Onboarding({ steps, open, onClose }: Props) {
   const stepRef = useRef(step)
   stepRef.current = step
 
+  // follow: 대상이 움직이는 중(스크롤·패널이 미끄러져 들어옴)이면 구멍이 애니메이션 없이 대상에 붙어 간다.
+  // 프레임마다 300ms 이동을 새로 걸면 구멍이 대상을 계속 뒤쫓기만 해서 엉뚱한 곳에 머문다
+  const [follow, setFollow] = useState(false)
   const measure = useCallback(() => {
     const el = stepRef.current ? document.querySelector<HTMLElement>(stepRef.current.target) : null
-    if (!el) return false
+    if (!el) return null
     const r = el.getBoundingClientRect()
-    setBox({ top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2 })
-    return true
+    const b = { top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2 }
+    setBox((o) => (o && o.top === b.top && o.left === b.left && o.width === b.width && o.height === b.height ? o : b))
+    return b
   }, [])
 
   // 열릴 때: 처음 단계로, 열기 전 포커스를 기억한다
@@ -81,6 +85,20 @@ export default function Onboarding({ steps, open, onClose }: Props) {
     const keepFocus = () => {
       if (cardRef.current && !cardRef.current.contains(document.activeElement)) primaryRef.current?.focus({ preventScroll: true })
     }
+    let frame = 0
+    setFollow(false)
+    // 대상이 멈출 때까지(최대 2초) 매 프레임 위치를 읽는다. 첫 위치로는 부드럽게 옮기고, 그 뒤 움직임은 바로 따라간다
+    const track = (startedAt: number, last: Box | null, still: number) => {
+      const b = measure()
+      const moved = !!(b && last && (Math.abs(b.top - last.top) > 0.5 || Math.abs(b.left - last.left) > 0.5 || Math.abs(b.width - last.width) > 0.5 || Math.abs(b.height - last.height) > 0.5))
+      if (moved) setFollow(true)
+      const s = moved ? 0 : still + 1
+      if (s >= 10 || performance.now() - startedAt > 2000) {
+        setFollow(false)
+        return
+      }
+      frame = requestAnimationFrame(() => track(startedAt, b, s))
+    }
     timers.push(
       window.setTimeout(() => {
         const el = document.querySelector<HTMLElement>(step.target)
@@ -88,16 +106,20 @@ export default function Onboarding({ steps, open, onClose }: Props) {
           next() // 비출 대상이 없으면 이 단계는 건너뛴다
           return
         }
-        el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' })
-        measure()
+        // 가까우면 부드럽게, 한 화면보다 멀면 바로 옮긴다(긴 스크롤은 구멍과 화면이 따로 놀아 보인다)
+        const r = el.getBoundingClientRect()
+        const far = Math.abs(r.top + r.height / 2 - window.innerHeight / 2) > window.innerHeight
+        el.scrollIntoView({ block: 'center', behavior: reducedMotion() || far ? 'auto' : 'smooth' })
         applyPulse()
         keepFocus()
+        track(performance.now(), measure(), 0)
       }, 120),
     )
-    // 스크롤·화면 전환이 끝난 뒤 위치를 다시 맞춘다
-    timers.push(window.setTimeout(() => { measure(); applyPulse(); keepFocus() }, 500), window.setTimeout(measure, 900))
+    // 늦게 열리는 화면(상세 등)을 위해 한 번 더 맞춘다
+    timers.push(window.setTimeout(() => { measure(); applyPulse(); keepFocus() }, 500))
     return () => {
       timers.forEach((t) => window.clearTimeout(t))
+      cancelAnimationFrame(frame)
       document.querySelectorAll('.tour-pulse').forEach((e) => e.classList.remove('tour-pulse'))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -106,9 +128,13 @@ export default function Onboarding({ steps, open, onClose }: Props) {
   // 창 크기·스크롤이 바뀌면 구멍 위치를 다시 맞춘다
   useEffect(() => {
     if (!open) return
+    let idle = 0
     const on = () => {
       cancelAnimationFrame(raf.current)
-      raf.current = requestAnimationFrame(measure)
+      setFollow(true) // 사용자가 스크롤하는 동안 구멍이 늦게 따라오지 않게
+      raf.current = requestAnimationFrame(() => { measure() })
+      window.clearTimeout(idle)
+      idle = window.setTimeout(() => setFollow(false), 150)
     }
     window.addEventListener('resize', on)
     window.addEventListener('scroll', on, true)
@@ -116,6 +142,7 @@ export default function Onboarding({ steps, open, onClose }: Props) {
       window.removeEventListener('resize', on)
       window.removeEventListener('scroll', on, true)
       cancelAnimationFrame(raf.current)
+      window.clearTimeout(idle)
     }
   }, [open, measure])
 
@@ -132,6 +159,7 @@ export default function Onboarding({ steps, open, onClose }: Props) {
       const above = box.top - GAP - h
       top = above >= EDGE ? above : Math.max(EDGE, vh - h - EDGE)
     }
+    top = Math.min(Math.max(EDGE, top), Math.max(EDGE, vh - h - EDGE)) // 대상이 화면 밖이어도 카드는 화면 안에
     const left = Math.min(Math.max(EDGE + 4, box.left), vw - w - (EDGE + 4))
     setPos({ top, left })
   }, [open, box, i])
@@ -171,7 +199,7 @@ export default function Onboarding({ steps, open, onClose }: Props) {
   const spot: Box = box ?? { top: window.innerHeight / 2, left: window.innerWidth / 2, width: 0, height: 0 }
 
   return createPortal(
-    <div className="tour">
+    <div className={follow ? 'tour tour--follow' : 'tour'}>
       <div className="tour__shield" aria-hidden="true" />
       <div className="tour__spot" aria-hidden="true" style={{ top: spot.top, left: spot.left, width: spot.width, height: spot.height }} />
       <div

@@ -18,6 +18,8 @@
   transition: top var(--dur-base) var(--ease-in-out), left var(--dur-base) var(--ease-in-out);
   animation: tour-fade var(--dur-base) var(--ease-out) both;
 }
+/* 대상이 움직이는 중에는 애니메이션 없이 바로 붙어 간다 */
+.tour--follow .tour__spot, .tour--follow .tour__card { transition: none; }
 .tour__text { display: grid; gap: var(--space-1); }
 .tour__step { margin: 0; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--color-text-link); }
 .tour__title { margin: 0; font-size: 17px; line-height: 24px; font-weight: 700; color: var(--modal-title); word-break: keep-all; }
