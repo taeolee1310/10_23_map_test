@@ -258,6 +258,14 @@ pub fn blocked(text: &str) -> bool {
     BLOCK.iter().any(|b| text.contains(b))
 }
 
+crate::re!(HTML_CODE, r"(?is)<script\b.*?</script>|<style\b.*?</style>|<[^>]+>");
+
+/// 저장한 검색 결과 HTML의 캡차 판단: 스크립트·태그를 빼고 화면 글자만 본다
+/// (네이버 검색 HTML 스크립트에는 'captcha' 단어가 늘 들어 있어 그대로 보면 정상 페이지도 캡차로 읽힘, 2026-11-04)
+pub fn blocked_html(html: &str) -> bool {
+    blocked(&HTML_CODE.replace_all(html, " ").to_lowercase())
+}
+
 /// ego 브라우저가 저장한 페이지 글자 폴더 (후기 문장이 들어 있어 깃에 올리지 않는다)
 pub const PAGES: &str = "data/collected/naver_pages";
 
@@ -295,9 +303,16 @@ pub fn targets(gu: Option<&str>, limit: Option<usize>) -> anyhow::Result<Vec<Row
     let m = read_rows("data/merged/onsen_merged.csv")?;
     let n = read_rows("data/collected/naver_places.csv")?;
     let mm = read_rows("data/curated/naver_match_manual.csv")?;
+    // find_naver_ids가 이름 검색으로 맞춘 곳('일치')도 수집 대상이다(예전에는 빠져 후기·사진을 못 받았다)
+    let found: Vec<Row> = if crate::util::exists("data/collected/naver_id_found.csv") {
+        read_rows("data/collected/naver_id_found.csv")?.into_iter().filter(|r| g(r, "결과") == "일치").collect()
+    } else {
+        vec![]
+    };
     let pairs: Vec<(String, String)> = n
         .iter()
         .chain(mm.iter())
+        .chain(found.iter())
         .map(|r| (g(r, "카카오ID").to_string(), g(r, "네이버ID").to_string()))
         .filter(|(k, v)| !k.is_empty() && !v.is_empty())
         .collect();

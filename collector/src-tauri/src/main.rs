@@ -284,7 +284,8 @@ async fn summary(st: State<'_, Shared>) -> Result<Value, String> {
         // 받을 목록 중 새 곳만(다시받기 줄 제외). 오래된 곳 수는 homeDates로 따로 센다
         "reviewDates": review_dates(&c("naver_reviews.jsonl")),
         "blogDates": review_dates(&c("naver_blogs.jsonl")),
-        "todoBlogNew": csv_pick(&c("naver_blog_todo.csv"), &["다시받기"]).iter().filter(|r| r["다시받기"] != "1").count(),
+        // 블로그 탭 + 블로그 원문(곳마다 최근 1년 글 최신 3개)
+        "todoBlogNew": csv_pick(&c("naver_blog_todo.csv"), &["다시받기"]).iter().filter(|r| r["다시받기"] != "1").count() + csv_pick(&c("naver_blogpost_todo.csv"), &["다시받기"]).len(),
         "todoPhoto": csv_rows(&c("naver_photo_todo.csv")),
         "todoReviewNew": csv_pick(&c("naver_review_todo.csv"), &["다시받기"]).iter().filter(|r| r["다시받기"] != "1").count(),
         "todoHomeNew": csv_pick(&c("naver_home_todo.csv"), &["다시받기"]).iter().filter(|r| r["다시받기"] != "1").count(),
@@ -476,6 +477,12 @@ async fn dashboard(st: State<'_, Shared>) -> Result<Value, String> {
         "todoHome": csv_rows(&c("naver_home_todo.csv")),
         "todoFind": csv_rows(&c("naver_find_todo.csv")),
         "runs": runs,
+        // Claude 사용량: 호출 1번 = 1줄(ego 수집·사진 고르기·사진 글자 읽기). 이 PC에만 쌓인다
+        "usage": std::fs::read_to_string(c("claude_usage.jsonl"))
+            .unwrap_or_default()
+            .lines()
+            .filter_map(|l| serde_json::from_str::<Value>(l).ok())
+            .collect::<Vec<_>>(),
     }))
 }
 
@@ -495,6 +502,26 @@ async fn fetch_status(st: State<'_, Shared>) -> Result<Value, String> {
 }
 
 // ───────── 실행 ─────────
+/// 마지막으로 부른 claude -p의 결과(토큰 사용량 포함)
+static LAST_CLAUDE: std::sync::Mutex<Option<Value>> = std::sync::Mutex::new(None);
+
+/// Claude를 부를 때마다 쓴 토큰·비용을 남긴다(대시보드 'Claude 사용량'). read_photo_text와 같은 칸
+fn log_claude_usage(root: &Path, step: &str, items: u64, v: &Value) {
+    use std::fs::OpenOptions;
+    let u = &v["usage"];
+    let n = |k: &str| u[k].as_u64().unwrap_or(0);
+    let at = chrono::Utc::now().with_timezone(&chrono::FixedOffset::east_opt(9 * 3600).unwrap()).format("%Y-%m-%dT%H:%M:%S+09:00").to_string();
+    let line = json!({
+        "at": at, "step": step, "items": items,
+        "input": n("input_tokens"), "output": n("output_tokens"),
+        "cacheRead": n("cache_read_input_tokens"), "cacheWrite": n("cache_creation_input_tokens"),
+        "costUsd": v["total_cost_usd"].as_f64().unwrap_or(0.0), "ms": v["duration_ms"].as_u64().unwrap_or(0),
+    });
+    if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(root.join("data/collected/claude_usage.jsonl")) {
+        let _ = writeln!(f, "{line}");
+    }
+}
+
 fn run_proc(app: &AppHandle, st: &Shared, mut c: Command, stdin: Option<String>) -> Result<bool, String> {
     c.stdout(Stdio::piped()).stderr(Stdio::piped()).stdin(if stdin.is_some() { Stdio::piped() } else { Stdio::null() });
     let mut child = c.spawn().map_err(|e| format!("실행하지 못했어요: {e}"))?;
@@ -506,6 +533,18 @@ fn run_proc(app: &AppHandle, st: &Shared, mut c: Command, stdin: Option<String>)
         let app = app.clone();
         thread::spawn(move || {
             for line in BufReader::new(r).lines().map_while(Result::ok) {
+                // claude -p --output-format json의 마지막 결과 줄: 답 글자만 기록에 보이고, 토큰 사용량은 따로 남긴다
+                if line.starts_with("{\"type\":\"result\"") {
+                    if let Ok(v) = serde_json::from_str::<Value>(&line) {
+                        if let Some(t) = v["result"].as_str() {
+                            for l in t.lines().filter(|l| !l.trim().is_empty()) {
+                                log(&app, kind, l.to_string());
+                            }
+                        }
+                        *LAST_CLAUDE.lock().unwrap() = Some(v);
+                        continue;
+                    }
+                }
                 if !line.trim().is_empty() {
                     log(&app, kind, line);
                 }
@@ -574,8 +613,12 @@ fn fetch(app: &AppHandle, st: &Shared, root: &Path, engine: &str) -> Result<Opti
              4. 끝나면 저장 개수와 멈춘 이유를 한국어 세 줄 이내로 알려 준다. 주소는 적지 않는다."
         );
         let mut c = command("claude", root)?;
-        c.args(["-p", "--permission-mode", "dontAsk", "--allowedTools", "Bash(ego-browser nodejs:*)", "Read"]);
+        c.args(["-p", "--permission-mode", "dontAsk", "--allowedTools", "Bash(ego-browser nodejs:*)", "Read", "--output-format", "json"]);
+        *LAST_CLAUDE.lock().unwrap() = None;
         let ok = run_proc(app, st, c, Some(prompt))?;
+        if let Some(v) = LAST_CLAUDE.lock().unwrap().take() {
+            log_claude_usage(root, "ego 수집", read_status(root)["saved"].as_u64().unwrap_or(0), &v);
+        }
         if !ok && !st.stop.load(Ordering::SeqCst) {
             return Err("Claude Code가 실패했어요. 터미널에서 claude 로 로그인돼 있는지 확인하거나 '직접 실행'으로 바꿔 주세요".into());
         }
@@ -656,6 +699,8 @@ fn pipeline(app: &AppHandle, st: &Shared, root: &Path, plan: &str, engine: &str,
             cargo_bin(app, st, root, "collect_reviews", &["--max", "0"])?;
             cargo_bin(app, st, root, "collect_reviews", &["--kind", "blog", "--max", "0"])?;
             cargo_bin(app, st, root, "collect_photos", &["--max", "0"])?;
+            // 블로그 사진(간판·안내문·가격표)의 글자를 Claude Code가 보고 읽는다. claude가 없으면 안내만 하고 넘어간다
+            cargo_bin(app, st, root, "read_photo_text", &[])?;
             Ok(None)
         });
     }

@@ -68,4 +68,6 @@ data/collected/ego_fetch_job.json
 data/collected/ego_fetch_status.json
 data/collected/ego_fetch_stop
 data/collected/collector_runs.jsonl
+data/collected/claude_usage.jsonl
+data/collected/photo_text.jsonl
 data/curated/place_photos.csv.bak

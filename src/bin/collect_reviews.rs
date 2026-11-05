@@ -25,7 +25,7 @@ use tangbang_data::{re, util};
 
 re!(
     KEY,
-    r"수건|타월|타올|드라이|세신|때밀이|샴푸|바디워시|어메니티|폐업|휴업|입장료|목욕비|목욕료|이용요금|이용료|대인|성인"
+    r"수건|타월|타올|드라이|세신|때밀이|샴푸|바디워시|어메니티|폐업|휴업|입장료|목욕비|목욕료|이용요금|이용료|대인|성인|마감|문\s?닫|영업\s?시간|운영|중단|휴업|공사|폐쇄"
 );
 re!(VISIT, r"(20\d\d)년 (\d{1,2})월 (\d{1,2})일");
 // 블로그 탭: 글마다 '작성자 / 블로그 이름 / 제목 / 본문 일부' 다음에 '26.1.24.토' + '2026년 1월 24일 토요일'이 온다
@@ -33,6 +33,11 @@ re!(
     BLOG_DATE,
     r"\n\d{2}\.\d{1,2}\.\d{1,2}\.[월화수목금토일]\n(20\d\d)년 (\d{1,2})월 (\d{1,2})일 [월화수목금토일]요일"
 );
+
+const LINK_MARK: &str = "[[탕방:블로그글]]";
+const POST_TODO: &str = "data/collected/naver_blogpost_todo.csv";
+/// 곳마다 원문을 열어 볼 블로그 글 수 상한(최근 1년 안 글은 모두 보는 게 원칙, 사용자 결정 2026-11-04. 안전 상한만 둔다)
+const POSTS_PER_PLACE: usize = 40;
 
 /// 어느 탭을 모을지: 방문자 후기(visitor) / 블로그 리뷰(blog)
 #[derive(Clone, Copy, PartialEq, clap::ValueEnum)]
@@ -134,8 +139,44 @@ fn parse_visitor(text: &str) -> (usize, String, String, Vec<Value>) {
 
 /// 블로그 탭 글자 → (글 수, 가장 최근 작성일, 가장 이른 작성일, 키워드 문장이 있는 글들).
 /// 본문은 긴 한 단락이라 문장으로 나눈 뒤 키워드가 든 300자 미만 문장만 남긴다(글 전체는 저장하지 않는다)
+/// 블로그 탭 파일 끝에 ego_fetch가 붙인 글 주소·작성일: [(url, date)]
+fn blog_links(text: &str) -> Vec<(String, String)> {
+    let Some((_, j)) = text.split_once(LINK_MARK) else { return vec![] };
+    serde_json::from_str::<Vec<Value>>(j.trim())
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|v| Some((v["url"].as_str()?.to_string(), v["date"].as_str().unwrap_or("").to_string())))
+        .collect()
+}
+
+/// 블로그 원문 저장 파일: naver_pages/blogpost/<네이버ID>_<블로그아이디>_<글번호>.txt (사진은 blogimg/<같은 이름>_<k>.jpg)
+fn post_stem(nid: &str, url: &str) -> Option<String> {
+    let mut it = url.trim_end_matches('/').rsplit('/');
+    let (no, user) = (it.next()?, it.next()?);
+    (no.bytes().all(|b| b.is_ascii_digit()) && !user.is_empty()).then(|| format!("{nid}_{user}_{no}"))
+}
+
+/// 원문을 열 때 ego가 찍어 둔 사진 파일(최대 4장)
+fn post_images(stem: &str) -> Vec<String> {
+    (0..8)
+        .map(|k| format!("{PAGES}/blogimg/{stem}_{k}.jpg"))
+        .filter(|p| std::path::Path::new(p).exists())
+        .collect()
+}
+
+/// 블로그 원문에서 키워드 문장만(300자 미만, 같은 문장은 한 번)
+fn post_lines(text: &str) -> Vec<String> {
+    let mut lines: Vec<String> = Vec::new();
+    for s in naver::sentences(text) {
+        if short(&s) && KEY.is_match(&s) && !lines.contains(&s) {
+            lines.push(s);
+        }
+    }
+    lines
+}
+
 fn parse_blog(text: &str) -> (usize, String, String, Vec<Value>) {
-    let text = text.replace("\r\n", "\n");
+    let text = text.split(LINK_MARK).next().unwrap_or("").replace("\r\n", "\n");
     // 글 목록은 '리스트형식으로 보기' 뒤에서 시작한다(위쪽은 가게 머리말)
     let start = text
         .find("리스트형식으로 보기")
@@ -278,6 +319,58 @@ fn main() -> Result<()> {
                 }
                 None => todo.push(line(false)),
             },
+        }
+    }
+    // 블로그 원문: 탭에 남긴 글 주소 중 최근 1년 안 글을 최신순으로 모두 연다(곳마다 40개 상한). 받은 원문의 키워드 문장은 'originals'에 둔다
+    let mut post_todo: Vec<Vec<String>> = Vec::new();
+    let (mut post_read, mut post_places) = (0, 0);
+    if a.kind == Kind::Blog {
+        let from = util::fresh_from();
+        let by_nid: HashMap<&str, &Row> = t.iter().map(|r| (g(r, "네이버ID"), r)).collect();
+        for row in rows.iter_mut() {
+            let nid = row["naverId"].as_str().unwrap_or("").to_string();
+            let Some(text) = naver::read_page(&a.kind.file(&nid)) else { continue };
+            let mut links: Vec<(String, String)> = blog_links(&text).into_iter().filter(|l| l.1 >= from).collect();
+            // 최신순. 1년 안 글은 모두 연다(루하스사우나 영업시간 안내판 글은 12번째였다). 쓸모없는 사진은 read_photo_text가 읽은 뒤 지운다
+            links.sort_by(|x, y| y.1.cmp(&x.1));
+            links.truncate(POSTS_PER_PLACE);
+            let mut originals: Vec<Value> = Vec::new();
+            let mut images: Vec<Value> = Vec::new();
+            for (url, date) in &links {
+                let Some(stem) = post_stem(&nid, url) else { continue };
+                let file = format!("{PAGES}/blogpost/{stem}.txt");
+                match naver::read_page(&file) {
+                    Some(body) => {
+                        post_read += 1;
+                        let lines = post_lines(&body);
+                        if !lines.is_empty() {
+                            originals.push(json!({ "date": date, "lines": lines }));
+                        }
+                        for p in post_images(&stem) {
+                            images.push(json!({ "file": p, "date": date }));
+                        }
+                    }
+                    None => {
+                        if let Some(r) = by_nid.get(nid.as_str()) {
+                            post_todo.push(vec![g(r, "카카오ID").to_string(), nid.clone(), g(r, "이름").to_string(), url.clone(), file, String::new()]);
+                        }
+                    }
+                }
+            }
+            if !originals.is_empty() {
+                post_places += 1;
+            }
+            if row.get("originals") != Some(&Value::from(originals.clone())) || row.get("postImages") != Some(&Value::from(images.clone())) {
+                row["originals"] = Value::from(originals);
+                // 사진 속 글자는 read_photo_text(Claude가 사진을 보고 읽음)가 읽어 photo_text.jsonl에 남긴다
+                row["postImages"] = Value::from(images);
+                replaced += 1;
+            }
+        }
+        println!("블로그 원문: 읽은 글 {post_read}개, 키워드 문장이 있는 곳 {post_places}곳 / 받을 원문 {}개 (조건: 최근 1년 글, 최신순 곳마다 {POSTS_PER_PLACE}개) → {POST_TODO}", post_todo.len().min(a.max.max(post_todo.len())));
+        if a.max > 0 {
+            post_todo.truncate(a.max);
+            csvio::write_csv(POST_TODO, &["카카오ID", "네이버ID", "이름", "주소", "저장할파일", "다시받기"], &post_todo)?;
         }
     }
     stale.sort_by(|x, y| x.0.cmp(&y.0));

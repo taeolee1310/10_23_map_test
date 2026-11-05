@@ -6,6 +6,8 @@
 //!   차례로 본다. 필요한 페이지가 아직 없으면 data/collected/naver_find_todo.csv에 적고 그 곳은 다음에 판정한다.
 //! - 후보 채택 조건: 후보 페이지의 주소에 우리 목록의 도로명 주소(구 이후)가 들어 있고, 이름이 비슷하고(유사도 0.5 이상),
 //!   업종이 목욕·사우나·찜질·온천·한증일 때만. 같은 건물의 다른 가게를 잘못 잇지 않으려는 것이다. 못 맞추면 '못 찾음'.
+//!   주소 번지가 조금 다른 곳(카카오 '통일로 1030' ↔ 네이버 '통일로 1022', 같은 건물 다른 출입구)은 구·길 이름이 같고 번지 차이가 30 이하이며
+//!   이름이 거의 같을 때(유사도 0.8 이상)만 맞춘다. '못 찾음'이었던 곳도 규칙이 바뀌면 저장된 페이지로 다시 판정한다.
 //! - 저장: data/collected/naver_id_found.csv(찾은 결과·못 찾음), 맞은 곳의 홈 결과는 naver_home_facts.csv에 추가(collect_home과 같은 칸).
 //! - ego 수집 규칙: 페이지마다 10초 간격, 한 번에 --max개, 캡차·차단이 보이거나 3번 연속 비면 멈춘다.
 //!
@@ -35,6 +37,7 @@ re!(BATH, r"목욕|사우나|찜질|온천|한증"); // 네이버 업종 기준.
 re!(PAREN, r"\(.*?\)");
 re!(SEOUL_GU, r"^서울(특별시)?\s*\S+구\s*");
 re!(WS, r"\s+");
+re!(ROAD_PARTS, r"서울\S*\s+(\S+구)\s+(\S+(?:로|길))\s*(\d+)");
 re!(NAME_JUNK, r"\(주\)|주식회사|\s+");
 re!(MY_NAME, r"마이플레이스\n(.+?)\n");
 re!(MY_ADDR, r"\n주소\n(.+?)\n");
@@ -62,6 +65,20 @@ fn addr_tail(addr: &str) -> String {
     let a = PAREN.replace_all(addr, "");
     let a = SEOUL_GU.replace(&a, "");
     WS.replace_all(&a, "").into_owned()
+}
+
+/// '서울 은평구 통일로 1030' → ("은평구", "통일로", 1030)
+fn road_parts(addr: &str) -> Option<(String, String, i64)> {
+    let a = PAREN.replace_all(addr, "");
+    let c = ROAD_PARTS.captures(&a)?;
+    Some((c[1].to_string(), c[2].to_string(), c[3].parse().ok()?))
+}
+
+fn near_addr(ours: &str, theirs: &str) -> bool {
+    match (road_parts(ours), road_parts(theirs)) {
+        (Some(a), Some(b)) => a.0 == b.0 && a.1 == b.1 && (a.2 - b.2).abs() <= 30,
+        _ => false,
+    }
 }
 
 fn norm_name(n: &str) -> String {
@@ -97,12 +114,14 @@ fn main() -> Result<()> {
         (FCOLS.iter().map(|s| s.to_string()).collect(), vec![])
     };
     let done_ids: HashSet<String> = found.iter().map(|r| g(r, "카카오ID").to_string()).collect();
+    let miss_ids: HashSet<String> = found.iter().filter(|r| g(r, "결과") == "못 찾음").map(|r| g(r, "카카오ID").to_string()).collect();
     let todo: Vec<Row> = m
         .iter()
         .filter(|r| {
             !g(r, "카카오ID").is_empty()
                 && !have.contains(g(r, "카카오ID"))
                 && !done_ids.contains(g(r, "카카오ID"))
+                || miss_ids.contains(g(r, "카카오ID"))
         })
         .cloned()
         .collect();
@@ -139,7 +158,7 @@ fn main() -> Result<()> {
             ]);
             continue;
         };
-        if naver::blocked(&html) {
+        if naver::blocked_html(&html) {
             println!("⛔ 캡차·차단 화면이 저장돼 있어요 ({sp}). 우회하지 않고 멈춥니다. 파일을 지우고 나중에 다시 받으세요.");
             return Ok(());
         }
@@ -184,9 +203,10 @@ fn main() -> Result<()> {
             let row = naver::parse(&t2);
             let tail = addr_tail(g(r, "주소"));
             let same_addr = !tail.is_empty() && WS.replace_all(&na, "").contains(&tail);
-            let similar = difflib::ratio(&norm_name(g(r, "이름")), &norm_name(&nn)) >= 0.5;
+            let sim = difflib::ratio(&norm_name(g(r, "이름")), &norm_name(&nn));
+            let ok_addr = (same_addr && sim >= 0.5) || (near_addr(g(r, "주소"), &na) && sim >= 0.8);
             // 업종이 헬스장·모텔·예식장이면 같은 건물의 다른 가게다
-            if same_addr && similar && BATH.is_match(g(&row, "네이버분류")) {
+            if ok_addr && BATH.is_match(g(&row, "네이버분류")) {
                 res.insert("네이버ID".into(), cid.clone());
                 res.insert("네이버이름".into(), nn);
                 res.insert("네이버주소".into(), na);
@@ -218,7 +238,11 @@ fn main() -> Result<()> {
             g(&res, "결과"),
             g(&res, "네이버이름")
         );
-        found.push(res);
+        // 다시 판정한 곳은 예전 '못 찾음' 줄을 바꾼다
+        match found.iter().position(|f| g(f, "카카오ID") == kid) {
+            Some(i) => found[i] = res,
+            None => found.push(res),
+        }
         judged += 1;
     }
     if facts_changed {

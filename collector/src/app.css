@@ -403,3 +403,30 @@ input.input { flex: 1; min-width: 180px; }
 .publish-files ul { margin: 4px 0 0; padding-left: 18px; }
 .publish .btn { flex: none; }
 .step-manual { border-top: 1px dashed var(--color-border-default); }
+
+/* Claude 사용량(대시보드): 단계 색은 토큰만. 색 + 글자 라벨을 같이 둔다 */
+.usage-hint { margin: 0 0 var(--space-4); }
+.usage-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-4); }
+.usage-kpi { min-width: 0; padding: var(--space-3) var(--space-4); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--card-bg-inset); }
+.usage-cost { margin-top: 2px; font-size: 26px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; color: var(--color-text-primary); }
+.usage-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5, 24px); margin-bottom: var(--space-4); }
+.usage-sub { margin: 0 0 var(--space-2); font-size: 13px; font-weight: 600; color: var(--color-text-secondary); }
+.usage-stack { display: flex; gap: 2px; height: 14px; border-radius: var(--radius-pill); overflow: hidden; background: var(--color-bg-surface-muted); }
+.usage-stack .seg { display: block; height: 100%; min-width: 3px; }
+.usage .s1 { background: var(--color-action-secondary); }
+.usage .s2 { background: var(--color-accent-decor); }
+.usage .s3 { background: var(--color-text-secondary); }
+.usage .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: -1px; }
+.usage-legend { list-style: none; margin: var(--space-3) 0 0; padding: 0; display: grid; gap: 6px; }
+.usage-legend li { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; column-gap: var(--space-2); align-items: center; font-size: 13px; }
+.usage-legend .lg-label { color: var(--color-text-primary); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.usage-legend strong { font-variant-numeric: tabular-nums; }
+.usage-legend .lg-sub { grid-column: 2 / 4; font-size: 12px; color: var(--color-text-muted); }
+.usage-days { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 4px; align-items: end; height: 120px; padding-bottom: 18px; position: relative; border-bottom: 1px solid var(--color-border-subtle); }
+.usage-days .day { position: relative; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
+.usage-days .day-bar { display: block; width: 100%; max-width: 18px; background: var(--color-action-secondary); border-radius: 4px 4px 0 0; }
+.usage-days .day:hover .day-bar { opacity: 0.8; }
+.usage-days .day.today .day-label { color: var(--color-text-primary); font-weight: 700; }
+.usage-days .day-label { position: absolute; bottom: -18px; font-size: 11px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+.usage-max { margin-top: var(--space-2); }
+@media (max-width: 900px) { .usage-kpis, .usage-grid { grid-template-columns: minmax(0, 1fr); } }

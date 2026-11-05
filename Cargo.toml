@@ -18,6 +18,8 @@ regex = "1"
 # native-tls = 윈도우 기본 TLS(schannel). C 컴파일러 없이 빌드된다
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "native-tls"] }
 serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+# read_photo_text: 블로그 사진을 바둑판 한 장으로 모아 Claude가 글자 있는 사진만 고르게 한다
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp"] }
 
 [profile.release]
 opt-level = 3

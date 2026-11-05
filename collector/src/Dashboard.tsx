@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { bigThreshold, build, byGu, count, FRESH, pct, type GuRow, type Item, type Raw } from './metrics'
+import Usage from './Usage'
 
 // 수집한 목록·데이터를 PO 관점(커버리지 → 빈 곳 → 다음 할 일)으로 보는 화면.
 // 막대는 한 가지 색(Bath Teal) 단일 계열이라 범례 없이 제목과 숫자 라벨로 읽는다. 상태는 색 + 글자로 같이 보여 준다.
@@ -184,6 +185,8 @@ export default function Dashboard({ active }: { active: boolean }) {
           </div>
         ))}
       </section>
+
+      <Usage rows={raw?.usage ?? []} />
 
       <div className="dash-grid">
         <section className="card" aria-labelledby="todo-t" data-tour="actions">

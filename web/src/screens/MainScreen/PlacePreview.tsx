@@ -51,7 +51,7 @@ function MapHint({ total, pricedCount, unconfirmedCount }: { total: number; pric
         <div className="hint-body" id="hint-body">
           서울 {total}곳 · 요금 확인 {pricedCount}곳 · 미확인 {unconfirmedCount}곳
           <br />
-          핀을 한 번 더 누르면 자세한 정보로 넘어가요. 요금은 직접 확인한 곳만 숫자로 보여 드려요.
+          핀을 한 번 더 누르면 자세한 정보로 넘어가요. 요금은 확인된 곳만 숫자로 보여 드려요.
         </div>
       )}
     </div>

@@ -39,6 +39,7 @@ export type Raw = {
   todoHome: number | null
   todoFind: number | null
   runs: Run[]
+  usage?: import('./Usage').UsageRow[]
 }
 
 export type Item = Place & {

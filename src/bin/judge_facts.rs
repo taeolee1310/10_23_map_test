@@ -31,7 +31,8 @@ const OUT_PRICES: &str = "data/collected/price_auto.csv";
 const EX_COLS: [&str; 6] = ["카카오ID", "이름", "주소", "사유", "근거", "확인일"];
 const REVIEWS: &str = "data/collected/naver_reviews.jsonl"; // collect_reviews가 후기 탭에서 모은 키워드 문장(방문일 포함)
 const BLOGS: &str = "data/collected/naver_blogs.jsonl"; // collect_reviews --kind blog가 블로그 탭에서 모은 키워드 문장(작성일 포함)
-const HOURS: &str = "data/collected/naver_hours.jsonl"; // scripts/collect_hours.mjs가 '펼쳐보기'로 모은 요일별 영업시간
+const HOURS: &str = "data/collected/naver_hours.jsonl";
+const PHOTO_TEXT: &str = "data/collected/photo_text.jsonl"; // read_photo_text가 블로그 사진(간판·안내문·가격표)에서 읽은 글자 // scripts/collect_hours.mjs가 '펼쳐보기'로 모은 요일별 영업시간
 const DAYS: [&str; 7] = ["월", "화", "수", "목", "금", "토", "일"];
 const REVIEW_COLS: [(&str, &[&str]); 3] = [
     ("수건근거", &["수건", "타월", "타올"]),
@@ -108,6 +109,8 @@ re!(
     r"소인|어린이|유아|초등|학생|경로|청소년|미취학|찜질복|가운|까운|세신|회원|\d+매|\d+장|수면|룸|\d+세|개월|미만|이하|~|아동|소아|취학"
 );
 re!(OVERTIME, r"초과|연장");
+re!(AGE_MIN, r"\([^)]*이상\)");
+re!(STRICT_ADULT, r"대인|성인|일반");
 re!(WEEKEND, r"주말|공휴일");
 re!(CHILD, r"소인|어린이|초등|유아|미취학|아동|소아|취학");
 re!(CHILD_SKIP, r"세신|회원|찜질복|가운|까운|성인|대인");
@@ -125,12 +128,18 @@ fn price_items(text: &str) -> Vec<(String, i64)> {
     let tok: Vec<&str> = text.split('|').map(util::py_strip).collect();
     let mut out = Vec::new();
     let mut i = 0;
-    while i + 2 < tok.len() {
-        if tok[i + 2] == "원" && NUM_TOK.is_match(tok[i + 1]) {
+    while i + 1 < tok.len() {
+        if i + 2 < tok.len() && tok[i + 2] == "원" && NUM_TOK.is_match(tok[i + 1]) {
             if let Ok(n) = tok[i + 1].replace(',', "").parse::<i64>() {
                 out.push((tok[i].to_string(), n));
             }
             i += 3;
+        } else if NUM_TOK.is_match(tok[i + 1]) && !NUM_TOK.is_match(tok[i]) && tok[i + 1].contains(',') {
+            // '원' 칸 없이 '이름 | 12,000'으로만 올린 가격표(예: 루하스사우나). 천 단위 쉼표가 있는 금액만 받는다
+            if let Ok(n) = tok[i + 1].replace(',', "").parse::<i64>() {
+                out.push((tok[i].to_string(), n));
+            }
+            i += 2;
         } else {
             i += 1;
         }
@@ -260,10 +269,10 @@ fn load_blogs() -> Result<HashMap<String, Vec<Review>>> {
         return Ok(out);
     }
     for r in jsonl(BLOGS)? {
-        let posts = r["reviews"]
-            .as_array()
-            .cloned()
-            .unwrap_or_default()
+        // 탭 요약(reviews)과 원문(originals, collect_reviews가 블로그 글을 열어 읽은 키워드 문장)을 함께 쓴다
+        let mut all = r["reviews"].as_array().cloned().unwrap_or_default();
+        all.extend(r["originals"].as_array().cloned().unwrap_or_default());
+        let posts = all
             .iter()
             .map(|rv| Review {
                 date: pyjson::py_str(&rv["date"]),
@@ -321,6 +330,18 @@ fn add_blog_evidence(row: &Row, posts: &[Review]) -> Row {
 }
 
 /// {카카오ID: {'월': '06:00 - 23:00', ...}}. 요일 표가 없는 곳(24시간 영업 등)은 넣지 않는다.
+/// 블로그 사진에서 읽은 정보: 최근 1년 글, 목욕탕 정보가 있고 다른 가게 사진이 아닌 것만
+fn load_photo_text() -> Result<HashMap<String, Vec<Value>>> {
+    let from = util::fresh_from();
+    let mut out: HashMap<String, Vec<Value>> = HashMap::new();
+    for v in jsonl(PHOTO_TEXT)? {
+        if v["useful"] == true && v["other_business"] != true && v["date"].as_str().unwrap_or("") >= from.as_str() {
+            out.entry(pyjson::py_str(&v["kakaoId"])).or_default().push(v);
+        }
+    }
+    Ok(out)
+}
+
 fn load_hours() -> Result<HashMap<String, Value>> {
     let mut out = HashMap::new();
     for r in jsonl(HOURS)? {
@@ -702,9 +723,15 @@ fn price_num(s: &str) -> Option<i64> {
 }
 
 /// 최근 1년 안 후기·블로그에 적힌 입장료 중 가장 최근 것: (날짜, 금액, 출처). 같은 날 금액이 엇갈리면 쓰지 않는다
-fn newest_said_price(reviews: Option<&Vec<Review>>, blogs: Option<&Vec<Review>>) -> Option<(String, i64, &'static str)> {
+fn newest_said_price(reviews: Option<&Vec<Review>>, blogs: Option<&Vec<Review>>, photos: Option<&Vec<Value>>) -> Option<(String, i64, &'static str)> {
     let from = util::fresh_from();
     let mut said: Vec<(String, i64, &'static str)> = Vec::new();
+    // 블로그 사진(가격표·안내판)에 적힌 대인 입장료도 같은 '가장 최근' 규칙으로 본다
+    for v in photos.into_iter().flatten() {
+        if let Some(n) = v["adult"].as_i64().filter(|n| (5_000..HIGH_PRICE).contains(n)) {
+            said.push((pyjson::py_str(&v["date"]), n, "블로그 사진"));
+        }
+    }
     for (src, list) in [("방문자 후기", reviews), ("블로그", blogs)] {
         for rv in list.into_iter().flatten().filter(|rv| rv.date >= from) {
             for ln in &rv.lines {
@@ -758,6 +785,128 @@ fn price_decide(
     }
 }
 
+// ───────── 가기 전 알아 둘 것(후기·블로그에서 자동으로) ─────────
+// 네이버 정보와 실제가 다른 점: 시설 운영 중단(찜질방 계절 휴업 등), 마감 시간이 등록된 것보다 이른 경우.
+// 최근 1년 문장만 쓰고, 문장을 그대로 옮기지 않고 정해진 문장으로 만든다(작성자 글 보호). 몇 건이 말했는지 같이 남긴다.
+re!(
+    FAC_OFF,
+    r"(찜질방|찜질|불가마|한증막|황토방|소금방|수면실|열탕|온탕|냉탕|사우나|식당|매점|헬스장|헬스|노천탕|이벤트탕|탕)\s*(?:은|는|이|가|도|을|를)?[^.!?\n]{0,40}?(?:운영\s*(?:을\s*)?(?:안|중단|중지|하지\s*않)|안\s*(?:해요|합니다|하고|함)|안해요|안합니다|안함|휴업|공사\s*중|폐쇄|닫았|없어졌)"
+);
+re!(
+    NOTICE_SKIP,
+    r"코로나|늦은\s*시간|시간이라|시간대|오늘만|잠깐|예전에|전에는|였는데|다시\s*(?:운영|열)|재개|재오픈|새벽|아침|오전|평일|주말|명절|[?？]"
+);
+re!(SEASON, r"(\d{1,2})\s*월\s*(?:부터|~|-|～)\s*(\d{1,2})\s*월");
+re!(
+    CLOSE_AT,
+    r"(?:(찜질방|찜질|사우나|목욕탕|여탕|남탕|불가마|한증막)\s*(?:은|는|이|도)?\s*)?(\d{1,2})\s*(?::\s*(\d{2})|시\s*(?:(\d{1,2})\s*분|(반))?)\s*(?:에|까지|쯤|부터|이면)?\s*(?:문\s*(?:을\s*)?닫|마감|영업\s*(?:종료|끝)|끝나|나가)"
+);
+re!(HHMM_END, r"-\s*(\d{1,2}):(\d{2})");
+// 사진 안내 중 '알아 둘 것'만(연중무휴·요금 같음 같은 평범한 안내는 뺀다)
+re!(PHOTO_NOTICE, r"안 ?함|안 ?해|불가|중단|변경|부터|까지만|휴무|휴업|추가|없음|금지|제한");
+re!(CLOSE_SHOWN, r"(\d{1,2}):(\d{2})에 영업 종료");
+
+/// 네이버에 등록된 가장 늦은 마감 시각(분). 24시간 영업이면 24*60
+fn naver_close(hours: Option<&Value>, open24: bool, shown: &str) -> Option<u32> {
+    if open24 {
+        return Some(24 * 60);
+    }
+    // 홈 화면의 '23:00에 영업 종료'(요일별 영업시간 파일이 없는 곳)
+    if hours.is_none() {
+        return CLOSE_SHOWN.captures(shown).map(|c| c[1].parse::<u32>().unwrap_or(0) * 60 + c[2].parse::<u32>().unwrap_or(0));
+    }
+    hours?
+        .as_object()?
+        .values()
+        .filter_map(|v| v.as_str())
+        .flat_map(|s| HHMM_END.captures_iter(s).map(|c| c[1].parse::<u32>().unwrap_or(0) * 60 + c[2].parse::<u32>().unwrap_or(0)).collect::<Vec<_>>())
+        .max()
+}
+
+fn hhmm(m: u32) -> String {
+    format!("{}:{:02}", m / 60, m % 60)
+}
+
+/// → [{text, date(가장 최근), count, source}] 최근 것부터 8개까지
+fn judge_notices(reviews: Option<&Vec<Review>>, blogs: Option<&Vec<Review>>, photos: Option<&Vec<Value>>, hours: Option<&Value>, open24: bool, shown: &str) -> Vec<Value> {
+    let from = util::fresh_from();
+    let close = naver_close(hours, open24, shown);
+    // 문장 → (가장 최근 날짜, 건수, 출처)
+    let mut found: HashMap<String, (String, usize, &'static str)> = HashMap::new();
+    let mut add = |text: String, date: &str, src: &'static str| {
+        let e = found.entry(text).or_insert((String::new(), 0, src));
+        e.1 += 1;
+        if date > e.0.as_str() {
+            e.0 = date.to_string();
+            e.2 = src;
+        }
+    };
+    // 블로그 사진: 안내문의 변경·제한 안내(야간 영업 안 함, 추가 요금, 입장 제한 등)와 네이버보다 이른 마감
+    for v in photos.into_iter().flatten() {
+        let date = pyjson::py_str(&v["date"]);
+        for n in v["notices"].as_array().into_iter().flatten().filter_map(|n| n.as_str()) {
+            if PHOTO_NOTICE.is_match(n) {
+                add(n.trim().to_string(), &date, "블로그 사진");
+            }
+        }
+        for (key, what) in [("close", "영업"), ("jjimjil_close", "찜질방")] {
+            let Some((h, m)) = v[key].as_str().and_then(|t| t.split_once(':')) else { continue };
+            let (Ok(h), Ok(m)) = (h.parse::<u32>(), m.parse::<u32>()) else { continue };
+            let at = h * 60 + m;
+            if let Some(nc) = close {
+                if (17 * 60..=24 * 60).contains(&at) && at + 30 <= nc {
+                    let reg = if nc >= 24 * 60 { "24시간".to_string() } else { hhmm(nc) };
+                    add(format!("{what} 마감 {} (네이버 등록 {reg})", hhmm(at)), &date, "블로그 사진");
+                }
+            }
+        }
+    }
+    for (src, list) in [("방문자 후기", reviews), ("블로그", blogs)] {
+        for rv in list.into_iter().flatten().filter(|rv| rv.date >= from) {
+            for ln in &rv.lines {
+                if NOTICE_SKIP.is_match(ln) {
+                    continue;
+                }
+                for c in FAC_OFF.captures_iter(ln) {
+                    let fac = match &c[1] {
+                        "찜질" => "찜질방",
+                        "헬스" => "헬스장",
+                        "탕" => continue, // '탕'만으로는 어느 탕인지 몰라서 쓰지 않는다
+                        f => f,
+                    };
+                    let season = SEASON.captures(ln).map(|s| format!(" ({}~{}월)", &s[1], &s[2])).unwrap_or_default();
+                    add(format!("{fac} 운영 안 함{season}"), &rv.date, src);
+                }
+                for c in CLOSE_AT.captures_iter(ln) {
+                    let mut h: u32 = c[2].parse().unwrap_or(0);
+                    if h <= 12 && (1..=11).contains(&h) {
+                        h += 12; // '10시 마감'은 밤 10시로 본다(동네 목욕탕은 낮에 닫지 않음)
+                    }
+                    if !(17..=24).contains(&h) {
+                        continue;
+                    }
+                    let mi: u32 = c.get(3).or(c.get(4)).and_then(|m| m.as_str().parse().ok()).unwrap_or(if c.get(5).is_some() { 30 } else { 0 });
+                    let at = h * 60 + mi;
+                    // 네이버 마감보다 30분 넘게 이를 때만(같거나 비슷하면 알릴 게 없다)
+                    let Some(nc) = close else { continue };
+                    if at + 30 > nc {
+                        continue;
+                    }
+                    let what = c.get(1).map(|m| match m.as_str() { "찜질" => "찜질방", x => x }).unwrap_or("영업");
+                    let reg = if nc >= 24 * 60 { "24시간".to_string() } else { hhmm(nc) };
+                    add(format!("{what} 마감 {} (네이버 등록 {reg})", hhmm(at)), &rv.date, src);
+                }
+            }
+        }
+    }
+    let mut out: Vec<(String, (String, usize, &'static str))> = found.into_iter().collect();
+    out.sort_by(|a, b| b.1 .0.cmp(&a.1 .0).then(a.0.cmp(&b.0)));
+    out.into_iter()
+        .take(8) // 오래된 글의 중요한 안내(예: 2025-11-01부터 야간 영업 안 함)가 잘리지 않게 넉넉히
+        .map(|(text, (date, count, src))| obj(vec![("text", Value::from(text)), ("date", Value::from(date)), ("count", Value::from(count as i64)), ("source", Value::from(src))]))
+        .collect()
+}
+
 /// 네이버 가격표의 입장료: 성인 평일(주간)·주말·어린이. 항목마다 값이 하나로 정해질 때만 쓴다. 성인 평일이 없으면 줄을 만들지 않는다.
 fn judge_prices(row: &Row) -> Option<(i64, Option<i64>, Option<i64>)> {
     let items = price_items(g(row, "가격표"));
@@ -769,12 +918,18 @@ fn judge_prices(row: &Row) -> Option<(i64, Option<i64>, Option<i64>)> {
             None
         }
     };
-    let adult_like = |n: &str| ADULT.is_match(n) && !NOT_ADULT.is_match(n) && !NIGHT.is_match(n);
-    let adult = uniq(&|n| adult_like(n) && !WEEKEND.is_match(n))?;
+    // '(초등생이상)'처럼 '이상'이 붙은 괄호는 대상 나이 하한이라 성인 요금이다. 괄호를 지우고 본다
+    let adult_like = |n: &str| {
+        let n = AGE_MIN.replace_all(n, "");
+        ADULT.is_match(&n) && !NOT_ADULT.is_match(&n) && !NIGHT.is_match(&n)
+    };
+    // '대인·성인'이 적힌 항목이 하나로 정해지면 그것을 먼저 쓴다('찜질+사우나 14,000'과 '사우나 대인 12,000'이 함께 있을 때)
+    let adult = uniq(&|n| adult_like(n) && STRICT_ADULT.is_match(n) && !WEEKEND.is_match(n))
+        .or_else(|| uniq(&|n| adult_like(n) && !WEEKEND.is_match(n)))?;
     let mut weekend = uniq(&|n| adult_like(n) && WEEKEND.is_match(n));
-    let mut child = uniq(&|n| {
-        CHILD.is_match(n) && !NIGHT.is_match(n) && !WEEKEND.is_match(n) && !CHILD_SKIP.is_match(n)
-    });
+    let child_like = |n: &str| CHILD.is_match(n) && !NIGHT.is_match(n) && !WEEKEND.is_match(n) && !CHILD_SKIP.is_match(n);
+    // '소인'·'어린이' 항목이 하나로 정해지면 먼저 쓴다(유아 요금이 따로 있을 때)
+    let mut child = uniq(&|n| child_like(n) && (n.contains("소인") || n.contains("어린이"))).or_else(|| uniq(&child_like));
     if child.is_some_and(|c| c >= adult) {
         child = None; // 소인이 대인 이상이면 항목을 잘못 읽은 것이다
     }
@@ -1021,6 +1176,8 @@ fn main() -> Result<()> {
         reviews.values().map(|v| v.len()).sum::<usize>()
     );
     let blogs = load_blogs()?;
+    let photo_text = load_photo_text()?;
+    println!("블로그 사진에서 읽은 정보가 있는 곳 {}곳(조건: 최근 1년 글, 목욕탕 정보, 다른 가게 사진 제외)", photo_text.len());
     println!(
         "블로그 탭 수집이 있는 곳 {}곳(키워드 글 {}건)",
         blogs.len(),
@@ -1031,6 +1188,7 @@ fn main() -> Result<()> {
     let mut judged: Vec<Vec<String>> = Vec::new();
     let mut price_rows: Vec<(String, i64, Option<i64>, Option<i64>, String, String, String)> = Vec::new();
     let dump = |v: &Value| pyjson::dumps(v, &pyjson::DEFAULT);
+    let mut n_notice = 0;
     for r0 in rows.iter().filter(|r| !gone.contains(g(r, "카카오ID"))) {
         let kid = g(r0, "카카오ID").to_string();
         let mut f = Map::new();
@@ -1100,7 +1258,12 @@ fn main() -> Result<()> {
         if !conv.is_empty() {
             f.insert("convenience".into(), Value::Object(conv));
         }
-        let said = newest_said_price(reviews.get(&kid), blogs.get(&kid));
+        let notices = judge_notices(reviews.get(&kid), blogs.get(&kid), photo_text.get(&kid), hours.get(&kid), open24, g(&r, "영업표시"));
+        if !notices.is_empty() {
+            n_notice += 1;
+            f.insert("notices".into(), Value::from(notices));
+        }
+        let said = newest_said_price(reviews.get(&kid), blogs.get(&kid), photo_text.get(&kid));
         if let Some((a, w, c, d, memo, src)) = price_decide(judge_prices(&r), said, g(&r, "수집일")) {
             price_rows.push((kid.clone(), a, w, c, d, memo, src));
         }
@@ -1163,6 +1326,7 @@ fn main() -> Result<()> {
         })
         .collect();
     csvio::write_csv(OUT_PRICES, &PRICE_COLS_OUT, &body)?;
+    println!("가기 전 알아 둘 것(조건: 최근 1년 후기·블로그의 시설 운영 중단, 네이버보다 30분 넘게 이른 마감)이 있는 곳 {n_notice}곳");
     let by_said = price_rows.iter().filter(|p| !p.6.starts_with("네이버 플레이스 가격표")).count();
     println!("요금 출처(조건: 가장 최근 자료) 가격표 {}곳 / 최근 1년 후기·블로그 {by_said}곳", price_rows.len() - by_said);
     println!("입장료를 정한 곳 {}곳 → {OUT_PRICES} (사람이 확인한 onsen_prices.csv에 없는 곳만 서비스에 쓴다)", price_rows.len());
@@ -1176,4 +1340,63 @@ fn main() -> Result<()> {
         println!("  {k}: 값 있음 {}곳 / 불명 {unk}곳", judged.len() - unk);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rv(date: &str, lines: &[&str]) -> Review {
+        Review { date: date.into(), lines: lines.iter().map(|s| s.to_string()).collect() }
+    }
+
+    /// 사용자가 보여 준 네이버 방문자 후기(2026-11-04): 등록은 23시까지인데 실제는 찜질 22시·퇴장 22:30, 찜질방 8~10월 휴업
+    #[test]
+    fn notices_from_real_review() {
+        let today = util::today_kst();
+        let r = vec![rv(&today, &[
+            "네이버에는 23시 까지 영업 한다고 나와있길래 20시쯤 방문했음.",
+            "도착하니 찜질은 22시 마감이고 22:30에 문닫는다고 그전에 무조건 나오라고 하심.",
+            "찜질방 두군데 전기세 많이 나간다고 8월부터 10월말까지 운영안함(실제로 전기세 때문이라고 문앞에 붙혀놓음) 참고하세요~",
+        ])];
+        let hours = obj(vec![("월", Value::from("06:00 - 23:00"))]);
+        let got: Vec<String> = judge_notices(Some(&r), None, None, Some(&hours), false, "").iter().map(|n| n["text"].as_str().unwrap().to_string()).collect();
+        assert!(got.contains(&"찜질방 운영 안 함 (8~10월)".to_string()), "{got:?}");
+        assert!(got.contains(&"찜질방 마감 22:00 (네이버 등록 23:00)".to_string()), "{got:?}");
+        assert!(got.contains(&"영업 마감 22:30 (네이버 등록 23:00)".to_string()), "{got:?}");
+    }
+
+    /// 요일별 영업시간이 없으면 홈 화면 '23:00에 영업 종료'와 비교한다
+    #[test]
+    fn notices_close_from_home_text() {
+        let r = vec![rv(&util::today_kst(), &["도착하니 찜질은 22시 마감이고 22:30에 문닫는다고 그전에 무조건 나오라고 하심."])];
+        let got: Vec<String> = judge_notices(Some(&r), None, None, None, false, "영업 중 / 23:00에 영업 종료").iter().map(|n| n["text"].as_str().unwrap().to_string()).collect();
+        assert!(got.contains(&"영업 마감 22:30 (네이버 등록 23:00)".to_string()), "{got:?}");
+    }
+
+    /// 루하스사우나 가격표: '원' 칸 없음, '사우나 대인 (초등생이상)'
+    #[test]
+    fn price_without_won_and_age_min() {
+        let mut row = Row::new();
+        row.insert("가격표".into(), "찜질+사우나 (초등생이상) | 14,000 | 사우나 대인 (초등생이상) | 12,000 | 사우나 소인 (24개월이상 ~ 미취학아동) | 9,000 | 사우나 유아 (~24개월미만) | 2,000 | 찜질복 대여 | 2,000".into());
+        assert_eq!(judge_prices(&row), Some((12_000, None, Some(9_000))));
+    }
+
+    /// 루하스사우나 입구 안내판(블로그 사진, 2025-11-12 글): 야간 영업 안 함은 알리고, 연중무휴 같은 평범한 안내와 등록과 같은 마감은 알리지 않는다
+    #[test]
+    fn notices_from_photo_sign() {
+        let ph = vec![serde_json::json!({"date": util::today_kst(), "close": "23:00", "notices": ["2025-11-01부터 야간 영업 안 함", "매일 연중무휴"]})];
+        let got: Vec<String> = judge_notices(None, None, Some(&ph), None, false, "23:00에 영업 종료").iter().map(|n| n["text"].as_str().unwrap().to_string()).collect();
+        assert_eq!(got, vec!["2025-11-01부터 야간 영업 안 함".to_string()]);
+    }
+
+    /// 1년 넘은 후기, 코로나 때 이야기, 늦은 시간 한정 이야기는 쓰지 않는다
+    #[test]
+    fn notices_skip_old_and_conditional() {
+        let r = vec![
+            rv("2020-05-01", &["찜질방 운영 안 해요"]),
+            rv(&util::today_kst(), &["코로나때문에 불가마는 운영안한대요", "늦은시간이라 매점운영 안하고 무인카페가 있어요"]),
+        ];
+        assert!(judge_notices(Some(&r), None, None, None, false, "").is_empty());
+    }
 }

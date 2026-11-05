@@ -458,8 +458,8 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
           </label>
           <div className="quick">
             <button className="qp" onClick={goNear}><IconPin />내 주변 목욕탕</button>
-            <button className="qp" disabled={!pricedCount} title={pricedCount ? '' : '직접 확인한 곳이 생기면 열려요'} onClick={() => updateFilters({ priceOnly: true })}>
-              <IconDrop />직접 확인한 곳{pricedCount ? <b>{pricedCount}</b> : null}
+            <button className="qp" disabled={!pricedCount} title={pricedCount ? '' : '확인된 곳이 생기면 열려요'} onClick={() => updateFilters({ priceOnly: true })}>
+              <IconDrop />확인된 곳{pricedCount ? <b>{pricedCount}</b> : null}
             </button>
             <button
               className="qp"
@@ -505,7 +505,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
               <label className="sw">
                 <input type="checkbox" checked={filters.priceOnly} onChange={(e) => updateFilters({ priceOnly: e.target.checked })} />
                 <i />
-                <span>직접 확인한 곳만</span>
+                <span>확인된 곳</span>
               </label>
             </div>
           </div>
