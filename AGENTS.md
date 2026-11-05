@@ -36,7 +36,7 @@ web/                     React 18 + Vite + TypeScript 화면
   public/data/onsen.json 화면이 읽는 유일한 데이터
 data/  raw(원본, 깃에 없음) · collected(수집) · curated(사람이 확인) · merged(합친 결과)
 src/bin/  데이터 도구(러스트): onsen_merge, export_web_data 등. cargo run --release --bin <이름> (새 PC는 scripts/setup.ps1 · setup.sh 먼저)
-collector/  탕방 데이터 수집 도구(Tauri 데스크톱 앱, 윈도우·맥): 수집 시작 버튼 + 대시보드. 설치 scripts/build-app.ps1 · build-app.sh, 설명 collector/README.md
+(수집 도구 앱)  별도 저장소 taeolee1310/tangbang-collector(비공개)로 옮김, 2026-11-05. 이 폴더를 '프로젝트 폴더'로 골라 씀. 앱이 기대는 이름·경로는 CLAUDE.md '탕방 데이터 수집 도구' 항목
 scripts/naver_page_text.js  ego 브라우저로 네이버 페이지 글자 뽑기 (헤드리스 수집 안 함)
 place geo make_map factcheck(src/bin) map.html   수업 연습 도구, 화면과 무관
 ```

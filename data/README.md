@@ -100,7 +100,7 @@ cargo run --release --bin export_web_data  # place_facts_auto.json 위에 place_
 ### 네이버 수집 (ego 브라우저가 페이지를 열고, 러스트는 저장된 파일만 읽는다)
 
 러스트 도구는 브라우저를 띄우지 않는다(헤드리스 수집은 쓰지 않는다, 사용자 결정 2026-11-04).
-**보통은 '탕방 데이터 수집 도구'(`collector/`, 설명은 `collector/README.md`)에서 '수집 시작'을 누르면 아래 1~3과 판정·합치기·화면 데이터까지 차례로 한다.** 2번은 `scripts/ego_fetch.mjs`가 맡는다(진행 상황 `ego_fetch_status.json`, 멈추기 `ego_fetch_stop`, 둘 다 깃에 안 올림).
+**보통은 '탕방 데이터 수집 도구'(별도 저장소 `taeolee1310/tangbang-collector`, 설명은 그 저장소 README)에서 이 폴더를 프로젝트 폴더로 골라 '수집 시작'을 누르면 아래 1~3과 판정·합치기·화면 데이터까지 차례로 한다.** 2번은 `scripts/ego_fetch.mjs`가 맡는다(진행 상황 `ego_fetch_status.json`, 멈추기 `ego_fetch_stop`, 둘 다 깃에 안 올림).
 1. `collect_home`(또는 `find_naver_ids`)를 돌리면 받을 페이지 목록이 `data/collected/naver_home_todo.csv`(`naver_find_todo.csv`)에 생긴다. 칸: 주소, 저장할파일.
 2. ego 브라우저로 목록의 주소를 하나씩 연다. 홈 페이지는 `scripts/naver_page_text.js`를 실행한 결과를, 검색 결과는 `document.documentElement.outerHTML`을 '저장할파일'(`data/collected/naver_pages/…`)에 그대로 저장한다.
    - 페이지마다 10초 간격, 한 번에 150곳(검색은 120개)까지. **캡차·'보안 확인'·차단 화면이 보이거나 3번 연속 비면 바로 멈춘다.** 세션을 새로 열거나 위장하는 식으로 피해 가지 않는다.

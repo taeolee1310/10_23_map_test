@@ -1,4 +1,4 @@
-// ego 브라우저로 '받을 목록'의 네이버 페이지를 열어 저장한다. 탕방 데이터 수집 도구(collector/)가 실행한다.
+// ego 브라우저로 '받을 목록'의 네이버 페이지를 열어 저장한다. 탕방 데이터 수집 도구(별도 저장소 tangbang-collector)가 실행한다.
 //   실행: ego-browser nodejs -e "await import('file:///<프로젝트>/scripts/ego_fetch.mjs')"
 //   (프로젝트 경로에 한글이 있으면 file URL을 퍼센트 인코딩해서 넘긴다. -e 인자에는 ASCII만 둔다)
 //
