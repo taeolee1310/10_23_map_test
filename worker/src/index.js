@@ -7,7 +7,9 @@
 // 원칙: 사용자 요청마다 큰 JSON을 만들지 않는다(무료 Worker는 요청당 CPU 10ms). 공개 때 SQL이 본문을 만들어 한 행에 둔다.
 
 const KEEP_SNAPSHOTS = 30
-const DROP_LIMIT = 0.1 // 직전 공개본보다 곳 수가 10% 넘게 줄면 공개를 막는다(--force로만 통과)
+const MAX_SNAPSHOT = 1_500_000 // 스냅샷 본문 상한(D1 한 행 한도 2MB의 3/4). 넘으면 공개를 막는다
+const MAX_INGEST = 1_800_000 // 한 번에 올릴 수 있는 초안 크기
+const DROP_LIMIT = 0.1// 직전 공개본보다 곳 수가 10% 넘게 줄면 공개를 막는다(--force로만 통과)
 const ADULT = ['휴게텔', '안마', '건마', '스웨디시', '키스방', '대딸', '유흥', '룸살롱', '단란', '노래빠', '성인', '립카페'] // src/naver.rs ADULT_NAME과 같게
 
 // 제보 규칙: web/api/report.js와 같게
@@ -184,6 +186,7 @@ async function ingest(req, env) {
   const ids = new Set(places.map((p) => String(p.id)))
   if (ids.size !== places.length) return json({ ok: false, error: 'duplicate-id' }, 400)
   const arr = JSON.stringify(places)
+  if (arr.length > MAX_INGEST) return json({ ok: false, error: 'too-big' }, 413)
   const at = now()
   // 바뀐 곳만 쓴다(무료 쓰기 한도 하루 10만 행). JSON 펼치기는 DB(SQL) 안에서 한다
   const res = await env.DB.batch([
@@ -247,6 +250,17 @@ async function validate(env, force) {
     db.prepare(`SELECT json_extract(body, '$.name') AS name FROM places WHERE json_extract(body, '$.price.adult') IS NOT NULL AND json_extract(body, '$.price_example') IS NOT NULL LIMIT 20`).all(),
     db.prepare("SELECT place_count AS n FROM snapshots WHERE id = (SELECT CAST(v AS INTEGER) FROM meta WHERE k = 'active_snapshot')").first(),
   ])
+  // 휴대폰 번호 모양(010-1234-5678, 01012345678)이 든 칸은 막는다. 기관 대표번호(02-…)와 번호 칸(tel)·주소·이름은 검사하지 않는다
+  const phone = await db
+    .prepare(
+      `SELECT DISTINCT json_extract(p.body, '$.name') AS name FROM places p, json_tree(p.body) t
+       WHERE t.type = 'text' AND t.atom NOT LIKE 'http%' AND coalesce(t.key, '') NOT IN ('tel', 'url', 'id', 'addr', 'checked_at', 'name')
+         AND (t.atom GLOB '*01[016789]-[0-9][0-9][0-9]*-[0-9][0-9][0-9][0-9]*' OR t.atom GLOB '*01[016789][0-9][0-9][0-9][0-9][0-9][0-9][0-9]*') LIMIT 20`,
+    )
+    .all()
+  const size = await db.prepare('SELECT coalesce(sum(length(body)), 0) AS n FROM places').first()
+  if (phone.results.length) problems.push(`휴대폰 번호 모양이 든 곳: ${phone.results.map((x) => x.name).join(', ')}`)
+  if (size.n > MAX_SNAPSHOT) problems.push(`스냅샷이 너무 커요(${Math.round(size.n / 1000)}KB, 한도 ${MAX_SNAPSHOT / 1000}KB). D1 한 행은 2MB까지라 R2 같은 파일 저장소로 옮길지 정해야 해요`)
   if (!count.n) problems.push('초안이 비어 있어요')
   if (bad.results.length) problems.push(`필수 칸(이름·구·종류·좌표)이 비었거나 서울 밖 좌표: ${bad.results.map((x) => x.name || '(이름 없음)').join(', ')}`)
   if (adult.results.length) problems.push(`성인업소 키워드가 든 이름: ${adult.results.map((x) => x.name).join(', ')}`)
@@ -257,28 +271,32 @@ async function validate(env, force) {
 
 async function publish(req, env) {
   const b = await req.json().catch(() => ({}))
-  const { problems, count } = await validate(env, !!b.force)
-  if (problems.length) return json({ ok: false, error: 'validation', problems }, 422)
   const db = env.DB
   const from = await activeId(db)
+  // 화면(수집 프로그램)이 마지막으로 본 공개본과 지금 공개본이 다르면 막는다: 다른 PC가 먼저 공개했거나 오래된 상태로 덮어쓰는 일 방지
+  if (b.expect !== undefined && b.expect !== null && Number(b.expect) !== (from ?? 0)) return json({ ok: false, error: 'stale', active: from }, 409)
+  const { problems, count } = await validate(env, !!b.force)
+  if (problems.length) return json({ ok: false, error: 'validation', problems }, 422)
   const at = now()
+  const note = text(b.note, 200) || null
+  // 스냅샷 만들기 + 공개 포인터 바꾸기 + 기록 + 오래된 스냅샷 정리를 한 묶음(트랜잭션)으로 한다. 중간에 실패하면 전부 취소돼 쓰다 만 공개본이 남지 않는다.
   // 본문은 SQL이 만든다(Worker CPU를 쓰지 않음). onsen.json과 같은 모양 + publishedAt
-  const row = await db
-    .prepare(
-      `INSERT INTO snapshots (body, place_count, created_at, note)
-       SELECT json_object('baseDate', (SELECT v FROM meta WHERE k = 'draft_base_date'), 'publishedAt', ?1,
-         'places', json((SELECT json_group_array(json(body)) FROM (SELECT body FROM places ORDER BY ord)))),
-         (SELECT count(*) FROM places), ?1, ?2
-       RETURNING id`,
-    )
-    .bind(at, text(b.note, 200) || null)
-    .first()
-  const to = row.id
   await db.batch([
-    db.prepare(`INSERT INTO meta (k, v) VALUES ('active_snapshot', ?1) ON CONFLICT(k) DO UPDATE SET v = excluded.v`).bind(String(to)),
-    db.prepare('INSERT INTO publish_log (at, action, from_id, to_id, summary) VALUES (?1, ?2, ?3, ?4, ?5)').bind(at, 'publish', from, to, `${count}곳${b.note ? ` · ${text(b.note, 200)}` : ''}`),
+    db
+      .prepare(
+        `INSERT INTO snapshots (body, place_count, created_at, note)
+         SELECT json_object('baseDate', (SELECT v FROM meta WHERE k = 'draft_base_date'), 'publishedAt', ?1,
+           'places', json((SELECT json_group_array(json(body)) FROM (SELECT body FROM places ORDER BY ord)))),
+           (SELECT count(*) FROM places), ?1, ?2`,
+      )
+      .bind(at, note),
+    db.prepare(`INSERT INTO meta (k, v) VALUES ('active_snapshot', CAST(last_insert_rowid() AS TEXT)) ON CONFLICT(k) DO UPDATE SET v = excluded.v`),
+    db
+      .prepare(`INSERT INTO publish_log (at, action, from_id, to_id, summary) VALUES (?1, 'publish', ?2, (SELECT CAST(v AS INTEGER) FROM meta WHERE k = 'active_snapshot'), ?3)`)
+      .bind(at, from, `${count}곳${note ? ` · ${note}` : ''}`),
     db.prepare(`DELETE FROM snapshots WHERE id NOT IN (SELECT id FROM snapshots ORDER BY id DESC LIMIT ${KEEP_SNAPSHOTS})`),
   ])
+  const to = await activeId(db)
   return json({ ok: true, from, to, count })
 }
 
@@ -344,7 +362,10 @@ export default {
       return json({ ok: false, error: 'not-found' }, 404)
     } catch (e) {
       // 오류 내용(쿼리·값)은 밖으로 내보내지 않는다
-      console.error(String(e?.message || e))
+      const msg = String(e?.message || e)
+      console.error(msg)
+      // D1·Workers 무료 한도를 넘으면 쿼리가 실패한다 → 화면이 이유를 알 수 있게 따로 알린다
+      if (/daily|limit|quota|exceeded/i.test(msg)) return json({ ok: false, error: 'quota' }, 503)
       return json({ ok: false, error: 'server' }, 500)
     }
   },

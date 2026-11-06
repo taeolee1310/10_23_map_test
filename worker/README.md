@@ -16,7 +16,10 @@ node --env-file=.env scripts/d1_publish.mjs publish    # 공개(1분 안에 사�
 node --env-file=.env scripts/d1_publish.mjs rollback   # 잘못 공개했으면 직전 것으로
 node --env-file=.env scripts/d1_publish.mjs reports    # 새 제보 보기
 ```
-- 공개 전 자동 검증: 필수 칸·서울 밖 좌표, 성인업소 키워드 이름, 확인 요금과 예시 요금이 함께 있음, 곳 수 10% 넘게 감소(`--force`로만 통과).
+- 공개 전 자동 검증: 필수 칸·서울 밖 좌표, 성인업소 키워드 이름, 휴대폰 번호 모양(tel 칸·주소·이름·URL 제외), 확인 요금과 예시 요금이 함께 있음, 스냅샷 1.5MB 초과(D1 한 행 한도 2MB), 곳 수 10% 넘게 감소(`--force`로만 통과).
+- 공개는 한 묶음(트랜잭션)이라 중간에 실패하면 전부 취소된다. `--expect`(수집 프로그램이 자동으로 넣음)로 화면이 본 공개본과 다르면 409로 막는다(다른 PC가 먼저 공개한 경우).
+- 오류는 `--json`이면 `{code, message, fix}`로 나와 수집 프로그램 '서비스 공개' 카드가 그대로 보여 준다(접속 불가·토큰 어긋남·무료 한도·오래된 상태·검사 실패 등).
+- D1은 LIKE/GLOB 패턴을 50바이트까지만 받는다(Node SQLite는 제한이 없어 시험이 못 잡으므로 `run-local.mjs`가 소스의 패턴 길이를 따로 검사한다).
 - 사람이 확인한 값(`data/curated/`)은 지금처럼 러스트 `export_web_data`가 합친 뒤 올린다(DB에 따로 두지 않음, 설계서의 `curated_overrides` 표는 쓰지 않기로 단순화).
 - 제보는 `reports` 표에 쌓이기만 하고 화면에 바로 나가지 않는다. 확인한 뒤 `data/curated/`에 넣는다.
 

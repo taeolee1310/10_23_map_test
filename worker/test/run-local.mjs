@@ -86,6 +86,11 @@ const ok = (name, cond, extra = '') => {
   console.log(`✓ ${name}${extra ? ` (${extra})` : ''}`)
 }
 
+// 0. 실제 D1은 LIKE/GLOB 패턴을 50바이트까지만 받는다(2026-11-06 배포하다 'pattern too complex'로 실패). Node SQLite는 이 제한이 없어 시험에서 못 잡으므로 소스를 직접 검사한다
+const src = readFileSync(path.join(HERE, '../src/index.js'), 'utf8')
+const patterns = [...src.matchAll(/\b(?:GLOB|LIKE)\s+'([^']*)'/g)].map((m) => m[1])
+ok('SQL의 LIKE/GLOB 패턴이 모두 50바이트 이하(D1 제한)', patterns.length >= 2 && patterns.every((p) => Buffer.byteLength(p) <= 50), `${patterns.length}개, 가장 긴 것 ${Math.max(...patterns.map((p) => Buffer.byteLength(p)))}바이트`)
+
 // 1. 공개 전
 ok('공개 전에는 /api/places가 503', (await call('GET', '/api/places')).res.status === 503)
 ok('관리용은 토큰 없으면 401', (await call('GET', '/admin/status')).res.status === 401)
@@ -165,6 +170,45 @@ r = await call('GET', '/api/places')
 ok('막힌 동안 사용자 화면은 그대로', r.j.places.length === data.places.length)
 await call('POST', '/admin/ingest', { admin: true, body: { baseDate: data.baseDate, places: data.places } })
 
+// 7-2. 예외 상황
+const ingest = (places) => call('POST', '/admin/ingest', { admin: true, body: { baseDate: data.baseDate, places } })
+const phoneData = structuredClone(data.places)
+phoneData[2].price = { ...(phoneData[2].price || {}), memo: '문의 010-1234-5678' }
+await ingest(phoneData)
+r = await call('POST', '/admin/publish', { admin: true })
+ok('휴대폰 번호 모양이 든 칸이 있으면 막음', r.res.status === 422 && r.j.problems.some((x) => x.includes('휴대폰')))
+const telData = structuredClone(data.places)
+telData[2].tel = '010-1234-5678'
+telData[3].tel = '02-123-4567'
+await ingest(telData)
+r = await call('POST', '/admin/publish', { admin: true, body: { note: 'tel 칸은 검사하지 않음' } })
+ok('번호 칸(tel)과 기관 대표번호는 막지 않음', r.res.status === 200 && r.j.ok, `#${r.j.to}`)
+const stale = await call('GET', '/admin/status', { admin: true })
+r = await call('POST', '/admin/publish', { admin: true, body: { expect: stale.j.active - 1 } })
+ok('화면이 본 공개본과 다르면(다른 곳이 먼저 공개) 409로 막음', r.res.status === 409 && r.j.error === 'stale')
+r = await call('POST', '/admin/publish', { admin: true, body: { expect: stale.j.active } })
+ok('본 공개본이 맞으면 공개됨(내용이 같아도 새 스냅샷)', r.res.status === 200, `#${r.j.to}`)
+const huge = structuredClone(data.places)
+huge[0].junk = 'x'.repeat(1_250_000) // 원래 약 0.32MB(JSON 압축 크기) + 1.25MB ≈ 1.57MB: 올리기는 되지만(1.8MB 이하) 공개는 막힌다(1.5MB 초과)
+await ingest(huge)
+r = await call('POST', '/admin/publish', { admin: true })
+ok('스냅샷이 1.5MB를 넘으면 공개를 막음', r.res.status === 422 && r.j.problems.some((x) => x.includes('너무 커')))
+const tooBig = structuredClone(data.places)
+tooBig[0].junk = 'x'.repeat(1_550_000) // 약 0.32MB + 1.55MB ≈ 1.87MB(1.8MB 초과)
+r = await ingest(tooBig)
+ok('초안이 1.8MB를 넘으면 올리기부터 413', r.res.status === 413)
+await ingest(data.places)
+await call('POST', '/admin/publish', { admin: true })
+const before2 = sqlite.prepare("SELECT v FROM meta WHERE k = 'active_snapshot'").get().v
+const brokenDb = { ...DB, batch: async () => { throw new Error('boom') } }
+r = await worker.fetch(new Request(BASE + '/admin/publish', { method: 'POST', headers: { Authorization: `Bearer ${env.ADMIN_TOKEN}` }, body: '{}' }), { ...env, DB: brokenDb }, ctx)
+ok('공개 도중 실패하면 500', r.status === 500)
+ok('공개 도중 실패해도 공개 중인 스냅샷은 그대로', sqlite.prepare("SELECT v FROM meta WHERE k = 'active_snapshot'").get().v === before2)
+const quotaDb = { prepare() { throw new Error('D1 daily limit exceeded') } }
+r = await worker.fetch(new Request(BASE + '/api/places'), { ...env, DB: quotaDb }, ctx)
+ok('무료 한도를 넘어 DB가 실패하면 503 quota(화면은 예전 파일로 대체)', r.status === 503 && (await r.json()).error === 'quota')
+await ingest(data.places)
+
 // 8. 제보
 const p0 = data.places[0]
 const good = { placeId: p0.id, placeName: p0.name, adult: 12000, source: '현장 가격표', deviceId: 'dev-1' }
@@ -187,6 +231,6 @@ r = await call('POST', `/admin/reports/${r.j.reports[0].id}`, { admin: true, bod
 ok('제보 상태 바꾸기', r.j.ok)
 
 r = await call('GET', '/admin/status', { admin: true })
-ok('상태 조회', r.j.active === 1 && r.j.draft.count === data.places.length, `공개 #${r.j.active}, 스냅샷 ${r.j.snapshots.length}개`)
+ok('상태 조회', r.j.active === Number(sqlite.prepare("SELECT v FROM meta WHERE k = 'active_snapshot'").get().v) && r.j.draft.count === data.places.length, `공개 #${r.j.active}, 스냅샷 ${r.j.snapshots.length}개`)
 
 console.log(`\n모두 통과: ${pass}개`)
