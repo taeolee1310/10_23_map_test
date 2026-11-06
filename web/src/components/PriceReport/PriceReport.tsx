@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import './PriceReport.css'
+import { REPORT_URL } from '../../lib/api'
 
 export const REPORT_SOURCES = ['현장 가격표', '직접 냈어요', '공식 홈페이지·네이버', '기타'] as const
 
@@ -126,7 +127,7 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
     setBusy(true)
     setErr(null)
     try {
-      const r = await fetch('/api/report', {
+      const r = await fetch(REPORT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ placeId: place.id, placeName: place.name, ...vals, ...info, source, deviceId: deviceId() }),

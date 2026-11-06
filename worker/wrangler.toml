@@ -1,0 +1,16 @@
+# 탕방 데이터 API (Cloudflare Worker + D1). 처음 한 번은 worker/setup.ps1이 database_id를 채우고 배포한다.
+name = "tangbang-api"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# 데이터를 받아 가도 되는 화면 주소(쉼표로 구분). 화면 주소가 바뀌면 여기에 더한다
+ALLOWED_ORIGINS = "https://tangbang.vercel.app,http://localhost:5173"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tangbang"
+database_id = "3fe9aac3-c97c-4d2b-ac5d-0b343274ce57" # setup.ps1이 실제 값으로 바꾼다(비밀 값 아님)
+
+# 비밀 값(여기에 쓰지 않는다): ADMIN_TOKEN, REPORT_SALT → setup.ps1이 `wrangler secret put`으로 넣는다
+# 로컬 시험은 worker/.dev.vars(깃에 안 올림)에 둔다

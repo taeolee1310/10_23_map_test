@@ -25,9 +25,9 @@ import { worries } from './PlaceFacts'
 import PlaceList from './PlaceList'
 import PlacePreview from './PlacePreview'
 import './MainScreen.css'
+import { fetchPlaces } from '../../lib/api'
 
-const DATA_URL = '/data/onsen.json' // export_web_data(러스트)가 만든다
-const LOAD_TIMEOUT = 15000 // 이보다 오래 걸리면 실패로 보고 로딩 화면에서 풀어 준다
+// 목록 데이터는 lib/api.ts가 받는다(데이터 API → 실패하면 정적 파일 /data/onsen.json)
 // 손가락이 주 입력인 기기에서는 드롭다운 항목을 크게(누르기 쉬운 높이)
 const TOUCH = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
 
@@ -56,18 +56,15 @@ export default function MainScreen() {
 
   const loadData = useCallback(() => {
     setLoadError(false)
-    fetch(DATA_URL, { signal: AbortSignal.timeout(LOAD_TIMEOUT) })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('data'))))
-      .then((j: Loaded) => setData(j))
+    fetchPlaces<Loaded>()
+      .then((j) => setData(j))
       .catch(() => setLoadError(true))
   }, [])
   useEffect(() => loadData(), [loadData])
   // 당겨서 새로고침: 화면(필터·선택)은 그대로 두고 목록만 다시 받는다. 실패하면 지금 목록을 그대로 둔다
   const refresh = useCallback(
     () =>
-      fetch(DATA_URL, { cache: 'no-cache', signal: AbortSignal.timeout(LOAD_TIMEOUT) })
-        .then((r) => (r.ok ? r.json() : Promise.reject(new Error('data'))))
-        .then((j: Loaded) => setData(j)),
+      fetchPlaces<Loaded>({ cache: 'no-cache' }).then((j) => setData(j)),
     [],
   )
 

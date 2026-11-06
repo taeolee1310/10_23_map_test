@@ -67,3 +67,8 @@ data/collected/collector_runs.jsonl
 data/collected/claude_usage.jsonl
 data/collected/photo_text.jsonl
 data/curated/place_photos.csv.bak
+
+# Cloudflare Worker(worker/): 설치 파일·로컬 상태·로컬 비밀 값
+worker/node_modules/
+worker/.wrangler/
+worker/.dev.vars
