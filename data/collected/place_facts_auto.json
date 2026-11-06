@@ -60,6 +60,20 @@
     "open_24h": true,
     "closed_days": "연중무휴"
    },
+   "notices": [
+    {
+     "text": "12시간 초과 시 1시간당 1,500원 추가",
+     "date": "2026-07-30",
+     "count": 2,
+     "source": "블로그 사진"
+    },
+    {
+     "text": "구 롯데 불한증막사우나에서 골드로즈사우나로 변경",
+     "date": "2026-03-01",
+     "count": 1,
+     "source": "블로그 사진"
+    }
+   ],
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
@@ -144,10 +158,33 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "13269829": {
+   "hairdryer": {
+    "paid": false,
+    "women": {
+     "paid": false
+    }
+   },
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "supplies": {
+    "shampoo": true
+   },
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
    },
+   "notices": [
+    {
+     "text": "영업 마감 22:00 (네이버 등록 24시간)",
+     "date": "2026-08-13",
+     "count": 3,
+     "source": "블로그"
+    }
+   ],
    "checked": "2026-11-04",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
@@ -204,9 +241,9 @@
    "notices": [
     {
      "text": "찜질방 운영 안 함",
-     "date": "2026-07-06",
-     "count": 1,
-     "source": "방문자 후기"
+     "date": "2026-07-30",
+     "count": 3,
+     "source": "블로그"
     }
    ],
    "checked": "2026-10-30",
@@ -277,6 +314,15 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "lic3220000-202-2005-00008": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "supplies": {
+    "shampoo": true
+   },
    "convenience": {
     "hours": {
      "월": "08:00 - 22:00",
@@ -463,6 +509,16 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1678647238": {
+   "hairdryer": {
+    "paid": true,
+    "price": 200
+   },
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
@@ -497,6 +553,12 @@
    "seshin": {
     "price_men": 20000,
     "price_women": 28000
+   },
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    }
    },
    "supplies": {
     "shampoo": true
@@ -557,6 +619,12 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "26951474": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
@@ -587,6 +655,10 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "26834805": {
+   "hairdryer": {
+    "paid": true,
+    "price": 200
+   },
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
@@ -763,6 +835,10 @@
    "hairdryer": {
     "has": true
    },
+   "supplies": {
+    "shampoo": true,
+    "bodywash": true
+   },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
@@ -771,6 +847,14 @@
     "paid": true,
     "price": 100
    },
+   "notices": [
+    {
+     "text": "사우나 운영 안 함",
+     "date": "2026-04-23",
+     "count": 1,
+     "source": "블로그"
+    }
+   ],
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
@@ -805,6 +889,10 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1129477142": {
+   "hairdryer": {
+    "paid": true,
+    "price": 200
+   },
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
@@ -880,6 +968,10 @@
    "hairdryer": {
     "has": true
    },
+   "supplies": {
+    "shampoo": true,
+    "bodywash": true
+   },
    "convenience": {
     "hours": {
      "월": "10:00 - 20:00 · 14:00 - 15:00 휴게시간",
@@ -890,6 +982,13 @@
      "토": "10:00 - 20:00 · 14:00 - 15:00 휴게시간",
      "일": "10:00 - 20:00 · 14:00 - 15:00 휴게시간"
     }
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "26516423": {
+   "hairdryer": {
+    "paid": false
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -928,6 +1027,9 @@
    "hairdryer": {
     "has": true
    },
+   "supplies": {
+    "shampoo": true
+   },
    "convenience": {
     "hours": {
      "월": "09:00 - 18:00",
@@ -945,41 +1047,103 @@
   "16505463": {
    "hairdryer": {
     "paid": true,
-    "price": 200
+    "price": 200,
+    "women": {
+     "paid": true,
+     "price": 200
+    }
    },
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
+   },
+   "notices": [
+    {
+     "text": "찜질방 운영 안 함",
+     "date": "2026-01-27",
+     "count": 1,
+     "source": "블로그"
+    }
+   ],
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "1829196114": {
+   "hairdryer": {
+    "has": true,
+    "women": {
+     "has": true
+    }
+   },
+   "supplies": {
+    "shampoo": true
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "24840799": {
+   "hairdryer": {
+    "paid": true,
+    "price": 200,
+    "women": {
+     "paid": true,
+     "price": 100
+    }
+   },
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
    },
+   "notices": [
+    {
+     "text": "영업 마감 20:00 (네이버 등록 24시간)",
+     "date": "2026-01-02",
+     "count": 1,
+     "source": "블로그"
+    }
+   ],
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "15244123": {
    "hairdryer": {
     "paid": true,
-    "price": 200
+    "price": 200,
+    "men": {
+     "paid": true,
+     "price": 200
+    }
    },
    "towel": {
     "women": {
      "mode": "limited",
      "count": 2
+    },
+    "men": {
+     "mode": "unlimited"
     }
+   },
+   "supplies": {
+    "bodywash": true
    },
    "fees": {
     "clothes": 2000
    },
+   "notices": [
+    {
+     "text": "식당 운영 안 함",
+     "date": "2026-09-07",
+     "count": 1,
+     "source": "블로그"
+    }
+   ],
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "20749217": {
+   "hairdryer": {
+    "paid": true
+   },
    "fees": {
     "night": {
      "price": 16000,
@@ -1028,12 +1192,25 @@
   },
   "26412021": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "price": 100,
+    "women": {
+     "paid": true,
+     "price": 100
+    }
    },
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
    },
+   "notices": [
+    {
+     "text": "식당 운영 안 함",
+     "date": "2026-09-13",
+     "count": 1,
+     "source": "블로그"
+    }
+   ],
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
@@ -1121,6 +1298,12 @@
    "hairdryer": {
     "paid": false
    },
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
@@ -1158,9 +1341,33 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1951728354": {
-   "supplies": {
-    "shampoo": true
+   "hairdryer": {
+    "women": {
+     "has": true
+    }
    },
+   "supplies": {
+    "shampoo": true,
+    "bodywash": true
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "10344200": {
+   "towel": {
+    "women": {
+     "mode": "limited",
+     "count": 2
+    }
+   },
+   "notices": [
+    {
+     "text": "사우나 운영 안 함",
+     "date": "2026-01-22",
+     "count": 1,
+     "source": "블로그"
+    }
+   ],
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
@@ -1176,6 +1383,12 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "23888791": {
+   "hairdryer": {
+    "paid": true
+   },
+   "supplies": {
+    "shampoo": true
+   },
    "convenience": {
     "closed_days": "연중무휴"
    },
@@ -1260,6 +1473,12 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "1136727366": {
+   "hairdryer": {
+    "women": {
+     "paid": true,
+     "price": 100
+    }
+   },
    "fees": {
     "clothes": 2000,
     "night": {
@@ -1271,6 +1490,14 @@
     "open_24h": true,
     "closed_days": "연중무휴"
    },
+   "notices": [
+    {
+     "text": "찜질방 운영 안 함",
+     "date": "2026-11-02",
+     "count": 1,
+     "source": "블로그"
+    }
+   ],
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
@@ -1283,6 +1510,10 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "710352612": {
+   "hairdryer": {
+    "paid": true,
+    "price": 100
+   },
    "fees": {
     "clothes": 2000
    },
@@ -1296,6 +1527,14 @@
   "lic3160000-202-2000-00001": {
    "seshin": {
     "price_full": 15000
+   },
+   "checked": "2026-10-30",
+   "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
+  },
+  "16420656": {
+   "hairdryer": {
+    "paid": true,
+    "price": 100
    },
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
@@ -1340,7 +1579,14 @@
   },
   "27164299": {
    "hairdryer": {
-    "paid": true
+    "paid": true,
+    "women": {
+     "paid": true,
+     "price": 100
+    }
+   },
+   "supplies": {
+    "shampoo": true
    },
    "convenience": {
     "open_24h": true,
@@ -1401,10 +1647,29 @@
     "open_24h": true,
     "closed_days": "연중무휴"
    },
+   "notices": [
+    {
+     "text": "식당 운영 안 함",
+     "date": "2025-11-30",
+     "count": 1,
+     "source": "블로그"
+    }
+   ],
    "checked": "2026-10-30",
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "8079875": {
+   "hairdryer": {
+    "paid": true,
+    "price": 200,
+    "women": {
+     "paid": true,
+     "price": 200
+    }
+   },
+   "supplies": {
+    "shampoo": true
+   },
    "fees": {
     "clothes": 2000,
     "night": {
@@ -1427,6 +1692,9 @@
    "source": "네이버 플레이스 수집 자동 판정(근거 신뢰도는 facts_judged.csv)"
   },
   "lic3100000-202-2006-00001": {
+   "hairdryer": {
+    "paid": true
+   },
    "convenience": {
     "open_24h": true,
     "closed_days": "연중무휴"
@@ -3842,8 +4110,20 @@
      "source": "블로그 사진"
     },
     {
-     "text": "2025-11-01부터 야간 영업 안 함",
-     "date": "2025-11-12",
+     "text": "입장 후 12시간 초과 시 1시간당 1,000원 추가",
+     "date": "2026-01-05",
+     "count": 1,
+     "source": "블로그 사진"
+    },
+    {
+     "text": "12시간 초과 시 1시간당 1,000원 추가",
+     "date": "2025-12-08",
+     "count": 1,
+     "source": "블로그 사진"
+    },
+    {
+     "text": "6월1일부터 한식부페 9,900원 한정 특가",
+     "date": "2025-12-08",
      "count": 1,
      "source": "블로그 사진"
     }
