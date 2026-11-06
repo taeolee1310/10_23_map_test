@@ -7,8 +7,9 @@
 __pycache__/
 CLAUDE.md
 node_modules
-target/
-src/
+/target/
+/src/
 Cargo.toml
 Cargo.lock
 collector/
+/worker/
