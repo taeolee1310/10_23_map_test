@@ -229,6 +229,11 @@ fn main() -> Result<()> {
             .to_string()
     });
 
+    // 블로그 탭·원문은 쪽수가 많이 드는 단계라, 판정 결과로 부족한 항목(입장료·세신·드라이기·수건)이 많은 곳부터 받는다.
+    // 네 항목을 다 아는 곳은 빼고(사용자 결정 2026-11-06), 나머지는 많은 곳부터 줄 세운다. 판정 결과가 아직 없으면 그대로 둔다.
+    // 2026-11-06 기준 판정 376곳 가운데 다 아는 곳이 0곳이라 지금은 뺄 곳이 없다.
+    let lacking = if a.kind == Kind::Blog { naver::lacking() } else { None };
+
     // 기존 기록: 네이버ID마다 한 줄(같은 곳이 여러 줄이면 마지막 줄)
     let mut rows: Vec<Value> = std::fs::read_to_string(a.kind.out())
         .unwrap_or_default()
@@ -368,10 +373,20 @@ fn main() -> Result<()> {
             }
         }
         println!("블로그 원문: 읽은 글 {post_read}개, 키워드 문장이 있는 곳 {post_places}곳 / 받을 원문 {}개 (조건: 최근 1년 글, 최신순 곳마다 {POSTS_PER_PLACE}개) → {POST_TODO}", post_todo.len().min(a.max.max(post_todo.len())));
+        if let Some(l) = &lacking {
+            let dropped = l.drop_complete(&mut post_todo);
+            l.most_lacking_first(&mut post_todo);
+            println!("블로그 원문: 네 항목(입장료·세신·드라이기·수건)을 다 아는 곳의 글 {dropped}개는 뺌, 나머지는 부족한 항목이 많은 곳부터(판정 결과 기준)");
+        }
         if a.max > 0 {
             post_todo.truncate(a.max);
             csvio::write_csv(POST_TODO, &["카카오ID", "네이버ID", "이름", "주소", "저장할파일", "다시받기"], &post_todo)?;
         }
+    }
+    if let Some(l) = &lacking {
+        let dropped = l.drop_complete(&mut todo);
+        l.most_lacking_first(&mut todo);
+        println!("블로그 탭: 네 항목(입장료·세신·드라이기·수건)을 다 아는 곳 {dropped}곳은 뺌, 나머지는 부족한 항목이 많은 곳부터(판정 결과 기준)");
     }
     stale.sort_by(|x, y| x.0.cmp(&y.0));
     let (new_n, stale_n) = (todo.len(), stale.len());

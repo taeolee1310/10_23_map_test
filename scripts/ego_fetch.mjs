@@ -2,7 +2,7 @@
 //   실행: ego-browser nodejs -e "await import('file:///<프로젝트>/scripts/ego_fetch.mjs')"
 //   (프로젝트 경로에 한글이 있으면 file URL을 퍼센트 인코딩해서 넘긴다. -e 인자에는 ASCII만 둔다)
 //
-// 읽는 것: data/collected/naver_find_todo.csv(검색 결과), naver_home_todo.csv(홈), naver_review_todo.csv(후기 탭), naver_photo_todo.csv(사진 탭, 업체 사진 주소만 .json), naver_blog_todo.csv(블로그 탭). '다시받기'=1이면 오래된 페이지를 덮어쓴다
+// 읽는 것: data/collected/naver_find_todo.csv(검색 결과), naver_home_todo.csv(홈), naver_review_todo.csv(후기 탭), naver_photo_todo.csv(사진 탭, 업체 사진 주소만 .json), naver_blog_todo.csv(블로그 탭). '다시받기'=1이면 그 목록을 만들기 전에 저장된 오래된 페이지만 덮어쓴다
 //          data/collected/ego_fetch_job.json  {id, max, batch, intervalMs}  — 수집 도구가 '수집 시작' 때 만든다
 // 쓰는 것: 목록의 '저장할파일'(data/collected/naver_pages/…), data/collected/ego_fetch_status.json(진행 상황)
 //
@@ -49,13 +49,14 @@ function parseCsv(text) {
 
 async function todo() {
   const out = [];
-  for (const name of ["naver_find_todo.csv", "naver_home_todo.csv", "naver_review_todo.csv", "naver_photo_todo.csv", "naver_blog_todo.csv", "naver_blogpost_todo.csv"] /* 받는 순서: TOP 3 근거(후기) → 사진 후보 → 블로그 탭 → 블로그 원문 */) {
+  for (const name of ["naver_find_todo.csv", "naver_home_todo.csv", "naver_review_todo.csv", "naver_blog_todo.csv", "naver_blogpost_todo.csv", "naver_photo_todo.csv"] /* 받는 순서: 홈 → 후기(TOP 3 근거) → 블로그 탭 → 블로그 원문 → 사진 후보. 사진 후보는 대표 사진 고르기용이라 요금·TOP 3 판정과 무관해 맨 뒤(2026-11-06) */) {
     const p = C(name);
     if (!(await exists(p))) continue;
+    const listTime = (await fs.stat(p)).mtimeMs; // 이 받을 목록을 만든 시각. '다시받기'는 목록을 만든 뒤에 받은 파일이면 이미 다시 받은 것으로 본다
     for (const r of parseCsv(await fs.readFile(p, "utf8"))) {
       const file = r["저장할파일"]; const url = r["주소"];
       if (!file || !url || !url.startsWith("https://")) continue;
-      out.push({ file, url, name: r["이름"] || "", kind: file.endsWith(".html") ? "search" : file.endsWith(".json") ? "photo" : file.includes("/blogpost/") ? "post" : file.includes("/review/") || file.includes("/blog/") ? "review" : "home", refresh: r["다시받기"] === "1" });
+      out.push({ file, url, name: r["이름"] || "", kind: file.endsWith(".html") ? "search" : file.endsWith(".json") ? "photo" : file.includes("/blogpost/") ? "post" : file.includes("/review/") || file.includes("/blog/") ? "review" : "home", refresh: r["다시받기"] === "1", listTime });
     }
   }
   return out;
@@ -85,13 +86,14 @@ const save = async (extra = {}) => {
 };
 
 const pending = [];
-// 받을 것: 이 작업에서 아직 안 열어 본 곳 중 파일이 없는 곳 + '다시받기' 표시가 있고 이번 작업 전에 저장된 곳(오래된 페이지)
-const jobStart = Number(job.id) || 0;
+// 받을 것: 이 작업에서 아직 안 열어 본 곳 중 파일이 없는 곳 + '다시받기' 표시가 있고 그 받을 목록을 만들기 전에 저장된 곳(오래된 페이지).
+// 기준은 '이번 작업을 시작한 시각'이 아니라 '목록을 만든 시각'이다. 시작 시각으로 보면, 목록이 그대로인 채 새 작업을 시작할 때마다
+// 방금 다시 받은 곳을 또 연다(2026-11-06 사진 탭 127곳이 모두 0장인데 작업마다 다시 열림).
 const mtime = async (p) => fs.stat(p).then((s) => s.mtimeMs, () => -1);
 for (const t of await todo()) {
   if (tried.has(t.file)) continue;
   const m = await mtime(path.join(ROOT, t.file));
-  if (m < 0 || (t.refresh && m < jobStart)) pending.push(t);
+  if (m < 0 || (t.refresh && m < t.listTime)) pending.push(t);
 }
 st.total = Math.min(st.done + pending.length, max);
 const left = Math.max(0, max - st.done);

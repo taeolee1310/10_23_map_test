@@ -295,6 +295,69 @@ fn read_rows(path: &str) -> anyhow::Result<Vec<Row>> {
     Ok(crate::csvio::read_csv(path, true, crate::csvio::Dtype::AllStr)?.records())
 }
 
+/// 판정 결과로 본 곳마다의 '부족한 항목 수'(0~4). 쪽수가 많이 드는 블로그 단계에서 먼저 받을 곳을 고르는 데 쓴다.
+/// 부족한 항목 = 입장료를 정하지 못함(사람이 확인한 onsen_prices.csv와 자동 price_auto.csv 모두에 없음) + 세신·드라이기·수건 중 '불명'인 것.
+/// (2026-11-06 판정 376곳 가운데 세신 불명 364곳·수건 불명 358곳이라 '부족한 곳만' 고르면 거의 줄지 않는다. 네 항목을 다 아는 곳만 빼고, 나머지는 부족한 항목이 많은 곳부터 줄 세운다)
+pub struct Lacking {
+    priced: std::collections::HashSet<String>,
+    unknown: std::collections::HashMap<String, usize>,
+}
+
+/// 판정 결과(facts_judged.csv)가 아직 없으면 None: 판정 전이라 순서를 바꿀 근거가 없다.
+pub fn lacking() -> Option<Lacking> {
+    use crate::csvio::g;
+    if !util::exists("data/collected/facts_judged.csv") {
+        return None;
+    }
+    let unknown = read_rows("data/collected/facts_judged.csv")
+        .ok()?
+        .iter()
+        .map(|r| {
+            (
+                g(r, "카카오ID").to_string(),
+                ["세신", "드라이기", "수건"]
+                    .iter()
+                    .filter(|c| g(r, c).starts_with("불명"))
+                    .count(),
+            )
+        })
+        .collect();
+    let mut priced = std::collections::HashSet::new();
+    for p in [
+        "data/curated/onsen_prices.csv",
+        "data/collected/price_auto.csv",
+    ] {
+        if util::exists(p) {
+            for r in read_rows(p).ok()? {
+                if !g(&r, "성인_평일").is_empty() {
+                    priced.insert(g(&r, "카카오ID").to_string());
+                }
+            }
+        }
+    }
+    Some(Lacking { priced, unknown })
+}
+
+impl Lacking {
+    /// 부족한 항목 수. 판정 결과에 없는 곳(홈 페이지 정보가 없는 곳)은 세 항목 모두 모르는 것으로 센다.
+    pub fn score(&self, kakao_id: &str) -> usize {
+        usize::from(!self.priced.contains(kakao_id))
+            + self.unknown.get(kakao_id).copied().unwrap_or(3)
+    }
+
+    /// 받을 목록(첫 칸이 카카오ID)을 부족한 항목이 많은 곳부터 줄 세운다. 같은 점수끼리는 원래 순서 그대로(안정 정렬).
+    pub fn most_lacking_first(&self, todo: &mut Vec<Vec<String>>) {
+        todo.sort_by_key(|l| std::cmp::Reverse(self.score(l.first().map_or("", String::as_str))));
+    }
+
+    /// 입장료·세신·드라이기·수건을 모두 아는 곳(부족한 항목 0)은 블로그를 더 받을 까닭이 없어 받을 목록에서 뺀다. 뺀 줄 수를 돌려준다.
+    pub fn drop_complete(&self, todo: &mut Vec<Vec<String>>) -> usize {
+        let before = todo.len();
+        todo.retain(|l| self.score(l.first().map_or("", String::as_str)) > 0);
+        before - todo.len()
+    }
+}
+
 /// 합친 목록 중 네이버ID가 있는 곳(naver_places.csv + curated/naver_match_manual.csv), '확실' 제외 후보는 뺀다.
 /// gu: 주소 조건(정규식), limit: 앞에서부터 몇 곳만
 pub fn targets(gu: Option<&str>, limit: Option<usize>) -> anyhow::Result<Vec<Row>> {
@@ -413,4 +476,43 @@ pub fn out_of_scope(name: &str, category: &str, price: &str) -> Option<(String, 
 /// 호텔에 붙은 사우나인지(이름이나 네이버 분류). 고급이 아니면 요금으로 판단한다
 pub fn is_hotel(name: &str, category: &str) -> bool {
     HOTEL_NAME.is_match(name) || HOTEL_CAT.is_match(category)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 부족한 항목이 많은 곳이 앞에 오고, 점수가 같은 곳끼리는 원래 순서가 그대로다
+    #[test]
+    fn most_lacking_places_come_first_keeping_order() {
+        let set = |ids: &[&str]| {
+            ids.iter()
+                .map(|s| s.to_string())
+                .collect::<std::collections::HashSet<_>>()
+        };
+        // 1·2·3은 입장료를 정했다(점수 = 불명 개수: 0·1·3). 4·5는 판정 결과에 없어 입장료 미정 1 + 불명 3 = 4
+        let unknown = [("1", 0), ("2", 1), ("3", 3)]
+            .iter()
+            .map(|(k, n)| (k.to_string(), *n))
+            .collect();
+        let l = Lacking {
+            priced: set(&["1", "2", "3"]),
+            unknown,
+        };
+        assert_eq!(
+            (l.score("1"), l.score("2"), l.score("3"), l.score("4")),
+            (0, 1, 3, 4)
+        );
+        let mut todo: Vec<Vec<String>> = ["1", "2", "3", "4", "5"]
+            .iter()
+            .map(|k| vec![k.to_string(), "x".into()])
+            .collect();
+        l.most_lacking_first(&mut todo);
+        let order: Vec<&str> = todo.iter().map(|r| r[0].as_str()).collect();
+        assert_eq!(order, ["4", "5", "3", "2", "1"]);
+        // 점수 0인 곳(1)만 빠진다
+        assert_eq!(l.drop_complete(&mut todo), 1);
+        let order: Vec<&str> = todo.iter().map(|r| r[0].as_str()).collect();
+        assert_eq!(order, ["4", "5", "3", "2"]);
+    }
 }
