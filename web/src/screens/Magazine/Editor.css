@@ -21,6 +21,9 @@
 .ed-form input, .ed-form select, .ed-form textarea, .ed-login input { font: inherit; font-size: 15px; font-weight: 400; color: var(--color-text-primary); background: var(--color-bg-surface); border: 1px solid var(--color-border-contrast); border-radius: var(--radius-sm); padding: 10px 12px; min-height: 44px; }
 .ed-login input { flex: 1; }
 .ed-form textarea { font-family: 'Noto Serif KR', serif; line-height: 1.8; resize: vertical; }
+.ed-chip, .ed-match, .ed-item { transition: transform var(--dur-press) var(--ease-out), background-color 200ms ease, color 200ms ease, border-color 200ms ease; -webkit-tap-highlight-color: transparent; }
+.ed-chip:active, .ed-match:active, .ed-item:active { transform: scale(0.97); }
+@media (prefers-reduced-motion: reduce) { .ed-chip:active, .ed-match:active, .ed-item:active { transform: none; } }
 .ed-chip.on { background: var(--color-action-secondary); color: var(--color-text-on-action); }
 label .ed-chips { margin-top: 6px; }
 .ed-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }

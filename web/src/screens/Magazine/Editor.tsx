@@ -10,8 +10,8 @@ import './Editor.css'
 // 토큰은 이 브라우저 탭에만 기억한다(sessionStorage). 편집 토큰은 글만 쓸 수 있고 목욕탕 데이터 공개는 못 한다.
 // 글 주소(/magazine/<글 번호>)는 처음 저장할 때 서버가 정한다. 작성 화면에서 따로 입력하지 않는다.
 type Draft = { id?: number; title: string; category: StoryCategory | ''; summary: string; cover: string; body: string; author: string; place_ids: string[]; status: Story['status'] }
-// 글쓴이 프리셋. 운영자 본인은 '탕방지기'라 새 글의 기본값으로 둔다
-const AUTHORS = ['탕방지기', '탕방 편집부']
+// 글쓴이 프리셋. 운영자 본인의 닉네임 '이노곤'을 새 글의 기본값으로 둔다
+const AUTHORS = ['이노곤', '탕방 편집부']
 const empty = (): Draft => ({ title: '', category: '', summary: '', cover: '', body: '', author: AUTHORS[0], place_ids: [], status: 'draft' })
 const STATUS_LABEL: Record<Story['status'], string> = { draft: '임시 저장', published: '공개 중', hidden: '내림' }
 const SYNTAX = '빈 줄 = 새 문단 · ## 소제목 · > 인용문 · ![사진 설명](https://사진주소) 한 줄 = 사진'

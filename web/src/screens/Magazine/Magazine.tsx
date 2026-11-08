@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from 'react'
 import { CATEGORIES, catLabel, fetchStories, fetchStory, go, isStoryKey, parseBody, storyDate, storyPath, type Story, type StoryCategory } from '../../lib/stories'
 import { track } from '../../lib/track'
 import './Magazine.css'
@@ -91,8 +91,8 @@ function StoryList({ stories, failed }: { stories: Story[] | null; failed: boole
       {failed && <p className="mag-empty">이야기를 불러오지 못했어요. 잠시 뒤에 다시 들러 주세요.</p>}
       {stories && !failed && !list.length && <p className="mag-empty">{stories.length ? '이 카테고리에는 아직 이야기가 없어요.' : '첫 이야기를 준비하고 있어요.'}</p>}
       <div className="mag-grid">
-        {list.map((s) => (
-          <a key={s.id} className="mag-card" href={storyPath(s)} onClick={(e) => (e.preventDefault(), go(storyPath(s)))}>
+        {list.map((s, i) => (
+          <a key={s.id} className="mag-card" style={{ '--i': i } as CSSProperties} href={storyPath(s)} onClick={(e) => (e.preventDefault(), go(storyPath(s)))}>
             <h2>{s.title}</h2>
             <DateLine story={s} />
             <Cover story={s} />
@@ -239,16 +239,22 @@ function Scroll({ story, next }: { story: Story; next: Story | null }) {
 
 // 웹: 책. 본문을 CSS 다단(column)으로 흘려 쪽을 나누고, 왼쪽·오른쪽 쪽은 같은 본문을 창으로 잘라 보여 준다.
 // 넘길 때는 한 장(앞면=지금 쪽, 뒷면=다음 쪽)이 책등을 축으로 3D로 돌아간다(StPageFlip 연출 참고, 라이브러리 없이 CSS 3D).
-// 첫 쪽은 대표 사진. 모션 줄이기면 바로 바뀐다.
+// 첫 쪽은 대표 사진.
+// 움직임 원칙: 버튼으로 넘길 때만 책장이 돈다. ← → 키는 자주 반복하는 동작이라 바로 바뀐다.
+// 넘기는 중에 또 누르면 지금 장을 빠르게 마저 넘기고 다음 장으로 이어 간다(누른 것을 버리지 않음).
+// 모션 줄이기면 회전 없이 짧게 흐려졌다 나타난다.
 type Geo = { w: number; g: number; pad: number }
-const FLIP_MS = 900
-const FLIP_EASE = 'cubic-bezier(.45, .05, .35, 1)'
+const FLIP_MS = 650
+const FLIP_EASE = 'cubic-bezier(0.32, 0.72, 0, 1)' // motion.css --ease-drawer: 처음이 빨라 누르자마자 장이 들린다
+const FLIP_RUSH = 3 // 넘기는 중 다시 누르면 남은 회전을 3배 빠르게
+const FADE_MS = 180
 
-// 쪽 하나: 같은 본문 흐름을 옆으로 밀어 col번째 단만 창에 보인다
+// 쪽 하나: 같은 본문 흐름을 옆으로 밀어 col번째 단만 창에 보인다.
+// 미는 것은 left가 아니라 transform이다: 쪽을 바꿀 때 다단 배치를 다시 계산하지 않고 합성만 한다
 function Half(p: { side: 'left' | 'right'; col: number; geo: Geo; children: ReactNode; extra?: ReactNode; className?: string; flowRef?: Ref<HTMLDivElement>; hidden?: boolean }) {
   return (
     <div className={`mag-half mag-half--${p.side} ${p.className ?? ''}`} aria-hidden={p.hidden ? true : undefined}>
-      <div ref={p.flowRef} className="mag-flow" style={{ left: p.geo.pad - p.col * (p.geo.w + p.geo.g), width: 2 * p.geo.w + p.geo.g }}>
+      <div ref={p.flowRef} className="mag-flow" style={{ transform: `translateX(${p.geo.pad - p.col * (p.geo.w + p.geo.g)}px)`, width: 2 * p.geo.w + p.geo.g }}>
         {p.children}
       </div>
       {p.extra}
@@ -262,7 +268,8 @@ function Book({ story, next }: { story: Story; next: Story | null }) {
   const leaf = useRef<HTMLDivElement>(null)
   const frontShade = useRef<HTMLDivElement>(null)
   const backShade = useRef<HTMLDivElement>(null)
-  const castShade = useRef<HTMLDivElement>(null)
+  const castL = useRef<HTMLDivElement>(null) // 뒤로 넘길 때 드러나는 왼쪽 쪽의 그림자
+  const castR = useRef<HTMLDivElement>(null) // 앞으로 넘길 때 드러나는 오른쪽 쪽의 그림자
   const [spread, setSpread] = useState(0)
   const [spreads, setSpreads] = useState(1)
   const [geo, setGeo] = useState<Geo>({ w: 0, g: 0, pad: 0 })
@@ -299,30 +306,55 @@ function Book({ story, next }: { story: Story; next: Story | null }) {
   }, [count, story.slug])
   useEffect(() => setSpread((s) => Math.min(s, spreads - 1)), [spreads])
 
+  const anims = useRef<Animation[]>([])
+  const queued = useRef<{ d: 1 | -1; instant: boolean } | null>(null)
+  const fadeNext = useRef(false)
   const turn = useCallback(
-    (d: 1 | -1) => {
-      if (flip) return
+    (d: 1 | -1, instant = false) => {
+      if (flip) {
+        queued.current = { d, instant }
+        anims.current.forEach((a) => (a.playbackRate = FLIP_RUSH))
+        return
+      }
       const t = spread + d
       if (t < 0 || t > spreads - 1) return
-      if (reduceMotion() || !geo.w || typeof Element.prototype.animate !== 'function') setSpread(t)
-      else setFlip(d)
+      const canAnimate = !!geo.w && typeof Element.prototype.animate === 'function'
+      if (instant || !canAnimate) setSpread(t)
+      else if (reduceMotion()) {
+        fadeNext.current = true
+        setSpread(t)
+      } else setFlip(d)
     },
     [flip, spread, spreads, geo.w],
   )
+  // 넘기는 동안 눌러 둔 다음 장
+  useEffect(() => {
+    if (flip || !queued.current) return
+    const q = queued.current
+    queued.current = null
+    turn(q.d, q.instant)
+  }, [flip, turn])
+  // 모션 줄이기: 회전 대신 쪽 글자가 짧게 옅어졌다 돌아온다
+  useLayoutEffect(() => {
+    if (!fadeNext.current) return
+    fadeNext.current = false
+    book.current?.querySelectorAll<HTMLElement>(':scope > .mag-half .mag-flow').forEach((el) => el.animate([{ opacity: 0.25 }, { opacity: 1 }], { duration: FADE_MS, easing: 'ease' }))
+  }, [spread])
   // 넘기는 장: 책등을 축으로 0 → ∓180도. 앞면은 넘어가며 어두워지고, 뒷면은 펴지며 밝아진다
   useLayoutEffect(() => {
     const el = leaf.current
     if (!flip || !el) return
     const opt = { duration: FLIP_MS, easing: FLIP_EASE, fill: 'forwards' as const }
-    const [front, back, cast] = [frontShade.current, backShade.current, castShade.current]
-    const anims = [
+    const [front, back, cast] = [frontShade.current, backShade.current, flip === 1 ? castR.current : castL.current]
+    const list = [
       el.animate([{ transform: 'rotateY(0deg)' }, { transform: `rotateY(${flip === 1 ? -180 : 180}deg)` }], opt),
       front?.animate([{ opacity: 0 }, { opacity: 0.55, offset: 0.5 }, { opacity: 0.55 }], opt),
       back?.animate([{ opacity: 0.55 }, { opacity: 0.55, offset: 0.5 }, { opacity: 0 }], opt),
       cast?.animate([{ opacity: 0.5 }, { opacity: 0 }], opt),
     ].filter(Boolean) as Animation[]
+    anims.current = list
     let alive = true
-    anims[0].finished.then(
+    list[0].finished.then(
       () => {
         if (!alive) return
         setSpread((s) => s + flip)
@@ -332,13 +364,15 @@ function Book({ story, next }: { story: Story; next: Story | null }) {
     )
     return () => {
       alive = false
-      anims.forEach((a) => a.cancel())
+      list.forEach((a) => a.cancel())
+      anims.current = []
     }
   }, [flip])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') turn(1)
-      if (e.key === 'ArrowLeft') turn(-1)
+      if (e.altKey || e.ctrlKey || e.metaKey) return
+      if (e.key === 'ArrowRight') turn(1, true)
+      if (e.key === 'ArrowLeft') turn(-1, true)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -354,21 +388,28 @@ function Book({ story, next }: { story: Story; next: Story | null }) {
     }
   }, [spread, spreads])
 
-  const content = (
-    <>
-      <div className="mag-page-cover">
-        <Cover story={story} />
-      </div>
-      <Head story={story} />
-      <div className="mag-body">
-        <ArticleBody body={story.body ?? ''} />
-      </div>
-      <EndBlock story={story} next={next} />
-    </>
+  // 본문 사본 4개가 같은 요소 객체를 쓰면 쪽을 넘길 때 React가 본문 안을 다시 비교하지 않는다
+  const content = useMemo(
+    () => (
+      <>
+        <div className="mag-page-cover">
+          <Cover story={story} />
+        </div>
+        <Head story={story} />
+        <div className="mag-body">
+          <ArticleBody body={story.body ?? ''} />
+        </div>
+        <EndBlock story={story} next={next} />
+      </>
+    ),
+    [story, next],
   )
   // 깔린 쪽 번호: 앞으로 넘길 땐 오른쪽에 다음 장의 오른쪽 쪽, 뒤로 넘길 땐 왼쪽에 이전 장의 왼쪽 쪽
   const L = flip === -1 ? 2 * spread - 2 : 2 * spread
   const R = flip === 1 ? 2 * spread + 3 : 2 * spread + 1
+  // 넘기는 장은 늘 깔아 두고(숨김) 넘길 때 보이기만 한다. 넘길 때마다 새로 만들면 본문 사본 2개를 그리고 배치하느라 첫 프레임이 늦다
+  const back = flip === -1
+  const leafSide = back ? 'left' : 'right'
 
   return (
     <main className="mag-book-stage">
@@ -376,22 +417,20 @@ function Book({ story, next }: { story: Story; next: Story | null }) {
       <div className="mag-book" ref={book}>
         {/* 아래에 깔린 두 쪽. 넘기는 동안 오른쪽(앞으로)·왼쪽(뒤로)은 넘긴 뒤 보일 쪽을 미리 깐다 */}
         {/* 왼쪽 쪽이 본문 원본(화면 읽기 프로그램이 읽음), 나머지는 같은 본문을 잘라 보여 주는 사본 */}
-        <Half side="left" col={L} geo={geo} flowRef={flow} extra={flip === -1 && <div ref={castShade} className="mag-shade mag-shade--r" />}>
+        <Half side="left" col={L} geo={geo} flowRef={flow} extra={<div ref={castL} className="mag-shade mag-shade--r" />}>
           {content}
         </Half>
-        <Half side="right" col={R} geo={geo} hidden extra={flip === 1 && <div ref={castShade} className="mag-shade mag-shade--l" />}>
+        <Half side="right" col={R} geo={geo} hidden extra={<div ref={castR} className="mag-shade mag-shade--l" />}>
           {content}
         </Half>
-        {flip !== 0 && (
-          <div ref={leaf} className={`mag-leaf mag-leaf--${flip === 1 ? 'right' : 'left'}`} aria-hidden="true">
-            <Half side={flip === 1 ? 'right' : 'left'} col={flip === 1 ? 2 * spread + 1 : 2 * spread} geo={geo} className="mag-face" extra={<div ref={frontShade} className={`mag-shade mag-shade--${flip === 1 ? 'l' : 'r'}`} />}>
-              {content}
-            </Half>
-            <Half side={flip === 1 ? 'left' : 'right'} col={flip === 1 ? 2 * spread + 2 : 2 * spread - 1} geo={geo} className="mag-face mag-face--back" extra={<div ref={backShade} className={`mag-shade mag-shade--${flip === 1 ? 'r' : 'l'}`} />}>
-              {content}
-            </Half>
-          </div>
-        )}
+        <div ref={leaf} className={`mag-leaf mag-leaf--${leafSide}${flip ? ' is-flipping' : ''}`} aria-hidden="true">
+          <Half side={leafSide} col={back ? 2 * spread : 2 * spread + 1} geo={geo} className="mag-face" extra={<div ref={frontShade} className={`mag-shade mag-shade--${back ? 'r' : 'l'}`} />}>
+            {content}
+          </Half>
+          <Half side={back ? 'right' : 'left'} col={back ? 2 * spread - 1 : 2 * spread + 2} geo={geo} className="mag-face mag-face--back" extra={<div ref={backShade} className={`mag-shade mag-shade--${back ? 'l' : 'r'}`} />}>
+            {content}
+          </Half>
+        </div>
         <div className="mag-gutter" aria-hidden="true" />
       </div>
       <button className="mag-turn mag-turn--next" aria-label="다음 장" disabled={spread >= spreads - 1} onClick={() => turn(1)}>›</button>
