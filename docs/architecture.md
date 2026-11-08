@@ -47,8 +47,8 @@
 | **담아둔 곳** | 브라우저 저장(localStorage `onsen_fav`) + 서버 쿠키 백업(`/api/favs`, 400일). 사파리가 7일 뒤 브라우저 저장을 지워도 쿠키에서 되살림. **접속 주소(IP)와 무관.** 다른 기기로는 안 옮겨짐(로그인 없음) | `MainScreen.tsx` `favs`, `web/api/favs.js` |
 | 제보(요금·수건·드라이기·세신) | 제보 창 → Worker `/api/report`가 검사(값 범위·연락처 가림·기기당 1시간 5건·주소당 하루 30건) → D1 `reports`. **화면에 바로 안 나감** | `components/PriceReport`, `worker/src/index.js` `postReport` |
 | 데이터 기준일·출처 | 화면 맨 아래. "실시간"이라고 쓰지 않음 | `MainScreen.tsx` 아래쪽 |
-| **매거진** (`/magazine`, `/magazine/<글 주소>`) | 목욕 이야기 읽을거리(지도 없음). 웹(821px 이상)은 본문을 CSS 다단으로 흘려 두 쪽씩 넘기는 책, 모바일은 세로 스크롤. 공개된 글이 있을 때만 메인 상단 '매거진' 버튼·상세의 '이 목욕탕 이야기'·안내 마지막 단계(키 v4)가 나온다 | `screens/Magazine/Magazine.tsx`, `lib/stories.ts`, `App.tsx`(주소 나누기), `web/vercel.json`(새로고침해도 열리게) |
-| **매거진 작성** (`/magazine/write`) | 운영자 전용. 어디에도 링크하지 않고 편집 토큰을 넣어야 열림(검색 제외). 제목·카테고리·주소 이름·요약·대표 사진 주소·본문·나온 목욕탕을 쓰고 임시 저장 → 공개 → 내리기. 오른쪽에 모바일 미리보기. 사진은 지금 https 주소만(파일 올리기는 아직 없음) | `screens/Magazine/Editor.tsx` → Worker `/api/editor/stories` |
+| **매거진** (`/magazine`, `/magazine/<글 번호>`) | 목욕 이야기 읽을거리(지도 없음). 글 주소는 서버가 매기는 글 번호라 제목을 고쳐도 링크가 안 깨진다(첫 글만 예전 영문 주소도 열림). 웹(821px 이상)은 본문을 CSS 다단으로 흘려 두 쪽씩 넘기는 책, 모바일은 세로 스크롤. 공개된 글이 있을 때만 메인 상단 '매거진' 버튼·상세의 '이 목욕탕 이야기'·안내 마지막 단계(키 v4)가 나온다 | `screens/Magazine/Magazine.tsx`, `lib/stories.ts`, `App.tsx`(주소 나누기), `web/vercel.json`(새로고침해도 열리게) |
+| **매거진 작성** (`/magazine/write`) | 운영자 전용. 어디에도 링크하지 않고 편집 토큰을 넣어야 열림(검색 제외). 제목·카테고리·글쓴이·요약·대표 사진 주소·본문·나온 목욕탕을 쓰고 임시 저장 → 공개 → 내리기. 오른쪽에 모바일 미리보기. 사진은 지금 https 주소만(파일 올리기는 아직 없음) | `screens/Magazine/Editor.tsx` → Worker `/api/editor/stories` |
 
 ## 5. 백엔드(Cloudflare) 표와 할 일
 

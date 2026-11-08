@@ -244,7 +244,9 @@ async function postReport(req, env, cors) {
 }
 
 // ───────── 매거진 ─────────
-// 공개: GET /api/stories(목록, 본문 없음) · GET /api/stories/<slug>(공개된 글 하나)
+// 공개: GET /api/stories(목록, 본문 없음) · GET /api/stories/<글 번호>(공개된 글 하나)
+// 글 주소는 글 번호(id)다(/magazine/12). 서버가 저장할 때 매기고 바뀌지 않으므로 제목·카테고리를 고쳐도 공유한 링크가 살아 있다.
+// slug 칸은 예전 주소용: 새 글은 slug = 글 번호(글자)로 채우고, 번호 방식 전에 공개한 글(id 1)은 예전 영문 주소도 계속 열린다.
 // 작성: /api/editor/*  (Authorization: Bearer EDITOR_TOKEN). 편집 토큰은 글만 다룰 수 있고 목욕탕 데이터 공개·되돌리기(ADMIN_TOKEN)는 못 한다.
 const STORY_CATS = ['unknown', 'tips', 'special', 'people']
 const STORY_STATUS = ['draft', 'published', 'hidden']
@@ -267,8 +269,9 @@ async function listStories(env, cors) {
   return json({ ok: true, stories: r.results.map(storyRow) }, 200, { ...cors, 'Cache-Control': 'public, max-age=60' })
 }
 
-async function getStory(env, cors, slug) {
-  const r = await env.DB.prepare(`SELECT ${LIST_COLS}, body FROM stories WHERE slug = ? AND status = 'published'`).bind(slug).first()
+async function getStory(env, cors, key) {
+  const id = /^\d{1,9}$/.test(key) ? Number(key) : -1
+  const r = await env.DB.prepare(`SELECT ${LIST_COLS}, body FROM stories WHERE (id = ?1 OR slug = ?2) AND status = 'published'`).bind(id, key).first()
   if (!r) return json({ ok: false, error: 'not-found' }, 404, cors)
   return json({ ok: true, story: storyRow(r) }, 200, { ...cors, 'Cache-Control': 'public, max-age=60' })
 }
@@ -288,8 +291,6 @@ async function editorSave(req, env, cors) {
     return json({ ok: false, error: 'body' }, 400, cors)
   }
   const problems = []
-  const slug = text(b.slug, 60).toLowerCase()
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length < 3) problems.push('주소 이름은 영문 소문자·숫자·-로 3자 이상')
   const title = text(b.title, 80)
   if (!title) problems.push('제목이 비었어요')
   const category = STORY_CATS.includes(b.category) ? b.category : null
@@ -308,20 +309,26 @@ async function editorSave(req, env, cors) {
 
   const t = now()
   const id = Number(b.id) || null
-  const dup = await env.DB.prepare('SELECT id FROM stories WHERE slug = ?').bind(slug).first()
-  if (dup && dup.id !== id) return json({ ok: false, error: 'validation', problems: ['같은 주소 이름의 글이 이미 있어요'] }, 422, cors)
+  const place = JSON.stringify(ids)
+  // 고치기: 한 문장. 주소(id·slug)는 바꾸지 않고, 처음 공개할 때만 공개일을 남긴다
   if (id) {
-    const cur = await env.DB.prepare('SELECT published_at FROM stories WHERE id = ?').bind(id).first()
-    if (!cur) return json({ ok: false, error: 'not-found' }, 404, cors)
-    const pub = status === 'published' ? cur.published_at || t : cur.published_at
-    await env.DB.prepare('UPDATE stories SET slug=?1, title=?2, category=?3, summary=?4, cover=?5, body=?6, author=?7, place_ids=?8, status=?9, published_at=?10, updated_at=?11 WHERE id=?12')
-      .bind(slug, title, category, summary, cover, body, author, JSON.stringify(ids), status, pub, t, id)
+    const r = await env.DB.prepare(
+      `UPDATE stories SET title=?1, category=?2, summary=?3, cover=?4, body=?5, author=?6, place_ids=?7, status=?8,
+         published_at = CASE WHEN ?8 = 'published' THEN COALESCE(published_at, ?9) ELSE published_at END, updated_at=?9
+       WHERE id=?10 RETURNING id`,
+    )
+      .bind(title, category, summary, cover, body, author, place, status, t, id)
       .run()
+    if (!r.results?.length) return json({ ok: false, error: 'not-found' }, 404, cors)
     return json({ ok: true, id, status }, 200, cors)
   }
-  const r = await env.DB.prepare('INSERT INTO stories (slug, title, category, summary, cover, body, author, place_ids, status, published_at, created_at, updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?11) RETURNING id')
-    .bind(slug, title, category, summary, cover, body, author, JSON.stringify(ids), status, status === 'published' ? t : null, t)
-    .run()
+  // 새로 쓰기: 한 묶음(트랜잭션)으로 넣고 slug를 새 글 번호로 채운다. 임시 slug는 같은 묶음 안에서만 존재한다
+  const tmp = `tmp-${crypto.randomUUID()}`
+  const [, r] = await env.DB.batch([
+    env.DB.prepare('INSERT INTO stories (slug, title, category, summary, cover, body, author, place_ids, status, published_at, created_at, updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?11)')
+      .bind(tmp, title, category, summary, cover, body, author, place, status, status === 'published' ? t : null, t),
+    env.DB.prepare('UPDATE stories SET slug = CAST(id AS TEXT) WHERE slug = ?1 RETURNING id').bind(tmp),
+  ])
   return json({ ok: true, id: r.results[0].id, status }, 200, cors)
 }
 

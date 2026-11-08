@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { API_BASE, fetchPlaces } from '../../lib/api'
-import { CATEGORIES, EDITOR_KEY, catLabel, editorCall, go, type Story, type StoryCategory } from '../../lib/stories'
+import { CATEGORIES, EDITOR_KEY, catLabel, editorCall, go, storyPath, type Story, type StoryCategory } from '../../lib/stories'
 import type { Place } from '../../lib/onsen'
 import { ArticleBody } from './Magazine'
 import './Magazine.css'
@@ -8,12 +8,11 @@ import './Editor.css'
 
 // 매거진 작성 화면(운영자 전용). 서비스 화면 어디에도 링크하지 않고, 편집 토큰(.env의 TANGBANG_EDITOR_TOKEN)을 넣어야 열린다.
 // 토큰은 이 브라우저 탭에만 기억한다(sessionStorage). 편집 토큰은 글만 쓸 수 있고 목욕탕 데이터 공개는 못 한다.
-type Draft = { id?: number; slug: string; title: string; category: StoryCategory | ''; summary: string; cover: string; body: string; author: string; place_ids: string[]; status: Story['status'] }
-const today = () => {
-  const d = new Date(Date.now() + 9 * 3600_000)
-  return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}${String(d.getUTCDate()).padStart(2, '0')}`
-}
-const empty = (): Draft => ({ slug: `story-${today()}`, title: '', category: '', summary: '', cover: '', body: '', author: '탕방 편집부', place_ids: [], status: 'draft' })
+// 글 주소(/magazine/<글 번호>)는 처음 저장할 때 서버가 정한다. 작성 화면에서 따로 입력하지 않는다.
+type Draft = { id?: number; title: string; category: StoryCategory | ''; summary: string; cover: string; body: string; author: string; place_ids: string[]; status: Story['status'] }
+// 글쓴이 프리셋. 운영자 본인은 '탕방지기'라 새 글의 기본값으로 둔다
+const AUTHORS = ['탕방지기', '탕방 편집부']
+const empty = (): Draft => ({ title: '', category: '', summary: '', cover: '', body: '', author: AUTHORS[0], place_ids: [], status: 'draft' })
 const STATUS_LABEL: Record<Story['status'], string> = { draft: '임시 저장', published: '공개 중', hidden: '내림' }
 const SYNTAX = '빈 줄 = 새 문단 · ## 소제목 · > 인용문 · ![사진 설명](https://사진주소) 한 줄 = 사진'
 
@@ -172,12 +171,18 @@ export default function Editor() {
                 {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </label>
-            <label>주소 이름<input value={d.slug} maxLength={60} onChange={(e) => set('slug', e.target.value.toLowerCase())} placeholder="towel-story" /></label>
+            <label>글쓴이
+              <input value={d.author} maxLength={40} onChange={(e) => set('author', e.target.value)} />
+              <span className="ed-chips">
+                {AUTHORS.map((a) => (
+                  <button type="button" key={a} className={`ed-chip${d.author === a ? ' on' : ''}`} aria-pressed={d.author === a} onClick={() => set('author', a)}>{a}</button>
+                ))}
+              </span>
+            </label>
           </div>
-          <p className="ed-help">주소: tangbang.vercel.app/magazine/{d.slug || '…'} (영문 소문자·숫자·-)</p>
+          <p className="ed-help">{d.id ? `주소: tangbang.vercel.app${storyPath({ id: d.id })}` : '주소는 처음 저장할 때 글 번호로 자동으로 정해져요.'}</p>
           <label>한 줄 요약<input value={d.summary} maxLength={200} onChange={(e) => set('summary', e.target.value)} placeholder="목록과 글 머리에 나와요" /></label>
           <label>대표 사진 주소<input value={d.cover} onChange={(e) => set('cover', e.target.value)} placeholder="https://… (비우면 빈 자리)" /></label>
-          <label>글쓴이<input value={d.author} maxLength={40} onChange={(e) => set('author', e.target.value)} /></label>
           <label>본문<textarea value={d.body} rows={18} onChange={(e) => set('body', e.target.value)} placeholder={SYNTAX} /></label>
           <p className="ed-help">{SYNTAX}</p>
           <div className="ed-places">

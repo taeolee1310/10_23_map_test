@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS events (
 -- 본문은 글자만 저장한다(빈 줄 = 문단, '> ' = 인용, '![설명](https://주소)' = 사진). HTML은 받지 않는다.
 CREATE TABLE IF NOT EXISTS stories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  slug TEXT NOT NULL UNIQUE,        -- 주소에 쓰는 이름(/magazine/<slug>), 영문 소문자·숫자·-
+  slug TEXT NOT NULL UNIQUE,        -- 예전 주소용. 글 주소는 id(/magazine/<id>)이고 새 글은 slug = id(글자)로 서버가 채운다. id 1만 예전 영문 주소가 있다
   title TEXT NOT NULL,
   category TEXT NOT NULL,           -- unknown(몰랐던 이야기) · tips(도움이 되는 정보) · special(특별한 목욕탕) · people(사람들의 사연)
   summary TEXT NOT NULL DEFAULT '',

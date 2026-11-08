@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react'
-import { CATEGORIES, catLabel, fetchStories, fetchStory, go, parseBody, storyDate, type Story, type StoryCategory } from '../../lib/stories'
+import { CATEGORIES, catLabel, fetchStories, fetchStory, go, isStoryKey, parseBody, storyDate, storyPath, type Story, type StoryCategory } from '../../lib/stories'
 import { track } from '../../lib/track'
 import './Magazine.css'
 
@@ -92,7 +92,7 @@ function StoryList({ stories, failed }: { stories: Story[] | null; failed: boole
       {stories && !failed && !list.length && <p className="mag-empty">{stories.length ? '이 카테고리에는 아직 이야기가 없어요.' : '첫 이야기를 준비하고 있어요.'}</p>}
       <div className="mag-grid">
         {list.map((s) => (
-          <a key={s.id} className="mag-card" href={`/magazine/${s.slug}`} onClick={(e) => (e.preventDefault(), go(`/magazine/${s.slug}`))}>
+          <a key={s.id} className="mag-card" href={storyPath(s)} onClick={(e) => (e.preventDefault(), go(storyPath(s)))}>
             <h2>{s.title}</h2>
             <DateLine story={s} />
             <Cover story={s} />
@@ -135,13 +135,17 @@ function StoryView({ slug, stories }: { slug: string; stories: Story[] }) {
     fetchStory(slug).then(
       (s) => {
         setStory(s)
-        if (s) document.title = `${s.title} · 탕방 매거진`
+        if (s) {
+          document.title = `${s.title} · 탕방 매거진`
+          // 예전 영문 주소로 들어오면 주소창을 번호 주소로 바꿔 둔다(공유할 때 번호 주소가 퍼지게)
+          if (location.pathname !== storyPath(s)) history.replaceState(history.state, '', storyPath(s))
+        }
       },
       () => setStory(null),
     )
   }, [slug])
   const next = useMemo(() => {
-    const i = stories.findIndex((s) => s.slug === slug)
+    const i = stories.findIndex((s) => isStoryKey(s, slug))
     return i >= 0 ? stories[(i + 1) % stories.length] : stories[0]
   }, [stories, slug])
 
@@ -153,13 +157,13 @@ function StoryView({ slug, stories }: { slug: string; stories: Story[] }) {
         <a href="/magazine" onClick={(e) => (e.preventDefault(), go('/magazine'))}>매거진으로 돌아가기</a>
       </p>
     )
-  const nextStory = next && next.slug !== story.slug ? next : null
+  const nextStory = next && next.id !== story.id ? next : null
   return wide ? <Book story={story} next={nextStory} /> : <Scroll story={story} next={nextStory} />
 }
 
 function EndBlock({ story, next }: { story: Story; next: Story | null }) {
   const share = async () => {
-    const url = `${location.origin}/magazine/${story.slug}`
+    const url = location.origin + storyPath(story)
     try {
       if (navigator.share) await navigator.share({ title: story.title, url })
       else {
@@ -181,7 +185,7 @@ function EndBlock({ story, next }: { story: Story; next: Story | null }) {
         <div className="mag-next">
           <span>NEXT STORY</span>
           <strong>{next.title}</strong>
-          <a className="mag-btn mag-btn--primary" href={`/magazine/${next.slug}`} onClick={(e) => (e.preventDefault(), go(`/magazine/${next.slug}`))}>
+          <a className="mag-btn mag-btn--primary" href={storyPath(next)} onClick={(e) => (e.preventDefault(), go(storyPath(next)))}>
             다음 이야기 읽기
           </a>
         </div>

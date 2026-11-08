@@ -17,7 +17,7 @@ node --env-file=.env scripts/d1_publish.mjs rollback   # 잘못 공개했으면 
 node --env-file=.env scripts/d1_publish.mjs reports    # 새 제보 보기
 node --env-file=.env scripts/d1_publish.mjs stats 14   # 날짜별 방문자 수(DAU)·제보 수
 ```
-- 매거진: 글은 `stories` 표. 공개 글은 `GET /api/stories`·`/api/stories/<주소>`, 작성은 서비스의 숨은 화면 `/magazine/write`가 `/api/editor/stories`(GET 목록·POST 저장)를 편집 토큰(`EDITOR_TOKEN`)으로 부른다. 편집 토큰은 글만 다루고 목욕탕 데이터 공개(`ADMIN_TOKEN`)는 못 한다. 처음 한 번 `node worker/setup-editor.mjs`가 토큰을 만들어 `.env`(`TANGBANG_EDITOR_TOKEN`)와 Worker 비밀 값에 넣는다(값은 출력 안 함).
+- 매거진: 글은 `stories` 표. 공개 글은 `GET /api/stories`·`/api/stories/<글 번호>`(저장할 때 서버가 매김, 첫 글만 예전 영문 주소도 받음), 작성은 서비스의 숨은 화면 `/magazine/write`가 `/api/editor/stories`(GET 목록·POST 저장)를 편집 토큰(`EDITOR_TOKEN`)으로 부른다. 편집 토큰은 글만 다루고 목욕탕 데이터 공개(`ADMIN_TOKEN`)는 못 한다. 처음 한 번 `node worker/setup-editor.mjs`가 토큰을 만들어 `.env`(`TANGBANG_EDITOR_TOKEN`)와 Worker 비밀 값에 넣는다(값은 출력 안 함).
 - 핵심 행동: 화면(`web/src/lib/track.ts`)이 8가지 이름(`EVENTS`)만 `POST /api/event`로 보내고 `events` 표에 사람별 횟수로 쌓인다. `stats`가 행동별 사람 수·횟수를 보여 준다. 이름을 늘리려면 Worker `EVENTS`와 `track.ts`를 같이 고친다.
 - 방문자 수: `/api/places`를 서비스 화면(허용 주소, localhost 제외)에서 부를 때마다 `visits` 표에 (접속 주소+브라우저+한국 날짜) 해시 하나로 센다. 원래 주소는 저장하지 않고 90일 뒤 지운다. 세기에 실패해도 목록 응답은 막지 않는다.
 - 공개 전 자동 검증: 필수 칸·서울 밖 좌표, 성인업소 키워드 이름, 휴대폰 번호 모양(tel 칸·주소·이름·URL 제외), 확인 요금과 예시 요금이 함께 있음, 스냅샷 1.5MB 초과(D1 한 행 한도 2MB), 곳 수 10% 넘게 감소(`--force`로만 통과).

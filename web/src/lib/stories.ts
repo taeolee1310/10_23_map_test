@@ -78,7 +78,11 @@ export function parseBody(body: string): Block[] {
   return out
 }
 
-// 주소: /magazine, /magazine/<slug>, /magazine/write. 화면 전환은 history로 하고 popstate로 되돌린다
+// 글 주소는 글 번호(/magazine/12). 서버가 매기고 바뀌지 않는다. 번호 방식 전에 공개한 글은 예전 영문 주소도 열린다
+export const storyPath = (s: Pick<Story, 'id'>) => `/magazine/${s.id}`
+export const isStoryKey = (s: Pick<Story, 'id' | 'slug'>, key: string) => String(s.id) === key || s.slug === key
+
+// 주소: /magazine, /magazine/<글 번호>, /magazine/write. 화면 전환은 history로 하고 popstate로 되돌린다
 export type Route = { name: 'home' } | { name: 'magazine' } | { name: 'story'; slug: string } | { name: 'write' }
 export function routeOf(path: string): Route {
   const p = path.replace(/\/+$/, '')

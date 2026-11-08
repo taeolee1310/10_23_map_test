@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
 import { FactsDetails, FeeDetails, Notices, TopWorries, hoursText, towelText, unknownList } from './PlaceFacts'
 import { MiniMap } from '../../components/KakaoMap/KakaoMap'
-import { catLabel, go, type Story } from '../../lib/stories'
+import { catLabel, go, storyPath, type Story } from '../../lib/stories'
 
 // 모바일(820px 이하, MainScreen.css와 같은 기준)에서만 상세에 작은 지도를 넣는다. 데스크톱은 옆에 큰 지도가 보인다
 const MOBILE = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 820px)').matches
@@ -300,7 +300,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
             <section className="sec story-link">
               <h3>이 목욕탕 이야기</h3>
               {stories.map((s) => (
-                <a key={s.id} className="btn ghost sm" href={`/magazine/${s.slug}`} onClick={(e) => (e.preventDefault(), go(`/magazine/${s.slug}`))}>
+                <a key={s.id} className="btn ghost sm" href={storyPath(s)} onClick={(e) => (e.preventDefault(), go(storyPath(s)))}>
                   {catLabel(s.category)} · {s.title}
                 </a>
               ))}
