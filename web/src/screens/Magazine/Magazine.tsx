@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type Ref } from 'react'
 import { CATEGORIES, catLabel, fetchStories, fetchStory, go, parseBody, storyDate, type Story, type StoryCategory } from '../../lib/stories'
 import { track } from '../../lib/track'
 import './Magazine.css'
@@ -233,33 +233,104 @@ function Scroll({ story, next }: { story: Story; next: Story | null }) {
   )
 }
 
-// 웹: 책. 본문을 CSS 다단(column)으로 흘려 쪽을 나누고, 두 쪽씩 옆으로 넘긴다. 첫 쪽은 대표 사진.
+// 웹: 책. 본문을 CSS 다단(column)으로 흘려 쪽을 나누고, 왼쪽·오른쪽 쪽은 같은 본문을 창으로 잘라 보여 준다.
+// 넘길 때는 한 장(앞면=지금 쪽, 뒷면=다음 쪽)이 책등을 축으로 3D로 돌아간다(StPageFlip 연출 참고, 라이브러리 없이 CSS 3D).
+// 첫 쪽은 대표 사진. 모션 줄이기면 바로 바뀐다.
+type Geo = { w: number; g: number; pad: number }
+const FLIP_MS = 900
+const FLIP_EASE = 'cubic-bezier(.45, .05, .35, 1)'
+
+// 쪽 하나: 같은 본문 흐름을 옆으로 밀어 col번째 단만 창에 보인다
+function Half(p: { side: 'left' | 'right'; col: number; geo: Geo; children: ReactNode; extra?: ReactNode; className?: string; flowRef?: Ref<HTMLDivElement>; hidden?: boolean }) {
+  return (
+    <div className={`mag-half mag-half--${p.side} ${p.className ?? ''}`} aria-hidden={p.hidden ? true : undefined}>
+      <div ref={p.flowRef} className="mag-flow" style={{ left: p.geo.pad - p.col * (p.geo.w + p.geo.g), width: 2 * p.geo.w + p.geo.g }}>
+        {p.children}
+      </div>
+      {p.extra}
+    </div>
+  )
+}
+
 function Book({ story, next }: { story: Story; next: Story | null }) {
+  const book = useRef<HTMLDivElement>(null)
   const flow = useRef<HTMLDivElement>(null)
+  const leaf = useRef<HTMLDivElement>(null)
+  const frontShade = useRef<HTMLDivElement>(null)
+  const backShade = useRef<HTMLDivElement>(null)
+  const castShade = useRef<HTMLDivElement>(null)
   const [spread, setSpread] = useState(0)
   const [spreads, setSpreads] = useState(1)
-  const [geo, setGeo] = useState({ w: 0, g: 0 })
+  const [geo, setGeo] = useState<Geo>({ w: 0, g: 0, pad: 0 })
+  const [flip, setFlip] = useState<0 | 1 | -1>(0)
+  // 1단계: 책 크기에서 쪽 너비를 계산
   const measure = useCallback(() => {
-    const el = flow.current
+    const el = book.current
     if (!el) return
-    const cs = getComputedStyle(el)
-    const g = parseFloat(cs.columnGap) || 0
-    const w = (el.clientWidth - g) / 2
-    const cols = Math.max(1, Math.round((el.scrollWidth + g) / (w + g)))
-    setGeo({ w, g })
-    setSpreads(Math.ceil(cols / 2))
+    const pad = parseFloat(getComputedStyle(el).getPropertyValue('--book-pad')) || 48
+    const g = pad * 2
+    const w = (el.clientWidth - pad * 2 - g) / 2
+    setGeo((o) => (o.w === w && o.pad === pad ? o : { w, g, pad }))
   }, [])
+  // 2단계: 그 너비로 흘린 본문이 몇 쪽인지 센다
+  const count = useCallback(() => {
+    const el = flow.current
+    if (!el || !geo.w) return
+    const cols = Math.max(1, Math.round((el.scrollWidth + geo.g) / (geo.w + geo.g)))
+    setSpreads(Math.ceil(cols / 2))
+  }, [geo])
   useLayoutEffect(() => {
     setSpread(0)
+    setFlip(0)
     measure()
     const ro = new ResizeObserver(measure)
-    if (flow.current) ro.observe(flow.current)
-    document.fonts?.ready.then(measure)
-    const imgs = flow.current?.querySelectorAll('img') ?? []
-    imgs.forEach((im) => im.addEventListener('load', measure, { once: true }))
+    if (book.current) ro.observe(book.current)
     return () => ro.disconnect()
   }, [story.slug, measure])
-  const turn = useCallback((d: number) => setSpread((s) => Math.min(spreads - 1, Math.max(0, s + d))), [spreads])
+  useLayoutEffect(() => {
+    count()
+    document.fonts?.ready.then(count)
+    const imgs = flow.current?.querySelectorAll('img') ?? []
+    imgs.forEach((im) => im.addEventListener('load', count, { once: true }))
+  }, [count, story.slug])
+  useEffect(() => setSpread((s) => Math.min(s, spreads - 1)), [spreads])
+
+  const turn = useCallback(
+    (d: 1 | -1) => {
+      if (flip) return
+      const t = spread + d
+      if (t < 0 || t > spreads - 1) return
+      if (reduceMotion() || !geo.w || typeof Element.prototype.animate !== 'function') setSpread(t)
+      else setFlip(d)
+    },
+    [flip, spread, spreads, geo.w],
+  )
+  // 넘기는 장: 책등을 축으로 0 → ∓180도. 앞면은 넘어가며 어두워지고, 뒷면은 펴지며 밝아진다
+  useLayoutEffect(() => {
+    const el = leaf.current
+    if (!flip || !el) return
+    const opt = { duration: FLIP_MS, easing: FLIP_EASE, fill: 'forwards' as const }
+    const [front, back, cast] = [frontShade.current, backShade.current, castShade.current]
+    const anims = [
+      el.animate([{ transform: 'rotateY(0deg)' }, { transform: `rotateY(${flip === 1 ? -180 : 180}deg)` }], opt),
+      front?.animate([{ opacity: 0 }, { opacity: 0.55, offset: 0.5 }, { opacity: 0.55 }], opt),
+      back?.animate([{ opacity: 0.55 }, { opacity: 0.55, offset: 0.5 }, { opacity: 0 }], opt),
+      cast?.animate([{ opacity: 0.5 }, { opacity: 0 }], opt),
+    ].filter(Boolean) as Animation[]
+    let alive = true
+    anims[0].finished.then(
+      () => {
+        if (!alive) return
+        setSpread((s) => s + flip)
+        setFlip(0)
+      },
+      () => {},
+    )
+    return () => {
+      alive = false
+      anims.forEach((a) => a.cancel())
+    }
+  }, [flip])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') turn(1)
@@ -279,24 +350,44 @@ function Book({ story, next }: { story: Story; next: Story | null }) {
     }
   }, [spread, spreads])
 
+  const content = (
+    <>
+      <div className="mag-page-cover">
+        <Cover story={story} />
+      </div>
+      <Head story={story} />
+      <div className="mag-body">
+        <ArticleBody body={story.body ?? ''} />
+      </div>
+      <EndBlock story={story} next={next} />
+    </>
+  )
+  // 깔린 쪽 번호: 앞으로 넘길 땐 오른쪽에 다음 장의 오른쪽 쪽, 뒤로 넘길 땐 왼쪽에 이전 장의 왼쪽 쪽
+  const L = flip === -1 ? 2 * spread - 2 : 2 * spread
+  const R = flip === 1 ? 2 * spread + 3 : 2 * spread + 1
+
   return (
     <main className="mag-book-stage">
       <button className="mag-turn mag-turn--prev" aria-label="이전 장" disabled={spread === 0} onClick={() => turn(-1)}>‹</button>
-      <div className="mag-book">
-        <div
-          ref={flow}
-          className="mag-flow"
-          style={{ transform: `translateX(${-spread * 2 * (geo.w + geo.g)}px)`, transition: reduceMotion() ? 'none' : undefined }}
-        >
-          <div className="mag-page-cover">
-            <Cover story={story} />
+      <div className="mag-book" ref={book}>
+        {/* 아래에 깔린 두 쪽. 넘기는 동안 오른쪽(앞으로)·왼쪽(뒤로)은 넘긴 뒤 보일 쪽을 미리 깐다 */}
+        {/* 왼쪽 쪽이 본문 원본(화면 읽기 프로그램이 읽음), 나머지는 같은 본문을 잘라 보여 주는 사본 */}
+        <Half side="left" col={L} geo={geo} flowRef={flow} extra={flip === -1 && <div ref={castShade} className="mag-shade mag-shade--r" />}>
+          {content}
+        </Half>
+        <Half side="right" col={R} geo={geo} hidden extra={flip === 1 && <div ref={castShade} className="mag-shade mag-shade--l" />}>
+          {content}
+        </Half>
+        {flip !== 0 && (
+          <div ref={leaf} className={`mag-leaf mag-leaf--${flip === 1 ? 'right' : 'left'}`} aria-hidden="true">
+            <Half side={flip === 1 ? 'right' : 'left'} col={flip === 1 ? 2 * spread + 1 : 2 * spread} geo={geo} className="mag-face" extra={<div ref={frontShade} className={`mag-shade mag-shade--${flip === 1 ? 'l' : 'r'}`} />}>
+              {content}
+            </Half>
+            <Half side={flip === 1 ? 'left' : 'right'} col={flip === 1 ? 2 * spread + 2 : 2 * spread - 1} geo={geo} className="mag-face mag-face--back" extra={<div ref={backShade} className={`mag-shade mag-shade--${flip === 1 ? 'r' : 'l'}`} />}>
+              {content}
+            </Half>
           </div>
-          <Head story={story} />
-          <div className="mag-body">
-            <ArticleBody body={story.body ?? ''} />
-          </div>
-          <EndBlock story={story} next={next} />
-        </div>
+        )}
         <div className="mag-gutter" aria-hidden="true" />
       </div>
       <button className="mag-turn mag-turn--next" aria-label="다음 장" disabled={spread >= spreads - 1} onClick={() => turn(1)}>›</button>

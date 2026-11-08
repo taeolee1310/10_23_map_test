@@ -88,6 +88,15 @@ CREATE TABLE IF NOT EXISTS stories (
 );
 CREATE INDEX IF NOT EXISTS stories_pub ON stories (status, published_at);
 
+-- 작성 화면 암호를 틀린 횟수. k = 'ip:'+해시(접속 주소, 원래 주소는 저장 안 함) 또는 'all'(전체).
+-- 같은 곳에서 15분 안에 5번 틀리면 15분, 전체에서 1시간 안에 30번 틀리면 1시간 동안 맞는 암호도 받지 않는다.
+CREATE TABLE IF NOT EXISTS auth_fails (
+  k TEXT PRIMARY KEY,
+  n INTEGER NOT NULL,           -- 이번 구간에서 틀린 횟수
+  first_at INTEGER NOT NULL,    -- 구간 시작(ms)
+  locked_until INTEGER NOT NULL DEFAULT 0 -- 이 시각(ms)까지 잠금
+) WITHOUT ROWID;
+
 -- 공개·되돌리기 기록
 CREATE TABLE IF NOT EXISTS publish_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

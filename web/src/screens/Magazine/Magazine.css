@@ -74,19 +74,33 @@
 .mag-book-stage { position: relative; display: grid; place-items: center; padding: 28px 96px 64px; }
 .mag-book {
   --book-pad: 48px;
-  position: relative; width: min(1120px, 100%); height: min(660px, calc(100dvh - 210px)); min-height: 520px; overflow: hidden;
+  position: relative; width: min(1120px, 100%); height: min(660px, calc(100dvh - 210px)); min-height: 520px;
   background: var(--color-bg-surface); border-radius: var(--radius-sm);
   box-shadow: var(--shadow-card), 0 0 0 1px var(--color-border-default);
+  perspective: 2400px;
 }
+/* 쪽 하나 = 책의 반쪽 창. 안의 본문 흐름(.mag-flow)을 옆으로 밀어 한 단만 보인다 */
+.mag-half { position: absolute; top: 0; bottom: 0; width: 50%; overflow: hidden; background: var(--color-bg-surface); }
+.mag-half--left { left: 0; border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.mag-half--right { left: 50%; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
 .mag-flow {
-  position: absolute; top: var(--book-pad); bottom: var(--book-pad); left: var(--book-pad); right: var(--book-pad);
+  position: absolute; top: var(--book-pad); bottom: var(--book-pad);
   columns: 2; column-gap: calc(var(--book-pad) * 2); column-fill: auto;
-  transition: transform 520ms cubic-bezier(.22, .8, .24, 1);
 }
+/* 넘기는 장: 책등을 축으로 도는 한 장. 앞면은 지금 쪽, 뒷면은 다음 쪽 */
+.mag-leaf { position: absolute; top: 0; bottom: 0; width: 50%; z-index: 3; transform-style: preserve-3d; pointer-events: none; will-change: transform; }
+.mag-leaf--right { left: 50%; transform-origin: left center; }
+.mag-leaf--left { left: 0; transform-origin: right center; }
+.mag-leaf .mag-face { left: 0; width: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.mag-leaf .mag-face--back { transform: rotateY(180deg); }
+/* 그림자: 책등 쪽이 짙고 바깥으로 옅어진다. 넘기는 동안만 투명도가 바뀐다 */
+.mag-shade { position: absolute; inset: 0; pointer-events: none; opacity: 0; z-index: 1; }
+.mag-shade--l { background: linear-gradient(90deg, color-mix(in srgb, var(--color-text-primary) 38%, transparent), color-mix(in srgb, var(--color-text-primary) 8%, transparent) 45%, transparent); }
+.mag-shade--r { background: linear-gradient(270deg, color-mix(in srgb, var(--color-text-primary) 38%, transparent), color-mix(in srgb, var(--color-text-primary) 8%, transparent) 45%, transparent); }
 .mag-page-cover { height: 100%; break-after: column; }
 .mag-page-cover .mag-cover { height: 100%; aspect-ratio: auto; }
 .mag-book .mag-fig img { max-height: 280px; }
-.mag-gutter { position: absolute; left: 50%; top: 0; bottom: 0; width: 64px; transform: translateX(-50%); pointer-events: none;
+.mag-gutter { z-index: 4; position: absolute; left: 50%; top: 0; bottom: 0; width: 64px; transform: translateX(-50%); pointer-events: none;
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-text-primary) 9%, transparent) 48%, color-mix(in srgb, var(--color-text-primary) 13%, transparent) 50%, color-mix(in srgb, var(--color-text-primary) 9%, transparent) 52%, transparent); }
 .mag-turn { position: absolute; top: 50%; width: 52px; height: 52px; margin-top: -40px; border-radius: 50%; border: 1px solid var(--color-border-default); background: var(--color-bg-surface); color: var(--color-text-primary); font-size: 24px; cursor: pointer; }
 .mag-turn--prev { left: 24px; }
@@ -109,4 +123,4 @@
   .mag-art-head h1 { font-size: 26px; }
   .mag-body p { font-size: 15.5px; line-height: 2; }
 }
-@media (prefers-reduced-motion: reduce) { .mag-flow { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .mag-leaf { display: none; } }

@@ -58,6 +58,44 @@ function authorized(req, env, key = 'ADMIN_TOKEN') {
   return diff === 0
 }
 
+// 작성 화면 암호 틀린 횟수 제한: [키, 최대 횟수, 구간, 잠금 시간]. 잠긴 동안은 맞는 암호도 받지 않는다(맞혀 보기를 막으려고).
+// 같은 곳(접속 주소 해시)과 전체를 함께 센다. 전체 잠금은 여러 곳에서 나눠 맞혀 보는 것을 막는다.
+const FAIL_RULES = [
+  { scope: 'ip', max: 5, win: 15 * 60_000, lock: 15 * 60_000 },
+  { scope: 'all', max: 30, win: 60 * 60_000, lock: 60 * 60_000 },
+]
+async function failKeys(req, env) {
+  const ip = req.headers.get('CF-Connecting-IP') || ''
+  return { ip: `ip:${await sha(`auth|${ip}|${env.REPORT_SALT}`)}`, all: 'all' }
+}
+// 잠겨 있으면 풀리는 시각(ms), 아니면 0
+async function lockedUntil(env, keys) {
+  const r = await env.DB.prepare('SELECT MAX(locked_until) AS u FROM auth_fails WHERE k IN (?1, ?2)').bind(keys.ip, keys.all).first()
+  const u = Number(r?.u) || 0
+  return u > Date.now() ? u : 0
+}
+// 한 번 틀림. 같은 곳에서 남은 횟수와(있으면) 잠금 시각을 돌려준다
+async function recordFail(env, keys) {
+  const t = Date.now()
+  const up = env.DB.prepare(
+    `INSERT INTO auth_fails (k, n, first_at, locked_until) VALUES (?1, 1, ?2, CASE WHEN ?4 <= 1 THEN ?2 + ?5 ELSE 0 END)
+     ON CONFLICT(k) DO UPDATE SET
+       n = CASE WHEN ?2 - first_at > ?3 THEN 1 ELSE n + 1 END,
+       first_at = CASE WHEN ?2 - first_at > ?3 THEN ?2 ELSE first_at END,
+       locked_until = CASE WHEN ?2 - first_at <= ?3 AND n + 1 >= ?4 THEN ?2 + ?5 ELSE locked_until END`,
+  )
+  await env.DB.batch([
+    ...FAIL_RULES.map((f) => up.bind(keys[f.scope], t, f.win, f.max, f.lock)),
+    env.DB.prepare('DELETE FROM auth_fails WHERE first_at < ?1 AND locked_until < ?2').bind(t - 86_400_000, t),
+  ])
+  const row = await env.DB.prepare('SELECT n FROM auth_fails WHERE k = ?1').bind(keys.ip).first()
+  return { left: Math.max(0, FAIL_RULES[0].max - (Number(row?.n) || 0)), until: await lockedUntil(env, keys) }
+}
+const lockedRes = (until, cors) => {
+  const sec = Math.max(1, Math.ceil((until - Date.now()) / 1000))
+  return json({ ok: false, error: 'locked', retry: sec }, 429, { ...cors, 'Retry-After': String(sec) })
+}
+
 const activeId = async (db) => {
   const r = await db.prepare("SELECT v FROM meta WHERE k = 'active_snapshot'").first()
   return r ? Number(r.v) : null
@@ -513,7 +551,14 @@ export default {
         if (sm && req.method === 'GET') return await getStory(env, cors, sm[1])
         if (path.startsWith('/api/editor/')) {
           if (!env.EDITOR_TOKEN) return json({ ok: false, error: 'not-ready' }, 503, cors)
-          if (!authorized(req, env, 'EDITOR_TOKEN')) return json({ ok: false, error: 'auth' }, 401, cors)
+          const keys = await failKeys(req, env)
+          const until = await lockedUntil(env, keys)
+          if (until) return lockedRes(until, cors)
+          if (!authorized(req, env, 'EDITOR_TOKEN')) {
+            const f = await recordFail(env, keys)
+            return f.until ? lockedRes(f.until, cors) : json({ ok: false, error: 'auth', left: f.left }, 401, cors)
+          }
+          await env.DB.prepare('DELETE FROM auth_fails WHERE k = ?1').bind(keys.ip).run()
           if (path === '/api/editor/stories' && req.method === 'GET') return await editorList(env, cors)
           if (path === '/api/editor/stories' && req.method === 'POST') return await editorSave(req, env, cors)
           return json({ ok: false, error: 'not-found' }, 404, cors)

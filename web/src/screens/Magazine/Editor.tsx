@@ -17,6 +17,13 @@ const empty = (): Draft => ({ slug: `story-${today()}`, title: '', category: '',
 const STATUS_LABEL: Record<Story['status'], string> = { draft: '임시 저장', published: '공개 중', hidden: '내림' }
 const SYNTAX = '빈 줄 = 새 문단 · ## 소제목 · > 인용문 · ![사진 설명](https://사진주소) 한 줄 = 사진'
 
+// 암호를 틀렸을 때 안내. 같은 곳에서 5번 틀리면 15분 잠긴다(Worker FAIL_RULES)
+type AuthFail = { left?: number; retry?: number }
+function authText(status: number, d: AuthFail) {
+  if (status === 429) return `여러 번 틀려서 잠시 잠겼어요. ${Math.max(1, Math.ceil((d.retry ?? 60) / 60))}분 뒤에 다시 해 주세요.`
+  return d.left ? `암호가 맞지 않아요. ${d.left}번 더 틀리면 15분 동안 잠겨요.` : '암호가 맞지 않아요.'
+}
+
 export default function Editor() {
   const [token, setToken] = useState(() => {
     try {
@@ -45,14 +52,14 @@ export default function Editor() {
   }, [])
 
   const load = async (t = token) => {
-    const r = await editorCall<{ ok: boolean; stories: Story[] }>('GET', t)
-    if (r.status === 401) {
-      setMsg({ ok: false, text: '편집 토큰이 맞지 않아요. .env의 TANGBANG_EDITOR_TOKEN 값을 넣어 주세요.' })
+    const r = await editorCall<{ ok: boolean; stories: Story[] } & AuthFail>('GET', t)
+    if (r.status === 401 || r.status === 429) {
+      setMsg({ ok: false, text: authText(r.status, r.data) })
       setList(null)
       return false
     }
     if (r.status === 503) {
-      setMsg({ ok: false, text: '작성 기능이 아직 준비되지 않았어요(Worker에 편집 토큰이 없음). node worker/setup-editor.mjs를 실행해 주세요.' })
+      setMsg({ ok: false, text: '작성 기능이 아직 준비되지 않았어요(Worker에 암호가 없음). node worker/setup-editor.mjs를 실행해 주세요.' })
       return false
     }
     if (!r.data.ok) {
@@ -93,12 +100,12 @@ export default function Editor() {
     setBusy(true)
     setMsg(null)
     try {
-      const r = await editorCall<{ ok: boolean; id?: number; problems?: string[]; error?: string }>('POST', token, { ...d, status })
+      const r = await editorCall<{ ok: boolean; id?: number; problems?: string[]; error?: string } & AuthFail>('POST', token, { ...d, status })
       if (r.data.ok) {
         setD((x) => ({ ...x, id: r.data.id, status }))
         setMsg({ ok: true, text: status === 'published' ? '공개했어요. 1분 안에 매거진에 보여요.' : status === 'hidden' ? '내렸어요.' : '임시 저장했어요(사용자에게는 안 보여요).' })
         await load()
-      } else if (r.status === 401) setMsg({ ok: false, text: '편집 토큰이 맞지 않아요. 다시 넣어 주세요.' })
+      } else if (r.status === 401 || r.status === 429) setMsg({ ok: false, text: authText(r.status, r.data) })
       else setMsg({ ok: false, text: '저장하지 못했어요.', problems: r.data.problems })
     } catch {
       setMsg({ ok: false, text: '인터넷 연결을 확인하고 다시 눌러 주세요. 쓴 글은 화면에 그대로 있어요.' })
@@ -119,7 +126,7 @@ export default function Editor() {
     return (
       <div className="ed-wrap ed-login">
         <h1>매거진 작성</h1>
-        <p>운영자만 쓰는 화면이에요. 편집 토큰을 넣어 주세요.</p>
+        <p>운영자만 쓰는 화면이에요. 암호를 넣어 주세요.</p>
         <form
           onSubmit={(e) => {
             e.preventDefault()
@@ -127,7 +134,7 @@ export default function Editor() {
             if (t) login(t)
           }}
         >
-          <input name="t" type="password" autoComplete="off" placeholder="편집 토큰" aria-label="편집 토큰" />
+          <input name="t" type="password" autoComplete="off" placeholder="암호" aria-label="암호" />
           <button className="mag-btn mag-btn--primary" type="submit">들어가기</button>
         </form>
         {msg && <p className={msg.ok ? 'ed-ok' : 'ed-err'}>{msg.text}</p>}
