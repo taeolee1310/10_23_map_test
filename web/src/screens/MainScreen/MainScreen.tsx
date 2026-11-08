@@ -8,6 +8,7 @@ import {
   filterPlaces,
   hasXY,
   km,
+  NEAR_KM,
   guAt,
   type GuBoundary,
   sortPlaces,
@@ -173,12 +174,18 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
     [guList, guPool.length],
   )
   // '지도 범위로 보기'가 꺼져 있으면 지도가 움직여도 같은 배열이라 핀을 다시 그리지 않는다
+  // 내 위치를 알고 '이름순'이면 반경 NEAR_KM 안의 곳만 남긴다(지도·목록·숫자가 같은 목록을 쓰도록 여기서 거른다)
+  const nearOnly = !!me && sort === 'name'
+  const nearby = useMemo(
+    () => (nearOnly ? filtered.filter((d) => d.dist != null && d.dist <= NEAR_KM) : filtered),
+    [filtered, nearOnly],
+  )
   const inside = useMemo(
     () =>
       inView && bounds
-        ? filtered.filter((d) => hasXY(d) && d.lat >= bounds.sw.lat && d.lat <= bounds.ne.lat && d.lng >= bounds.sw.lng && d.lng <= bounds.ne.lng)
-        : filtered,
-    [filtered, inView, bounds],
+        ? nearby.filter((d) => hasXY(d) && d.lat >= bounds.sw.lat && d.lat <= bounds.ne.lat && d.lng >= bounds.sw.lng && d.lng <= bounds.ne.lng)
+        : nearby,
+    [nearby, inView, bounds],
   )
   const view = useMemo(() => sortPlaces(inside, sort, !!me), [inside, sort, me])
   const mapPoints = useMemo(() => inside.filter(hasXY), [inside])
@@ -414,7 +421,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
     setReportFor({ id, name: p?.name ?? id })
   }
   const guText = filters.gu.length > 1 ? `${filters.gu[0]} 외 ${filters.gu.length - 1}개 구` : filters.gu[0] ?? ''
-  const count = (guText ? guText + ' ' : '') + (inView && bounds ? `지도 안 ${view.length}곳` : `${view.length}곳`)
+  const count = (nearOnly ? `내 위치 ${NEAR_KM}km 안 ` : '') + (guText ? guText + ' ' : '') + (inView && bounds ? `지도 안 ${view.length}곳` : `${view.length}곳`)
 
   const openTour = () => {
     closeDetail()
@@ -520,6 +527,12 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
               onChange={(v) => {
                 setSort(v)
                 if (v === 'dist' && !me) locate()
+                if (v === 'name' && me) {
+                  // 이름순은 내 위치 반경 안만 보여 주므로 목록을 처음부터, 지도는 그 곳들과 내 위치가 보이게 맞춘다
+                  setShown(PAGE)
+                  setAnimKey((k) => k + 1)
+                  requestFit(filtered.filter((d) => d.dist != null && d.dist <= NEAR_KM), [me])
+                }
               }}
               size="sm"
               radius={12}
@@ -533,7 +546,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
           </div>
           <PlaceList
             list={view}
-            total={filtered.length}
+            total={nearby.length}
             shown={shown}
             selId={selId}
             hotId={hotId}
@@ -547,7 +560,10 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
             onFav={toggleFav}
             onHover={setHotId}
             onMore={() => setShown((s) => s + PAGE)}
-            onReset={reset}
+            onReset={() => {
+              if (nearOnly) setSort('auto') // 반경 안에 한 곳도 없을 때 초기화가 이름순 반경 제한도 푼다
+              reset()
+            }}
             onReport={reportPrice}
           />
           <PlaceDetail place={selected} open={detailOpen} me={me} onClose={closeDetail} onLocate={() => locate()} onReport={reportPrice} />

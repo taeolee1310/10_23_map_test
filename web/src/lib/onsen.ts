@@ -141,11 +141,17 @@ export function sortPlaces(list: PlaceWithDist[], sort: string, hasMe: boolean) 
   if (by === 'dist' && hasMe) {
     // 좌표 없는 곳은 거리를 모르니 맨 뒤로
     a.sort((x, y) => (x.dist ?? Infinity) - (y.dist ?? Infinity))
+  } else if (by === 'name' && hasMe) {
+    // 내 위치 기반 이름순: 반경 안의 곳을 구와 상관없이 가나다순으로
+    a.sort((x, y) => x.name.localeCompare(y.name, 'ko'))
   } else {
     a.sort((x, y) => x.gu.localeCompare(y.gu, 'ko') || x.name.localeCompare(y.name, 'ko'))
   }
   return a
 }
+
+// 내 위치를 아는 상태에서 '이름순'을 고르면 이 반경(km) 안의 곳만 가나다순으로 보여 준다(사용자 결정 2026-11-08)
+export const NEAR_KM = 3
 
 // 서울 25개 구 경계(통계청 SGIS 2018, 공공누리 제1유형). export_gu_boundary(러스트)가 만든 seoul-gu.json을 읽는다.
 export type GuBoundary = Record<string, [number, number][][]>
