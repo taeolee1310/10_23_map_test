@@ -3,10 +3,10 @@ import { API_BASE } from './api'
 
 export type StoryCategory = 'unknown' | 'tips' | 'special' | 'people'
 export const CATEGORIES: { value: StoryCategory; label: string; short: string }[] = [
-  { value: 'unknown', label: '몰랐던 이야기', short: '몰랐던' },
-  { value: 'tips', label: '도움이 되는 정보', short: '정보' },
-  { value: 'special', label: '특별한 목욕탕', short: '특별한 곳' },
-  { value: 'people', label: '사람들의 사연', short: '사연' },
+  { value: 'unknown', label: '탕 속 비밀', short: '탕 속 비밀' },
+  { value: 'tips', label: '목욕 꿀팁', short: '목욕 꿀팁' },
+  { value: 'special', label: '별난 목욕탕', short: '별난 목욕탕' },
+  { value: 'people', label: '동네 수다', short: '동네 수다' },
 ]
 export const catLabel = (c: string) => CATEGORIES.find((x) => x.value === c)?.label ?? c
 

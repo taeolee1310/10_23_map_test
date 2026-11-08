@@ -258,14 +258,16 @@ export default function Editor() {
         </form>
 
         <section className="ed-preview" aria-label="미리보기">
-          <div className="ed-view" role="group" aria-label="미리보기 모양">
+          <div className="ed-view" role="group" aria-label="미리보기 모양" data-view={view}>
             <button type="button" aria-pressed={view === 'mobile'} onClick={() => pickView('mobile')}>모바일</button>
             <button type="button" aria-pressed={view === 'web'} onClick={() => pickView('web')}>웹</button>
           </div>
           {view === 'web' ? (
-            <WebPreview story={previewStory} />
+            <div className="ed-swap" key="web">
+              <WebPreview story={previewStory} />
+            </div>
           ) : (
-          <div className="mag ed-phone">
+          <div className="mag ed-phone ed-swap" key="mobile">
             {d.cover ? <img className="mag-cover mag-cover--hero" src={d.cover} alt="" /> : <div className="mag-cover mag-cover--hero mag-cover--empty" />}
             <div className="mag-scroll-in">
               <header className="mag-art-head">

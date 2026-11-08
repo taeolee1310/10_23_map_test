@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS stories (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   slug TEXT NOT NULL UNIQUE,        -- 예전 주소용. 글 주소는 id(/magazine/<id>)이고 새 글은 slug = id(글자)로 서버가 채운다. id 1만 예전 영문 주소가 있다
   title TEXT NOT NULL,
-  category TEXT NOT NULL,           -- unknown(몰랐던 이야기) · tips(도움이 되는 정보) · special(특별한 목욕탕) · people(사람들의 사연)
+  category TEXT NOT NULL,           -- unknown(탕 속 비밀) · tips(목욕 꿀팁) · special(별난 목욕탕) · people(동네 수다). 화면 이름은 stories.ts CATEGORIES
   summary TEXT NOT NULL DEFAULT '',
   cover TEXT NOT NULL DEFAULT '',   -- 대표 사진 주소(https만)
   body TEXT NOT NULL DEFAULT '',

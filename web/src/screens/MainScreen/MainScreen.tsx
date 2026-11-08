@@ -51,7 +51,7 @@ const TOUR_TEXT = [
   { title: '자세히 보는 두 가지 방법', body: "카드의 '자세히 보기'를 누르거나, 지도에서 고른 핀을 한 번 더 누르면 자세한 정보로 넘어가요." },
   { title: '가기 전 걱정 TOP 3', body: '자세한 정보 맨 위에서 수건·드라이기·세신 정보를 먼저 확인하세요. 모르는 항목은 알려 주시면 확인한 뒤 반영해요.' },
 ]
-const TOUR_TEXT_MAG = { title: '목욕 이야기 매거진', body: '몰랐던 목욕 이야기, 특별한 목욕탕, 사람들의 사연을 모았어요. 위쪽 매거진 버튼으로 언제든 읽을 수 있어요.' }
+const TOUR_TEXT_MAG = { title: '목욕 이야기 매거진', body: '탕 속 비밀, 목욕 꿀팁, 별난 목욕탕, 동네 수다를 모았어요. 위쪽 매거진 버튼으로 언제든 읽을 수 있어요.' }
 const FAV_KEY = 'onsen_fav'
 // 담아둔 곳 백업: 같은 목록을 서버 쿠키(web/api/favs.js)에도 적어 두고, 사파리가 localStorage를 지웠을 때 되살린다
 const FAV_BACKUP = '/api/favs'

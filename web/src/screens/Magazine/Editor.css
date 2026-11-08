@@ -40,10 +40,17 @@ label .ed-chips { margin-top: 6px; }
 .ed-preview { position: sticky; top: 16px; }
 .ed-phone { min-height: 0; max-height: calc(100dvh - 80px); overflow: auto; border: 6px solid var(--color-outline); border-radius: 32px; }
 /* 미리보기 모양 토글(모바일·웹) */
-.ed-view { display: inline-flex; padding: 3px; margin-bottom: 10px; border-radius: var(--radius-pill); background: var(--color-bg-surface-muted); }
-.ed-view button { min-height: 36px; padding: 0 16px; border: 0; border-radius: var(--radius-pill); background: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--color-text-secondary); cursor: pointer; transition: transform var(--dur-press) var(--ease-out), background-color 200ms ease, color 200ms ease; -webkit-tap-highlight-color: transparent; }
-.ed-view button[aria-pressed='true'] { background: var(--color-bg-surface); color: var(--color-text-primary); box-shadow: var(--shadow-card); }
+/* 고른 쪽 뒤의 흰 손잡이가 옆으로 미끄러진다(transform만, 200ms). 버튼 두 개는 폭이 같아 손잡이를 100% 옮기면 맞는다 */
+.ed-view { position: relative; display: inline-grid; grid-template-columns: 1fr 1fr; padding: 3px; margin-bottom: 10px; border-radius: var(--radius-pill); background: var(--color-bg-surface-muted); isolation: isolate; }
+.ed-view::before { content: ''; position: absolute; z-index: -1; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: var(--radius-pill); background: var(--color-bg-surface); box-shadow: var(--shadow-card); transition: transform 200ms var(--ease-out); }
+.ed-view[data-view='web']::before { transform: translateX(100%); }
+.ed-view button { min-width: 72px; min-height: 36px; padding: 0 16px; border: 0; border-radius: var(--radius-pill); background: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--color-text-secondary); cursor: pointer; transition: transform var(--dur-press) var(--ease-out), color 200ms ease; -webkit-tap-highlight-color: transparent; }
+.ed-view button[aria-pressed='true'] { color: var(--color-text-primary); }
 .ed-view button:active { transform: scale(0.97); }
+/* 미리보기를 바꿀 때 새 모양이 위쪽 가운데에서 살짝 커지며 나타난다. 이전 모양은 바로 빠진다(새 것만 보면 되니까) */
+.ed-swap { animation: ed-swap-in 240ms var(--ease-out) both; transform-origin: top center; }
+@keyframes ed-swap-in { from { opacity: 0; transform: translateY(6px) scale(0.97); } }
+@keyframes ed-swap-fade { from { opacity: 0; } }
 /* 웹 미리보기: 실제 책을 1120px 무대에 그리고 칸 너비에 맞춰 줄인다. 웹을 고르면 미리보기 칸을 넓힌다 */
 .ed-cols--web { grid-template-columns: 200px minmax(0, 1fr) minmax(0, 1.2fr); }
 .ed-web { position: relative; overflow: hidden; border: 1px solid var(--color-border-default); border-radius: var(--radius-md); background: var(--color-bg-surface); }
@@ -51,5 +58,9 @@ label .ed-chips { margin-top: 6px; }
 .ed-web-stage .mag-book-stage { height: 100%; padding: 24px 96px 56px; box-sizing: border-box; }
 .ed-web-stage .mag-book { height: 100%; min-height: 0; animation: none; }
 .ed-web-stage .mag-book .mag-half { pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { .ed-view button:active { transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .ed-view button:active { transform: none; }
+  .ed-view::before { transition: none; }
+  .ed-swap { animation-name: ed-swap-fade; animation-duration: 160ms; }
+}
 @media (max-width: 1100px) { .ed-cols { grid-template-columns: minmax(0, 1fr); } .ed-preview { position: static; } }
