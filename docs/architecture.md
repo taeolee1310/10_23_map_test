@@ -47,6 +47,8 @@
 | **담아둔 곳** | 브라우저 저장(localStorage `onsen_fav`) + 서버 쿠키 백업(`/api/favs`, 400일). 사파리가 7일 뒤 브라우저 저장을 지워도 쿠키에서 되살림. **접속 주소(IP)와 무관.** 다른 기기로는 안 옮겨짐(로그인 없음) | `MainScreen.tsx` `favs`, `web/api/favs.js` |
 | 제보(요금·수건·드라이기·세신) | 제보 창 → Worker `/api/report`가 검사(값 범위·연락처 가림·기기당 1시간 5건·주소당 하루 30건) → D1 `reports`. **화면에 바로 안 나감** | `components/PriceReport`, `worker/src/index.js` `postReport` |
 | 데이터 기준일·출처 | 화면 맨 아래. "실시간"이라고 쓰지 않음 | `MainScreen.tsx` 아래쪽 |
+| **매거진** (`/magazine`, `/magazine/<글 주소>`) | 목욕 이야기 읽을거리(지도 없음). 웹(821px 이상)은 본문을 CSS 다단으로 흘려 두 쪽씩 넘기는 책, 모바일은 세로 스크롤. 공개된 글이 있을 때만 메인 상단 '매거진' 버튼·상세의 '이 목욕탕 이야기'·안내 마지막 단계(키 v4)가 나온다 | `screens/Magazine/Magazine.tsx`, `lib/stories.ts`, `App.tsx`(주소 나누기), `web/vercel.json`(새로고침해도 열리게) |
+| **매거진 작성** (`/magazine/write`) | 운영자 전용. 어디에도 링크하지 않고 편집 토큰을 넣어야 열림(검색 제외). 제목·카테고리·주소 이름·요약·대표 사진 주소·본문·나온 목욕탕을 쓰고 임시 저장 → 공개 → 내리기. 오른쪽에 모바일 미리보기. 사진은 지금 https 주소만(파일 올리기는 아직 없음) | `screens/Magazine/Editor.tsx` → Worker `/api/editor/stories` |
 
 ## 5. 백엔드(Cloudflare) 표와 할 일
 
@@ -59,7 +61,8 @@ D1 표(`worker/schema.sql`):
 | `meta` | 지금 공개 중인 공개본 번호 등 | Worker |
 | `reports` | 사용자 제보(상태: new·reviewed·applied·rejected) | 사이트 → 운영자가 확인 |
 | `visits` | 하루 방문자 수. 사람마다 (접속 주소+브라우저+날짜) 해시 하나, 원래 주소 저장 안 함, 90일 뒤 지움. 서비스 화면에서 온 요청만 셈 | Worker `countVisit` |
-| `events` | 핵심 행동 횟수 8가지(내 주변·정렬 3종·자세히 보기·담아두기·제보 창 열기·제보 완료). 이름만 저장(어떤 목욕탕인지·위치·입력한 글은 저장 안 함), 사람은 visits와 같은 해시, 같은 사람 같은 행동은 하루 200번까지만, 90일 뒤 지움. 브라우저의 '추적 안 함'이 켜져 있으면 안 보냄 | 화면 `lib/track.ts` → Worker `/api/event` |
+| `events` | 핵심 행동 횟수 10가지(내 주변·정렬 3종·자세히 보기·담아두기·제보 창 열기·제보 완료·매거진 열기·글 끝까지 읽기). 이름만 저장(어떤 목욕탕인지·위치·입력한 글은 저장 안 함), 사람은 visits와 같은 해시, 같은 사람 같은 행동은 하루 200번까지만, 90일 뒤 지움. 브라우저의 '추적 안 함'이 켜져 있으면 안 보냄 | 화면 `lib/track.ts` → Worker `/api/event` |
+| `stories` | 매거진 글(임시 저장·공개·내림). 본문은 글자만(빈 줄=문단, `## `=소제목, `> `=인용, `![설명](https://…)`=사진), HTML·script 거절 | 작성 화면 → `/api/editor/stories`(편집 토큰 `EDITOR_TOKEN`), 공개 글은 `/api/stories` |
 | `publish_log` | 공개·되돌리기 기록 | Worker |
 
 공개 전 자동 검사: 필수 칸, 서울 밖 좌표, 성인업소 이름, 휴대폰 번호 모양, 확인 요금과 예시 요금 동시 존재, 크기 1.5MB, 곳 수 10% 넘게 감소. 공개는 한 묶음이라 중간에 실패하면 전부 취소된다.
@@ -87,13 +90,15 @@ node --env-file=.env scripts/d1_publish.mjs reports     # 새 제보 (확인·�
 
 | 무엇 | 명령 |
 |---|---|
-| Worker 전체(공개·되돌리기·검사·제보·방문자 수·행동 기록, 60개) | `node worker/test/run-local.mjs` |
+| Worker 전체(공개·되돌리기·검사·제보·방문자 수·행동 기록·매거진, 73개) | `node worker/test/run-local.mjs` |
 | 추천순·담아둔 곳 백업 | `web`에서 `npm run check` |
 | 화면 타입 검사·빌드 | `web`에서 `npm run build` |
 
 ## 9. 아직 없는 것 (알고 있는 한계)
 
 - 로그인이 없어 담아둔 곳을 다른 기기로 옮길 수 없다.
+- 매거진 사진은 https 주소로만 넣는다(파일 올리기는 Cloudflare R2를 켜야 해서 아직 없음). 공유할 때 글마다 다른 미리보기(제목·사진)는 아직 안 나온다(화면이 한 페이지 앱이라 서버에서 글별 미리보기 정보를 만들어야 함).
+- 매거진 글꼴(Noto Serif KR·EB Garamond)은 서비스의 다른 화면에는 없는 글꼴이다(시안 기준, 바꾸려면 `Magazine.css` 맨 위 두 변수).
 - 매거진, 점수·배지 같은 참여 기능은 아직 없다.
 - 비상용 `onsen.json`은 커밋할 때만 바뀐다. 공개 버튼으로 바꾼 최신 데이터와 다를 수 있다(Worker가 멈췄을 때만 쓰임).
 - 방문자 수는 같은 사람이 와이파이↔데이터를 바꾸면 2명으로 셀 수 있다(어림값).

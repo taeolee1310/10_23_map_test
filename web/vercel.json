@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/magazine", "destination": "/index.html" },
+    { "source": "/magazine/:path*", "destination": "/index.html" }
+  ]
+}

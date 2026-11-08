@@ -1,9 +1,9 @@
-// 핵심 행동 세기: 어디서 막히는지 보려고 정해진 8가지만 센다. Worker `POST /api/event`(worker/src/index.js `EVENTS`)와 이름이 같아야 한다.
+// 핵심 행동 세기: 어디서 막히는지 보려고 정해진 10가지만 센다(매거진 열기·글 끝까지 읽기 포함). Worker `POST /api/event`(worker/src/index.js `EVENTS`)와 이름이 같아야 한다.
 // 보내는 것은 행동 이름뿐이다. 어떤 목욕탕인지·내 위치·입력한 글은 보내지 않는다. 방문자는 서버가 (접속 주소+브라우저+날짜) 해시로만 구분한다.
 // 브라우저의 '추적 안 함'(Do Not Track)이 켜져 있으면 보내지 않는다. 보내기에 실패해도 화면에는 아무 영향이 없다.
 import { API_BASE } from './api'
 
-export type TrackName = 'near' | 'sort_auto' | 'sort_dist' | 'sort_name' | 'detail' | 'fav' | 'report_open' | 'report_done'
+export type TrackName = 'near' | 'sort_auto' | 'sort_dist' | 'sort_name' | 'detail' | 'fav' | 'report_open' | 'report_done' | 'magazine_open' | 'story_read'
 
 export function track(name: TrackName) {
   try {

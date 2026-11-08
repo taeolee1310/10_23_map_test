@@ -1,0 +1,37 @@
+/* 매거진 작성 화면(운영자 전용). 색은 semantic 토큰만 */
+.ed-wrap { min-height: 100dvh; background: var(--color-bg-page); color: var(--color-text-primary); font-family: 'Pretendard', -apple-system, sans-serif; padding: 20px 24px 60px; }
+.ed-wrap h1 { font-size: 22px; margin: 0; }
+.ed-login { max-width: 420px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; padding-top: 80px; }
+.ed-login form { display: flex; gap: 8px; }
+.ed-login a { color: var(--color-text-link); font-size: 14px; }
+.ed-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.ed-head > div { display: flex; gap: 8px; }
+.ed-head .mag-btn { flex: none; }
+.ed-cols { display: grid; grid-template-columns: 240px minmax(0, 1fr) 400px; gap: 20px; align-items: start; }
+.ed-list { display: flex; flex-direction: column; gap: 8px; }
+.ed-item { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--color-border-default); background: var(--color-bg-surface); text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.ed-item.on { border-color: var(--color-border-focus); box-shadow: inset 0 0 0 1px var(--color-border-focus); }
+.ed-item strong { font-size: 14px; }
+.ed-item small { font-size: 12px; color: var(--color-text-muted); }
+.ed-st { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-pill); background: var(--color-bg-surface-muted); color: var(--color-text-secondary); }
+.ed-st--published { background: var(--color-state-success-bg); color: var(--color-state-success); }
+.ed-st--hidden { background: var(--color-state-warning-bg); color: var(--color-state-warning-text); }
+.ed-form { display: flex; flex-direction: column; gap: 12px; background: var(--color-bg-surface); border: 1px solid var(--color-border-default); border-radius: var(--radius-lg); padding: 18px; }
+.ed-form label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; color: var(--color-text-secondary); }
+.ed-form input, .ed-form select, .ed-form textarea, .ed-login input { font: inherit; font-size: 15px; font-weight: 400; color: var(--color-text-primary); background: var(--color-bg-surface); border: 1px solid var(--color-border-contrast); border-radius: var(--radius-sm); padding: 10px 12px; min-height: 44px; }
+.ed-login input { flex: 1; }
+.ed-form textarea { font-family: 'Noto Serif KR', serif; line-height: 1.8; resize: vertical; }
+.ed-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ed-help { margin: -4px 0 0; font-size: 12px; color: var(--color-text-muted); }
+.ed-places { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--color-text-secondary); }
+.ed-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ed-chip, .ed-match { font: inherit; font-size: 13px; border-radius: var(--radius-pill); border: 1px solid var(--color-action-secondary); background: var(--color-bg-surface); color: var(--color-text-link); padding: 6px 12px; cursor: pointer; text-align: left; }
+.ed-match { border-radius: var(--radius-sm); border-color: var(--color-border-default); color: var(--color-text-primary); }
+.ed-actions { display: flex; gap: 8px; }
+.ed-ok, .ed-err { font-size: 14px; padding: 10px 12px; border-radius: var(--radius-sm); }
+.ed-ok { background: var(--color-state-success-bg); color: var(--color-state-success); }
+.ed-err { background: var(--color-state-error-bg); color: var(--color-text-primary); }
+.ed-err ul { margin: 6px 0 0; padding-left: 18px; }
+.ed-preview { position: sticky; top: 16px; }
+.ed-phone { min-height: 0; max-height: calc(100dvh - 80px); overflow: auto; border: 6px solid var(--color-outline); border-radius: 32px; }
+@media (max-width: 1100px) { .ed-cols { grid-template-columns: minmax(0, 1fr); } .ed-preview { position: static; } }

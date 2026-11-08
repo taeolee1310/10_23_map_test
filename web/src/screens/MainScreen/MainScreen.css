@@ -367,6 +367,10 @@
 .onsen-main .help--wide:focus-visible::after { opacity: 1; transform: translate(-50%, 0); }
 @media (prefers-reduced-motion: reduce) { .onsen-main .help--wide::after { transition: none; transform: translate(-50%, 0); } }
 .onsen-main .help--narrow { display: none; }
+.onsen-main .mag-entry { padding: 0 var(--space-3); }
+.onsen-main .story-link { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.onsen-main .story-link .btn { max-width: 100%; white-space: normal; text-align: left; min-height: 44px; }
+.onsen-main .help--narrow.mag-entry { margin-left: 6px; }
 @media (max-width: 820px) {
   .onsen-main .help--wide { display: none; }
   .onsen-main .help--narrow { display: inline-flex; margin-bottom: 10px; }

@@ -69,6 +69,25 @@ CREATE TABLE IF NOT EXISTS events (
   PRIMARY KEY (day, name, v)
 ) WITHOUT ROWID;
 
+-- 매거진 글. 운영자가 서비스의 숨은 작성 화면(/magazine/write, 편집 토큰 필요)에서 쓰고 '공개'를 눌러야 사용자에게 보인다.
+-- 본문은 글자만 저장한다(빈 줄 = 문단, '> ' = 인용, '![설명](https://주소)' = 사진). HTML은 받지 않는다.
+CREATE TABLE IF NOT EXISTS stories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  slug TEXT NOT NULL UNIQUE,        -- 주소에 쓰는 이름(/magazine/<slug>), 영문 소문자·숫자·-
+  title TEXT NOT NULL,
+  category TEXT NOT NULL,           -- unknown(몰랐던 이야기) · tips(도움이 되는 정보) · special(특별한 목욕탕) · people(사람들의 사연)
+  summary TEXT NOT NULL DEFAULT '',
+  cover TEXT NOT NULL DEFAULT '',   -- 대표 사진 주소(https만)
+  body TEXT NOT NULL DEFAULT '',
+  author TEXT NOT NULL DEFAULT '탕방 편집부',
+  place_ids TEXT NOT NULL DEFAULT '[]', -- 글에 나온 목욕탕 id 목록(JSON). 그 목욕탕 상세 화면에 '이 목욕탕 이야기'로 나온다
+  status TEXT NOT NULL DEFAULT 'draft', -- draft(임시 저장) · published(공개) · hidden(내림)
+  published_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS stories_pub ON stories (status, published_at);
+
 -- 공개·되돌리기 기록
 CREATE TABLE IF NOT EXISTS publish_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

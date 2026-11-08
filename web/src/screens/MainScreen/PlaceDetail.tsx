@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
 import { FactsDetails, FeeDetails, Notices, TopWorries, hoursText, towelText, unknownList } from './PlaceFacts'
 import { MiniMap } from '../../components/KakaoMap/KakaoMap'
+import { catLabel, go, type Story } from '../../lib/stories'
 
 // 모바일(820px 이하, MainScreen.css와 같은 기준)에서만 상세에 작은 지도를 넣는다. 데스크톱은 옆에 큰 지도가 보인다
 const MOBILE = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 820px)').matches
@@ -15,6 +16,7 @@ type Props = {
   onClose: () => void
   onLocate: () => void
   onReport: (id: string) => void
+  stories?: Story[] // 이 목욕탕이 나온 매거진 글(공개된 것만)
 }
 
 function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string) => void }) {
@@ -124,7 +126,7 @@ function ParkingBlock({ d }: { d: PlaceWithDist }) {
   )
 }
 
-export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onReport }: Props) {
+export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onReport, stories = [] }: Props) {
   // 손가락으로 오른쪽으로 밀면 '목록으로'(모바일의 뒤로 가기 제스처). 세로 스크롤과 구분하려고 가로로 충분히 길고 빠를 때만 본다.
   const backRef = useRef<HTMLButtonElement>(null)
   const boxRef = useRef<HTMLElement>(null)
@@ -292,6 +294,18 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
               )}
             </section>
           </div>
+
+          {/* 매거진에 이 목욕탕 이야기가 있으면 읽으러 가는 길(없으면 자리를 두지 않는다: 정보 칸이 아니라 읽을거리 연결이다) */}
+          {stories.length > 0 && (
+            <section className="sec story-link">
+              <h3>이 목욕탕 이야기</h3>
+              {stories.map((s) => (
+                <a key={s.id} className="btn ghost sm" href={`/magazine/${s.slug}`} onClick={(e) => (e.preventDefault(), go(`/magazine/${s.slug}`))}>
+                  {catLabel(s.category)} · {s.title}
+                </a>
+              ))}
+            </section>
+          )}
 
           {/* 3. 참고(부가) 정보: 작고 옅게 */}
           <div className="grp">

@@ -93,6 +93,8 @@ const EVENT_LABEL = {
   fav: '담아두기',
   report_open: '제보 창 열기',
   report_done: '제보 보내기 완료',
+  magazine_open: '매거진 열기',
+  story_read: '매거진 글 끝까지 읽기',
 }
 
 const readOnsen = (file) => {

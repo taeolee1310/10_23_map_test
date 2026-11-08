@@ -28,6 +28,7 @@ import PlacePreview from './PlacePreview'
 import './MainScreen.css'
 import { fetchPlaces } from '../../lib/api'
 import { track } from '../../lib/track'
+import { fetchStories, go, type Story } from '../../lib/stories'
 
 // 목록 데이터는 lib/api.ts가 받는다(데이터 API → 실패하면 정적 파일 /data/onsen.json)
 // 손가락이 주 입력인 기기에서는 드롭다운 항목을 크게(누르기 쉬운 높이)
@@ -40,6 +41,8 @@ const SORTS = [
 ]
 const PAGE = 60
 const TOUR_KEY = 'tangbang:onboarding:v3' // 안내를 한 번 봤는지(이 브라우저에만 저장). v2: 미리보기 칩·핀 두 번 누르기(2026-11-02), v3: 상세 TOP 3 단계 추가(2026-11-02)
+const TOUR_KEY_MAG = 'tangbang:onboarding:v4' // v4: 매거진 단계 추가(2026-11-08). 공개된 매거진 글이 있을 때만 이 키와 단계를 쓴다(글이 없으면 매거진 버튼도 안 보임)
+const NARROW = '(max-width: 820px)' // MainScreen.css 모바일 기준과 같다
 // 온보딩 4단계 문구
 const TOUR_TEXT = [
   { title: '내 위치 먼저 확인', body: '내 주변 목욕탕 버튼을 누르면 가까운 곳부터 볼 수 있어요. 위치는 거리 계산에만 쓰고 저장하거나 보내지 않아요.' },
@@ -48,6 +51,7 @@ const TOUR_TEXT = [
   { title: '자세히 보는 두 가지 방법', body: "카드의 '자세히 보기'를 누르거나, 지도에서 고른 핀을 한 번 더 누르면 자세한 정보로 넘어가요." },
   { title: '가기 전 걱정 TOP 3', body: '자세한 정보 맨 위에서 수건·드라이기·세신 정보를 먼저 확인하세요. 모르는 항목은 알려 주시면 확인한 뒤 반영해요.' },
 ]
+const TOUR_TEXT_MAG = { title: '목욕 이야기 매거진', body: '몰랐던 목욕 이야기, 특별한 목욕탕, 사람들의 사연을 모았어요. 위쪽 매거진 버튼으로 언제든 읽을 수 있어요.' }
 const FAV_KEY = 'onsen_fav'
 // 담아둔 곳 백업: 같은 목록을 서버 쿠키(web/api/favs.js)에도 적어 두고, 사파리가 localStorage를 지웠을 때 되살린다
 const FAV_BACKUP = '/api/favs'
@@ -380,25 +384,39 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  // 온보딩: 처음 들어왔을 때 한 번만 자동으로 열고, 제목 옆 '어떻게 사용하는 거예요?' 버튼으로 다시 볼 수 있다.
-  // 저장소를 못 쓰는 브라우저에서는 매번 띄우지 않는다.
+  // 매거진: 공개된 글이 있을 때만 상단 '매거진' 버튼·상세의 '이 목욕탕 이야기'·안내 단계를 보여 준다(못 받아도 지도는 그대로)
+  const [stories, setStories] = useState<Story[]>([])
+  const [storiesReady, setStoriesReady] = useState(false)
   useEffect(() => {
+    fetchStories()
+      .then(setStories, () => {})
+      .finally(() => setStoriesReady(true))
+  }, [])
+  const hasMag = stories.length > 0
+  const tourKey = hasMag ? TOUR_KEY_MAG : TOUR_KEY
+
+  // 온보딩: 처음 들어왔을 때 한 번만 자동으로 열고, 제목 옆 '어떻게 사용하는 거예요?' 버튼으로 다시 볼 수 있다.
+  // 매거진 글이 있는지 확인한 뒤에 정한다(글이 생기면 v4로 올라가 이미 본 사람도 한 번 더 본다). 저장소를 못 쓰는 브라우저에서는 매번 띄우지 않는다.
+  useEffect(() => {
+    if (!storiesReady) return
     try {
-      if (localStorage.getItem(TOUR_KEY) === '1') return
+      if (localStorage.getItem(tourKey) === '1') return
     } catch {
       return
     }
     const t = window.setTimeout(() => setTourOpen(true), 900)
     return () => window.clearTimeout(t)
-  }, [])
+  }, [storiesReady, tourKey])
   const closeTour = useCallback(() => {
     setTourOpen(false)
     try {
+      localStorage.setItem(tourKey, '1')
       localStorage.setItem(TOUR_KEY, '1')
     } catch {
       /* 저장하지 못해도 안내는 닫힌다 */
     }
-  }, [])
+  }, [tourKey])
+  const openMagazine = () => go('/magazine')
   // 안내에서 비출 목욕탕: 미리보기 카드 칩(요금·TOP 3)이 가장 많이 나오는 곳. 지금 고른 곳에 TOP 3가 있으면 그대로 둔다.
   const chipScore = (p: (typeof view)[number]) => worries(p.facts).length + (p.price?.adult != null ? 1 : 0) + (p.price?.child != null ? 1 : 0)
   const pickForTour = () => {
@@ -452,6 +470,17 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
         openDetail()
       },
     },
+    ...(hasMag
+      ? [
+          {
+            // 매거진 글이 있을 때만: 상단 '매거진' 버튼(모바일은 사용법 옆)을 비춘다
+            target: window.matchMedia(NARROW).matches ? '.mag-entry--narrow' : '.mag-entry--wide',
+            title: TOUR_TEXT_MAG.title,
+            body: TOUR_TEXT_MAG.body,
+            onEnter: () => closeDetail(),
+          },
+        ]
+      : []),
   ]
   // 요금 제보: 제보 창을 열고, 보낸 결과는 알림으로 알려 준다
   const [reportFor, setReportFor] = useState<{ id: string; name: string } | null>(null)
@@ -486,6 +515,11 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
                 <button type="button" className="help help--wide" data-tip="클릭하면 사용법을 알려드려요" onClick={openTour}>
                   어떻게 사용하는 거예요?<IconHelp />
                 </button>
+                {hasMag && (
+                  <button type="button" className="help mag-entry mag-entry--wide" onClick={openMagazine}>
+                    매거진
+                  </button>
+                )}
               </div>
               <p className="sub">아직 몰랐던 서울의 목욕탕을 발견하는 즐거움.</p>
             </div>
@@ -495,6 +529,11 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
           <button type="button" className="help help--narrow" onClick={openTour}>
             <IconHelp />사용법
           </button>
+          {hasMag && (
+            <button type="button" className="help help--narrow mag-entry mag-entry--narrow" onClick={openMagazine}>
+              매거진
+            </button>
+          )}
           <label className="search">
             <IconSearch />
             <span className="sr">목욕탕 검색</span>
@@ -612,7 +651,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
             onReport={reportPrice}
             emptyText={nearOnly && !nearby.length ? `내 위치 ${NEAR_KM}km 안에는 목욕탕이 없어요. 추천순이나 가까운 순으로 바꿔 보세요.` : undefined}
           />
-          <PlaceDetail place={selected} open={detailOpen} me={me} onClose={closeDetail} onLocate={() => locate()} onReport={reportPrice} />
+          <PlaceDetail place={selected} open={detailOpen} me={me} onClose={closeDetail} onLocate={() => locate()} onReport={reportPrice} stories={selected ? stories.filter((s) => s.place_ids.includes(selected.id)) : []} />
         </section>
 
         <aside id="side">

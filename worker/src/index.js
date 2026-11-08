@@ -35,7 +35,7 @@ function corsHeaders(req, env) {
     return {
       'Access-Control-Allow-Origin': origin,
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, If-None-Match',
+      'Access-Control-Allow-Headers': 'Content-Type, If-None-Match, Authorization',
       'Access-Control-Expose-Headers': 'ETag',
       'Access-Control-Max-Age': '86400',
       Vary: 'Origin',
@@ -49,8 +49,8 @@ async function sha(v) {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 16)
 }
 
-function authorized(req, env) {
-  const want = env.ADMIN_TOKEN
+function authorized(req, env, key = 'ADMIN_TOKEN') {
+  const want = env[key]
   const got = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
   if (!want || got.length !== want.length) return false
   let diff = 0
@@ -82,7 +82,7 @@ async function visitor(req, env, cors) {
 }
 
 // 핵심 행동 목록: 이 이름만 받는다(화면 lib/track.ts와 같게)
-const EVENTS = ['near', 'sort_auto', 'sort_dist', 'sort_name', 'detail', 'fav', 'report_open', 'report_done']
+const EVENTS = ['near', 'sort_auto', 'sort_dist', 'sort_name', 'detail', 'fav', 'report_open', 'report_done', 'magazine_open', 'story_read']
 
 async function postEvent(req, env, cors) {
   const who = await visitor(req, env, cors)
@@ -203,6 +203,88 @@ async function postReport(req, env, cors) {
     .bind(now(), placeId, placeName, adult, towel, scrub, source, memo, towelInfo, hairdryer, seshinPay, flags.join(', '), who, ipHash)
     .run()
   return json({ ok: true }, 200, cors)
+}
+
+// ───────── 매거진 ─────────
+// 공개: GET /api/stories(목록, 본문 없음) · GET /api/stories/<slug>(공개된 글 하나)
+// 작성: /api/editor/*  (Authorization: Bearer EDITOR_TOKEN). 편집 토큰은 글만 다룰 수 있고 목욕탕 데이터 공개·되돌리기(ADMIN_TOKEN)는 못 한다.
+const STORY_CATS = ['unknown', 'tips', 'special', 'people']
+const STORY_STATUS = ['draft', 'published', 'hidden']
+const MAX_BODY = 30000
+const httpsUrl = (v) => {
+  const s = text(v, 500)
+  if (!s) return ''
+  try {
+    const u = new URL(s)
+    return u.protocol === 'https:' ? u.href : null
+  } catch {
+    return null
+  }
+}
+const storyRow = (r) => (r ? { ...r, place_ids: JSON.parse(r.place_ids || '[]') } : r)
+const LIST_COLS = 'id, slug, title, category, summary, cover, author, place_ids, status, published_at, updated_at'
+
+async function listStories(env, cors) {
+  const r = await env.DB.prepare(`SELECT ${LIST_COLS} FROM stories WHERE status = 'published' ORDER BY published_at DESC LIMIT 100`).all()
+  return json({ ok: true, stories: r.results.map(storyRow) }, 200, { ...cors, 'Cache-Control': 'public, max-age=60' })
+}
+
+async function getStory(env, cors, slug) {
+  const r = await env.DB.prepare(`SELECT ${LIST_COLS}, body FROM stories WHERE slug = ? AND status = 'published'`).bind(slug).first()
+  if (!r) return json({ ok: false, error: 'not-found' }, 404, cors)
+  return json({ ok: true, story: storyRow(r) }, 200, { ...cors, 'Cache-Control': 'public, max-age=60' })
+}
+
+// 작성 화면: 모든 상태의 글(본문 포함)
+async function editorList(env, cors) {
+  const r = await env.DB.prepare(`SELECT ${LIST_COLS}, body FROM stories WHERE status != 'deleted' ORDER BY updated_at DESC LIMIT 200`).all()
+  return json({ ok: true, stories: r.results.map(storyRow) }, 200, cors)
+}
+
+// 새로 쓰기(id 없음) 또는 고치기(id 있음). 상태는 status로 함께 바꾼다(draft·published·hidden)
+async function editorSave(req, env, cors) {
+  let b
+  try {
+    b = await req.json()
+  } catch {
+    return json({ ok: false, error: 'body' }, 400, cors)
+  }
+  const problems = []
+  const slug = text(b.slug, 60).toLowerCase()
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length < 3) problems.push('주소 이름은 영문 소문자·숫자·-로 3자 이상')
+  const title = text(b.title, 80)
+  if (!title) problems.push('제목이 비었어요')
+  const category = STORY_CATS.includes(b.category) ? b.category : null
+  if (!category) problems.push('카테고리를 골라 주세요')
+  const status = STORY_STATUS.includes(b.status) ? b.status : 'draft'
+  const summary = text(b.summary, 200)
+  const author = text(b.author, 40) || '탕방 편집부'
+  const cover = httpsUrl(b.cover)
+  if (cover === null) problems.push('대표 사진 주소는 https://로 시작해야 해요')
+  const body = String(b.body ?? '').replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, '').slice(0, MAX_BODY)
+  if (status === 'published' && body.trim().length < 20) problems.push('공개하려면 본문을 20자 이상 써 주세요')
+  if (/<\s*(script|iframe|style)/i.test(body)) problems.push('본문에 HTML 태그는 쓸 수 없어요')
+  for (const m of body.matchAll(/!\[[^\]]*\]\(([^)]*)\)/g)) if (httpsUrl(m[1]) === null) problems.push(`사진 주소는 https://만 돼요: ${m[1].slice(0, 40)}`)
+  const ids = Array.isArray(b.place_ids) ? [...new Set(b.place_ids.map((x) => text(x, 40)).filter(Boolean))].slice(0, 20) : []
+  if (problems.length) return json({ ok: false, error: 'validation', problems }, 422, cors)
+
+  const t = now()
+  const id = Number(b.id) || null
+  const dup = await env.DB.prepare('SELECT id FROM stories WHERE slug = ?').bind(slug).first()
+  if (dup && dup.id !== id) return json({ ok: false, error: 'validation', problems: ['같은 주소 이름의 글이 이미 있어요'] }, 422, cors)
+  if (id) {
+    const cur = await env.DB.prepare('SELECT published_at FROM stories WHERE id = ?').bind(id).first()
+    if (!cur) return json({ ok: false, error: 'not-found' }, 404, cors)
+    const pub = status === 'published' ? cur.published_at || t : cur.published_at
+    await env.DB.prepare('UPDATE stories SET slug=?1, title=?2, category=?3, summary=?4, cover=?5, body=?6, author=?7, place_ids=?8, status=?9, published_at=?10, updated_at=?11 WHERE id=?12')
+      .bind(slug, title, category, summary, cover, body, author, JSON.stringify(ids), status, pub, t, id)
+      .run()
+    return json({ ok: true, id, status }, 200, cors)
+  }
+  const r = await env.DB.prepare('INSERT INTO stories (slug, title, category, summary, cover, body, author, place_ids, status, published_at, created_at, updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?11) RETURNING id')
+    .bind(slug, title, category, summary, cover, body, author, JSON.stringify(ids), status, status === 'published' ? t : null, t)
+    .run()
+  return json({ ok: true, id: r.results[0].id, status }, 200, cors)
 }
 
 // ───────── 관리용 ─────────
@@ -426,6 +508,16 @@ export default {
         if (path === '/api/places' && req.method === 'GET') return await getPlaces(req, env, ctx, cors)
         if (path === '/api/report' && req.method === 'POST') return await postReport(req, env, cors)
         if (path === '/api/event' && req.method === 'POST') return await postEvent(req, env, cors)
+        if (path === '/api/stories' && req.method === 'GET') return await listStories(env, cors)
+        const sm = /^\/api\/stories\/([a-z0-9-]{1,60})$/.exec(path)
+        if (sm && req.method === 'GET') return await getStory(env, cors, sm[1])
+        if (path.startsWith('/api/editor/')) {
+          if (!env.EDITOR_TOKEN) return json({ ok: false, error: 'not-ready' }, 503, cors)
+          if (!authorized(req, env, 'EDITOR_TOKEN')) return json({ ok: false, error: 'auth' }, 401, cors)
+          if (path === '/api/editor/stories' && req.method === 'GET') return await editorList(env, cors)
+          if (path === '/api/editor/stories' && req.method === 'POST') return await editorSave(req, env, cors)
+          return json({ ok: false, error: 'not-found' }, 404, cors)
+        }
         if (path === '/api/health') return json({ ok: true }, 200, cors)
         return json({ ok: false, error: 'not-found' }, 404, cors)
       }
