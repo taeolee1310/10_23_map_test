@@ -261,7 +261,9 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
         setNote(
           err.code === 1
             ? '위치 권한이 꺼져 있어요. 괜찮아요, 검색으로 목욕탕을 찾을 수 있어요.'
-            : '지금은 위치를 가져오지 못했어요. 검색으로 찾아 보세요.',
+            : err.code === 2
+              ? '이 기기에서 위치를 구하지 못했어요. 기기의 위치 서비스를 켜 보시거나, 지역을 고르거나 검색으로 찾아 보세요.'
+              : '지금은 위치를 가져오지 못했어요. 지역을 고르거나 검색으로 찾아 보세요.',
         ),
       { timeout: 10000, maximumAge: 60000 },
     )
