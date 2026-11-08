@@ -27,6 +27,7 @@ import PlaceList from './PlaceList'
 import PlacePreview from './PlacePreview'
 import './MainScreen.css'
 import { fetchPlaces } from '../../lib/api'
+import { track } from '../../lib/track'
 
 // 목록 데이터는 lib/api.ts가 받는다(데이터 API → 실패하면 정적 파일 /data/onsen.json)
 // 손가락이 주 입력인 기기에서는 드롭다운 항목을 크게(누르기 쉬운 높이)
@@ -48,6 +49,13 @@ const TOUR_TEXT = [
   { title: '가기 전 걱정 TOP 3', body: '자세한 정보 맨 위에서 수건·드라이기·세신 정보를 먼저 확인하세요. 모르는 항목은 알려 주시면 확인한 뒤 반영해요.' },
 ]
 const FAV_KEY = 'onsen_fav'
+// 담아둔 곳 백업: 같은 목록을 서버 쿠키(web/api/favs.js)에도 적어 두고, 사파리가 localStorage를 지웠을 때 되살린다
+const FAV_BACKUP = '/api/favs'
+const saveFavBackup = (ids: string[]) => {
+  fetch(FAV_BACKUP, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }), keepalive: true }).catch(() => {
+    /* 백업 실패는 화면에 알리지 않는다(브라우저 저장은 이미 됨) */
+  })
+}
 
 type Loaded = { baseDate: string; places: Place[] }
 
@@ -132,7 +140,8 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
   const queryTimer = useRef<number | undefined>(undefined)
   const toastTimer = useRef<number | undefined>(undefined)
 
-  // 담아두기: 브라우저에만 저장. 막힌 환경이면 이번 방문 동안만
+  // 담아두기: 브라우저(localStorage)에 저장하고 서버 쿠키에 백업한다. 접속 주소(IP)와는 상관없다.
+  // 브라우저 저장이 비어 있으면(처음 왔거나 사파리가 7일 뒤 지움) 백업에서 되살린다. 막힌 환경이면 이번 방문 동안만
   const [favs, setFavs] = useState<Set<string>>(() => {
     try {
       return new Set<string>(JSON.parse(localStorage.getItem(FAV_KEY) || '[]'))
@@ -140,6 +149,29 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
       return new Set<string>()
     }
   })
+  useEffect(() => {
+    let stored: string | null = null
+    try {
+      stored = localStorage.getItem(FAV_KEY)
+    } catch {
+      return
+    }
+    if (stored !== null) return
+    fetch(FAV_BACKUP)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { ids?: string[] } | null) => {
+        const ids = (j?.ids ?? []).filter((id) => places.some((p) => p.id === id)) // 지금 목록에 있는 곳만
+        try {
+          localStorage.setItem(FAV_KEY, JSON.stringify(ids)) // 빈 목록도 적어 두어 다음에는 묻지 않는다
+        } catch {
+          /* 저장소가 막힌 환경 */
+        }
+        if (ids.length) setFavs((prev) => new Set([...prev, ...ids]))
+      })
+      .catch(() => {
+        /* 백업을 못 읽으면 빈 상태로 둔다 */
+      })
+  }, [places])
   const toggleFav = useCallback((id: string) => {
     setFavs((prev) => {
       const next = new Set(prev)
@@ -150,8 +182,10 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
       } catch {
         /* 저장소가 막힌 환경 */
       }
+      saveFavBackup([...next])
       return next
     })
+    if (!favsRef.current.has(id)) track('fav') // 담은 것만 센다(뺀 것은 세지 않음). 상태 갱신 함수 밖에서 불러 두 번 세지 않는다
   }, [])
 
   // 계산 (화면의 숫자와 지도·목록은 모두 아래 같은 표에서 나온다)
@@ -276,7 +310,8 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
     const b = await guBoundary.current
     return b ? guAt(p.lat, p.lng, b) : ''
   }
-  const goNear = () =>
+  const goNear = () => {
+    track('near') // 누른 것을 센다(위치를 못 구해도 누른 사람 수는 남는다)
     locate((p) => {
       setSort('dist')
       setInView(false)
@@ -291,6 +326,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
       updateFilters({ favOnly: false })
       requestFit(near, [p]) // 위 updateFilters의 맞춤보다 나중에 불러서 이쪽이 이긴다
     })
+  }
 
   const reset = () => {
     setNearGu('')
@@ -319,6 +355,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
   const detailPushed = useRef(false)
   const openDetail = useCallback(() => {
     setDetailOpen(true)
+    if (!tourOpen) track('detail') // 안내(온보딩)가 열어 주는 것은 세지 않는다
     if (detailPushed.current) return
     try {
       history.pushState({ tbDetail: true }, '')
@@ -326,7 +363,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
     } catch {
       /* 기록을 쓸 수 없는 환경: 상세만 열고 뒤로가기는 쓰지 않는다 */
     }
-  }, [])
+  }, [tourOpen])
   const closeDetail = useCallback(() => {
     if (!detailPushed.current) {
       setDetailOpen(false)
@@ -420,6 +457,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
   const [reportFor, setReportFor] = useState<{ id: string; name: string } | null>(null)
   const reportPrice = (id: string) => {
     const p = places.find((d) => d.id === id)
+    track('report_open')
     setReportFor({ id, name: p?.name ?? id })
   }
   const guText = filters.gu.length > 1 ? `${filters.gu[0]} 외 ${filters.gu.length - 1}개 구` : filters.gu[0] ?? ''
@@ -528,6 +566,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
               value={sort}
               onChange={(v) => {
                 setSort(v)
+                if (v === 'auto' || v === 'dist' || v === 'name') track(`sort_${v}`)
                 if (v === 'dist' && !me) locate()
                 if (v === 'name' && me) {
                   // 이름순은 내 위치 반경 안만 보여 주므로 목록을 처음부터, 지도는 그 곳들과 내 위치가 보이게 맞춘다
@@ -546,6 +585,10 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
               textColor="var(--secondary)"
             />
           </div>
+          {/* 추천 기준을 숨기지 않는다(계산은 lib/onsen.ts infoScore·recommendScore) */}
+          {sort === 'auto' && (
+            <p className="sort-hint">{me ? '추천순: 요금·수건·드라이기 같은 정보가 확인된 곳을 먼저, 가까울수록 위에' : '추천순: 요금·수건·드라이기 같은 정보가 확인된 곳을 먼저'}</p>
+          )}
           <PlaceList
             list={view}
             total={nearby.length}
@@ -567,6 +610,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
               reset()
             }}
             onReport={reportPrice}
+            emptyText={nearOnly && !nearby.length ? `내 위치 ${NEAR_KM}km 안에는 목욕탕이 없어요. 추천순이나 가까운 순으로 바꿔 보세요.` : undefined}
           />
           <PlaceDetail place={selected} open={detailOpen} me={me} onClose={closeDetail} onLocate={() => locate()} onReport={reportPrice} />
         </section>

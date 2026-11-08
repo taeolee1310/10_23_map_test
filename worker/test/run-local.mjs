@@ -59,13 +59,15 @@ const store = new Map()
 globalThis.caches = { default: { match: async (k) => (store.has(k.url) ? new Response(store.get(k.url)) : undefined), put: async (k, r) => store.set(k.url, await r.text()) } }
 
 const env = { DB, ADMIN_TOKEN: 'local-test-token-0123456789', REPORT_SALT: 'local-test-salt', ALLOWED_ORIGINS: 'https://tangbang.vercel.app,http://localhost:5173' }
-const ctx = { waitUntil: (p) => p }
+const pending = [] // 응답 뒤에 도는 일(캐시 넣기·방문 세기). 시험에서는 모아 두었다가 기다린다
+const ctx = { waitUntil: (p) => pending.push(p) }
+const settle = async () => Promise.all(pending.splice(0))
 const BASE = 'https://tangbang-api.example.workers.dev'
-const call = async (method, p, { body, admin, headers = {} } = {}) => {
+const call = async (method, p, { body, raw, admin, headers = {} } = {}) => {
   const req = new Request(BASE + p, {
     method,
     headers: { ...(admin ? { Authorization: `Bearer ${env.ADMIN_TOKEN}` } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}), ...headers },
-    body: body ? JSON.stringify(body) : undefined,
+    body: raw ?? (body ? JSON.stringify(body) : undefined),
   })
   const t = performance.now()
   const res = await worker.fetch(req, env, ctx)
@@ -230,7 +232,61 @@ ok('관리용 제보 목록', r.j.reports.length === 5, `${r.j.reports.length}�
 r = await call('POST', `/admin/reports/${r.j.reports[0].id}`, { admin: true, body: { status: 'reviewed', note: '시험' } })
 ok('제보 상태 바꾸기', r.j.ok)
 
+// 9. 방문자 수(DAU)
+await settle()
+sqlite.exec('DELETE FROM visits')
+const site = { Origin: 'https://tangbang.vercel.app', 'User-Agent': 'Mozilla/5.0 test', 'CF-Connecting-IP': '5.6.7.8' }
+for (let i = 0; i < 3; i++) await call('GET', '/api/places', { headers: site })
+await call('GET', '/api/places', { headers: { ...site, 'CF-Connecting-IP': '9.9.9.9' } })
+await call('GET', '/api/places', { headers: { ...site, Origin: 'http://localhost:5173' } }) // 개발 화면은 세지 않음
+await call('GET', '/api/places', { headers: { 'User-Agent': 'curl', 'CF-Connecting-IP': '1.1.1.1' } }) // 화면 밖 호출은 세지 않음
+await call('GET', '/api/places', { headers: { ...site, Origin: 'https://evil.example.com' } }) // 허용 안 한 주소도 세지 않음
+await settle()
+const vrows = sqlite.prepare('SELECT v, n FROM visits').all()
+ok('같은 사람은 하루 1명, 다른 주소는 따로 셈(서비스 화면만)', vrows.length === 2 && vrows.some((x) => x.n === 3), `${vrows.length}명, 횟수 ${vrows.map((x) => x.n).join('·')}`)
+ok('방문 기록에 접속 주소 원래 값이 없음', vrows.every((x) => !x.v.includes('5.6.7.8') && x.v.length === 16))
+await call('GET', '/api/places', { headers: { ...site, 'If-None-Match': `"s${sqlite.prepare("SELECT v FROM meta WHERE k = 'active_snapshot'").get().v}"` } }) // 304로 끝나도 방문으로 셈
+await settle()
+sqlite.exec("INSERT INTO visits (day, v, n) VALUES ('2000-01-01', 'old', 1)")
+r = await call('GET', '/admin/stats?days=7', { admin: true })
+const todayRow = r.j.days[r.j.days.length - 1]
+ok('날짜별 방문자 수(오늘 2명, 7일치, 비는 날은 0)', r.j.days.length === 7 && todayRow.visitors === 2 && todayRow.loads === 5 && r.j.days[0].visitors === 0, `${todayRow.day} ${todayRow.visitors}명 ${todayRow.loads}회 제보 ${todayRow.reports}건`)
+ok('오늘 제보 수도 같이 셈', todayRow.reports === 5)
+ok('90일 넘은 방문 기록은 지움', !sqlite.prepare("SELECT 1 FROM visits WHERE day = '2000-01-01'").get())
+const failingVisitDb = { ...DB, prepare: (sql) => (/INSERT INTO visits/.test(sql) ? { bind: () => ({ run: async () => { throw new Error('write fail') } }) } : DB.prepare(sql)) }
+const res9 = await worker.fetch(new Request(BASE + '/api/places', { headers: site }), { ...env, DB: failingVisitDb }, ctx)
+await settle()
+ok('방문 세기가 실패해도 목록은 그대로 받음', res9.status === 200)
+
+// 10. 핵심 행동 세기
+sqlite.exec('DELETE FROM events')
+const ev = (name, headers = site) => call('POST', '/api/event', { body: undefined, headers: { 'Content-Type': 'text/plain', ...headers }, raw: JSON.stringify({ name }) })
+r = await ev('near')
+ok('행동 기록은 204로 끝남(CORS 헤더 포함)', r.res.status === 204 && r.res.headers.get('Access-Control-Allow-Origin') === 'https://tangbang.vercel.app')
+await ev('near')
+await ev('detail')
+await ev('near', { ...site, 'CF-Connecting-IP': '9.9.9.9' })
+await settle()
+const er = sqlite.prepare('SELECT name, count(*) AS users, sum(n) AS total FROM events GROUP BY name ORDER BY name').all()
+ok('행동 횟수와 사람 수를 따로 셈', er.find((x) => x.name === 'near').users === 2 && er.find((x) => x.name === 'near').total === 3 && er.find((x) => x.name === 'detail').total === 1, JSON.stringify(er.map((x) => [x.name, x.users, x.total])))
+r = await ev('hack_me')
+ok('정해진 이름이 아니면 400', r.res.status === 400)
+const evRows = sqlite.prepare('SELECT count(*) AS c FROM events').get().c
+await ev('near', { ...site, Origin: 'http://localhost:5173' })
+await ev('near', { ...site, Origin: 'https://evil.example.com' })
+await ev('near', { 'User-Agent': 'curl' })
+await settle()
+ok('개발 화면·허용 안 한 주소·화면 밖 호출은 세지 않음', sqlite.prepare('SELECT count(*) AS c FROM events').get().c === evRows)
+for (let i = 0; i < 210; i++) await ev('fav')
+await settle()
+ok('한 사람이 같은 행동을 하루 200번까지만 셈', sqlite.prepare("SELECT n FROM events WHERE name = 'fav'").get().n === 200)
+sqlite.exec("INSERT INTO events (day, name, v, n) VALUES ('2000-01-01', 'near', 'old', 1)")
+r = await call('GET', '/admin/stats?days=7', { admin: true })
+ok('통계에 행동별 사람 수·횟수(안 한 행동은 0)', r.j.events.find((x) => x.name === 'near').users === 2 && r.j.events.find((x) => x.name === 'report_done').total === 0 && r.j.events.length === 8)
+ok('90일 넘은 행동 기록은 지움', !sqlite.prepare("SELECT 1 FROM events WHERE day = '2000-01-01'").get())
+
 r = await call('GET', '/admin/status', { admin: true })
+ok('상태에 오늘·어제 방문자 수', r.j.visitors.today === 2 && r.j.visitors.yesterday === 0, `오늘 ${r.j.visitors.today}명`)
 ok('상태 조회', r.j.active === Number(sqlite.prepare("SELECT v FROM meta WHERE k = 'active_snapshot'").get().v) && r.j.draft.count === data.places.length, `공개 #${r.j.active}, 스냅샷 ${r.j.snapshots.length}개`)
 
 console.log(`\n모두 통과: ${pass}개`)

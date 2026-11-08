@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import './PriceReport.css'
 import { REPORT_URL } from '../../lib/api'
+import { track } from '../../lib/track'
 
 export const REPORT_SOURCES = ['현장 가격표', '직접 냈어요', '공식 홈페이지·네이버', '기타'] as const
 
@@ -134,6 +135,7 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
       })
       const j = await r.json().catch(() => ({}))
       if (r.ok && j.ok) {
+        track('report_done')
         onMessage('제보 고마워요. 확인한 뒤에 반영할게요')
         onClose()
       } else if (j.error === 'not-ready' || r.status === 404 || !('ok' in j)) {

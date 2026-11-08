@@ -1,0 +1,101 @@
+# 탕방 서비스 구조 (처음 온 사람용)
+
+2026-11-08 기준. 이 문서 하나로 "데이터가 어디서 와서 어디로 가는지, 어느 파일이 무슨 일을 하는지"를 알 수 있게 쓴다. 세부 규칙은 저장소 `CLAUDE.md`, 사용법은 각 폴더 README에 있다.
+
+## 1. 한 장 그림
+
+```
+[내 PC: 데이터 만들기]                          [Cloudflare: 백엔드]                 [Vercel: 프런트엔드]
+ 공공데이터·카카오·네이버                        Worker  tangbang-api                 사이트 tangbang.vercel.app
+   │  (러스트 src/bin/, ego 브라우저)              ├ GET  /api/places  ◀──────────────── 화면이 목록을 받음
+   ▼                                              ├ POST /api/report  ◀──────────────── 제보 창
+ data/raw → collected → curated → merged          └ /admin/*  (관리 토큰)                  │
+   │                                                    ▲   │                              ├ 카카오 지도 SDK(지도 그림·마커)
+   ▼                                                    │   ▼                              ├ 브라우저 위치(내 주변, 저장 안 함)
+ web/public/data/onsen.json ──(초안 올리기·공개)──▶ D1 DB  tangbang                       └ /api/favs (담아둔 곳 백업 쿠키)
+   │       ▲                                         places(초안) snapshots(공개본)
+   │       └ 클로드용 수집 프로그램(별도 저장소)       reports(제보) visits(방문자 수)
+   └ 같은 파일이 사이트에도 들어감 → Worker가 안 될 때 대신 읽는 비상용
+```
+
+## 2. 세 갈래가 따로 움직인다
+
+| 무엇을 바꾸나 | 어떻게 사용자에게 나가나 | 담당 |
+|---|---|---|
+| **화면 코드** (`web/src`) | GitHub `main`에 푸시 → Vercel이 자동 빌드·배포(1~2분) | 프런트엔드 |
+| **목욕탕 데이터** (요금·좌표·정보) | 초안 올리기 → 차이 보기 → **공개** 버튼 → 사용자 화면은 1분 안에 새 데이터 | 백엔드(D1) |
+| **Worker 코드** (`worker/src`) | `worker` 폴더에서 `npx wrangler deploy` (푸시로는 안 올라감) | 백엔드 |
+
+데이터만 바뀌면 푸시가 필요 없다. 화면 코드만 바뀌면 공개 버튼이 필요 없다.
+
+## 3. 사용자가 사이트를 열면
+
+1. Vercel이 화면 파일을 준다.
+2. 화면(`web/src/lib/api.ts` `fetchPlaces`)이 Worker `/api/places`에 목록을 달라고 한다. 6초 안에 못 받으면 사이트 안의 `onsen.json`(비상용, 마지막으로 커밋한 데이터)을 읽는다.
+3. Worker(`worker/src/index.js` `getPlaces`)는 D1의 **공개본 한 벌**을 준다. 매번 DB를 뒤지지 않고 Cloudflare 캐시에 둔 것을 준다(공개하면 번호가 바뀌어 새 것을 읽음). 같은 요청에서 방문자 수를 센다(아래 5).
+4. 화면이 목록·지도·숫자를 **한 목록**에서 만든다(`MainScreen.tsx`: `filtered` → `nearby` → `inside` → `view`). 지도 그림은 카카오 SDK가 그리고, 좌표는 우리 데이터다.
+
+## 4. 화면 기능과 위치
+
+| 기능 | 어떻게 동작하나 | 코드 |
+|---|---|---|
+| 필터(지역·확인된 곳·담아둔 곳·검색) | 브라우저 안에서 거름. 기본은 '확인된 곳'만 | `lib/onsen.ts` `filterPlaces` |
+| **추천순** | 정보 점수(확인 요금 3, 최근 1년 확인 1, 수건·드라이기·세신·사진·영업시간·가기 전 알아 둘 것 각 1 = 최대 10점). 내 위치를 알면 `점수 ÷ (1 + 거리km/2)`. 같으면 가까운 순 → 이름순. 인기·광고·별점은 안 씀 | `lib/onsen.ts` `infoScore` `recommendScore` `sortPlaces` |
+| 가까운 순 | 내 위치와 직선거리 | 같은 파일 `sortPlaces` |
+| 이름순 | 내 위치를 알면 **반경 3km 안만** 가나다순(`NEAR_KM`), 모르면 구 → 이름 | `lib/onsen.ts`, `MainScreen.tsx` `nearOnly` |
+| 내 주변 목욕탕 | 브라우저 위치 기능(허락 필요, HTTPS에서만). 위치는 서버로 안 보냄 | `MainScreen.tsx` `locate` `goNear` |
+| **담아둔 곳** | 브라우저 저장(localStorage `onsen_fav`) + 서버 쿠키 백업(`/api/favs`, 400일). 사파리가 7일 뒤 브라우저 저장을 지워도 쿠키에서 되살림. **접속 주소(IP)와 무관.** 다른 기기로는 안 옮겨짐(로그인 없음) | `MainScreen.tsx` `favs`, `web/api/favs.js` |
+| 제보(요금·수건·드라이기·세신) | 제보 창 → Worker `/api/report`가 검사(값 범위·연락처 가림·기기당 1시간 5건·주소당 하루 30건) → D1 `reports`. **화면에 바로 안 나감** | `components/PriceReport`, `worker/src/index.js` `postReport` |
+| 데이터 기준일·출처 | 화면 맨 아래. "실시간"이라고 쓰지 않음 | `MainScreen.tsx` 아래쪽 |
+
+## 5. 백엔드(Cloudflare) 표와 할 일
+
+D1 표(`worker/schema.sql`):
+
+| 표 | 내용 | 누가 쓰나 |
+|---|---|---|
+| `places` | 초안(올렸지만 아직 공개 안 한 데이터) | 관리 도구 `ingest` |
+| `snapshots` | 공개본 전체 JSON(최근 30개, 되돌리기용) | `publish` / `rollback` |
+| `meta` | 지금 공개 중인 공개본 번호 등 | Worker |
+| `reports` | 사용자 제보(상태: new·reviewed·applied·rejected) | 사이트 → 운영자가 확인 |
+| `visits` | 하루 방문자 수. 사람마다 (접속 주소+브라우저+날짜) 해시 하나, 원래 주소 저장 안 함, 90일 뒤 지움. 서비스 화면에서 온 요청만 셈 | Worker `countVisit` |
+| `events` | 핵심 행동 횟수 8가지(내 주변·정렬 3종·자세히 보기·담아두기·제보 창 열기·제보 완료). 이름만 저장(어떤 목욕탕인지·위치·입력한 글은 저장 안 함), 사람은 visits와 같은 해시, 같은 사람 같은 행동은 하루 200번까지만, 90일 뒤 지움. 브라우저의 '추적 안 함'이 켜져 있으면 안 보냄 | 화면 `lib/track.ts` → Worker `/api/event` |
+| `publish_log` | 공개·되돌리기 기록 | Worker |
+
+공개 전 자동 검사: 필수 칸, 서울 밖 좌표, 성인업소 이름, 휴대폰 번호 모양, 확인 요금과 예시 요금 동시 존재, 크기 1.5MB, 곳 수 10% 넘게 감소. 공개는 한 묶음이라 중간에 실패하면 전부 취소된다.
+
+무료 한도(Workers 하루 10만 요청, D1 하루 읽기 500만·쓰기 10만 행)는 방문자 300명이면 1~3% 수준이다. 넘으면 한국 시간 오전 9시에 풀리고, 그동안 화면은 비상용 파일로 뜬다.
+
+## 6. 운영자가 쓰는 명령 (프로젝트 폴더에서)
+
+```
+node --env-file=.env scripts/d1_publish.mjs status      # 공개본·초안·새 제보·오늘/어제 방문자
+node --env-file=.env scripts/d1_publish.mjs stats 14    # 날짜별 방문자 수(DAU)·제보 수 + 핵심 행동별 사람 수·횟수
+node --env-file=.env scripts/d1_publish.mjs ingest      # 초안 올리기
+node --env-file=.env scripts/d1_publish.mjs diff        # 무엇이 바뀌나
+node --env-file=.env scripts/d1_publish.mjs publish     # 공개
+node --env-file=.env scripts/d1_publish.mjs rollback    # 직전 공개본으로
+node --env-file=.env scripts/d1_publish.mjs reports     # 새 제보 (확인·반영 절차는 /price-report)
+```
+클로드용 수집 프로그램의 '서비스 공개' 카드가 같은 명령을 버튼으로 부른다.
+
+## 7. 데이터가 만들어지는 길 (내 PC)
+
+`data/README.md`에 자세히 있다. 요약: 공공데이터(인허가·온천) + 카카오 좌표 → 네이버 플레이스·후기·블로그를 ego 브라우저로 저장 → 러스트 `judge_facts`가 요금·수건·드라이기·세신·가기 전 알아 둘 것을 판정 → 사람이 확인한 값(`data/curated/`)이 항상 이김 → `onsen_merge` → `export_web_data` → `web/public/data/onsen.json` → 초안 올리기·공개. 이 흐름을 버튼 하나로 돌리는 것이 클로드용 수집 프로그램(별도 저장소 `tangbang-collector`)이다.
+
+## 8. 점검·시험
+
+| 무엇 | 명령 |
+|---|---|
+| Worker 전체(공개·되돌리기·검사·제보·방문자 수·행동 기록, 60개) | `node worker/test/run-local.mjs` |
+| 추천순·담아둔 곳 백업 | `web`에서 `npm run check` |
+| 화면 타입 검사·빌드 | `web`에서 `npm run build` |
+
+## 9. 아직 없는 것 (알고 있는 한계)
+
+- 로그인이 없어 담아둔 곳을 다른 기기로 옮길 수 없다.
+- 매거진, 점수·배지 같은 참여 기능은 아직 없다.
+- 비상용 `onsen.json`은 커밋할 때만 바뀐다. 공개 버튼으로 바꾼 최신 데이터와 다를 수 있다(Worker가 멈췄을 때만 쓰임).
+- 방문자 수는 같은 사람이 와이파이↔데이터를 바꾸면 2명으로 셀 수 있다(어림값).
+- 어느 화면에 얼마나 머물렀는지(체류 시간)와 방문 경로는 안 센다. 페이지 조회·접속 국가·기기·로딩 속도는 **Cloudflare Web Analytics**(무료, 쿠키 없음)를 대시보드에서 켜고 `web/index.html`에 안내받은 스크립트 한 줄을 넣으면 볼 수 있다(아직 안 켬).
+- `/api/event`는 서비스 화면 주소(Origin)만 세지만, 헤더를 흉내 내는 호출까지 막지는 못한다. 쓰기 한도(하루 10만)를 일부러 태우는 반복 호출은 아직 막는 장치가 없다.

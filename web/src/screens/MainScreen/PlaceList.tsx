@@ -17,15 +17,16 @@ type Props = {
   onMore: () => void
   onReset: () => void
   onReport: (id: string) => void
+  emptyText?: string // 비었을 때 이유를 따로 알려 줄 문장(예: 내 위치 3km 안에 없음)
 }
 
-export default function PlaceList({ list, total, shown, selId, hotId, favs, animKey, onSelect, onDetail, onFav, onHover, onMore, onReset, onReport }: Props) {
+export default function PlaceList({ list, total, shown, selId, hotId, favs, animKey, onSelect, onDetail, onFav, onHover, onMore, onReset, onReport, emptyText }: Props) {
   if (!list.length) {
     return (
       <ol id="list">
         <li className="empty">
           <b>조건에 맞는 목욕탕이 없어요</b>
-          {total ? "지도를 움직이거나 '지도 범위로 보기'를 꺼 보세요." : '필터를 바꿔 보세요.'}
+          {emptyText ?? (total ? "지도를 움직이거나 '지도 범위로 보기'를 꺼 보세요." : '필터를 바꿔 보세요.')}
           <br />
           <button className="btn ghost sm" style={{ marginTop: 12 }} onClick={onReset}>
             필터 초기화

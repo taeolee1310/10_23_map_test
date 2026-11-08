@@ -1,9 +1,10 @@
 // 탕방 데이터 API (Cloudflare Worker + D1). 화면은 Vercel 그대로, 데이터·제보만 여기서 맡는다.
 // 공개용:  GET  /api/places   공개 스냅샷(onsen.json과 같은 모양 + publishedAt)
 //          POST /api/report   제보 받기(화면에 바로 반영하지 않음)
+//          POST /api/event    핵심 행동 횟수 세기(정해진 이름만, 방문자 해시로 사람 수 구분)
 // 관리용(Authorization: Bearer ADMIN_TOKEN, 수집 PC의 scripts/d1_publish.mjs만 부른다):
 //          GET  /admin/status · POST /admin/ingest · GET /admin/diff · POST /admin/publish · POST /admin/rollback
-//          GET  /admin/reports?status=new · POST /admin/reports/<id>
+//          GET  /admin/reports?status=new · POST /admin/reports/<id> · GET /admin/stats?days=14(날짜별 방문자 수)
 // 원칙: 사용자 요청마다 큰 JSON을 만들지 않는다(무료 Worker는 요청당 CPU 10ms). 공개 때 SQL이 본문을 만들어 한 행에 둔다.
 
 const KEEP_SNAPSHOTS = 30
@@ -64,7 +65,52 @@ const activeId = async (db) => {
 
 // ───────── 공개용 ─────────
 
+// 한국 날짜(YYYY-MM-DD)
+const kstDay = (ms = Date.now()) => new Date(ms + 9 * 3600_000).toISOString().slice(0, 10)
+const KEEP_VISIT_DAYS = 90
+
+// 하루 방문자 수 세기: 서비스 화면(허용한 주소, localhost 제외)에서 온 요청만 센다(봇·직접 호출은 Origin이 없어 빠진다).
+// 사람마다 (접속 주소 + 브라우저 종류 + 날짜)의 해시 하나만 남긴다. 세기에 실패해도 목록 응답은 막지 않는다.
+// 서비스 화면에서 온 요청이면 (날짜, 방문자 해시)를 돌려주고, 아니면 null(개발 화면·봇·허용 안 한 주소)
+async function visitor(req, env, cors) {
+  const origin = req.headers.get('Origin') || ''
+  if (!env.REPORT_SALT || !origin || !cors['Access-Control-Allow-Origin'] || /localhost|127\.0\.0\.1/.test(origin)) return null
+  const day = kstDay()
+  const ip = req.headers.get('CF-Connecting-IP') || ''
+  const ua = (req.headers.get('User-Agent') || '').slice(0, 200)
+  return { day, v: await sha(`visit|${day}|${ip}|${ua}|${env.REPORT_SALT}`) }
+}
+
+// 핵심 행동 목록: 이 이름만 받는다(화면 lib/track.ts와 같게)
+const EVENTS = ['near', 'sort_auto', 'sort_dist', 'sort_name', 'detail', 'fav', 'report_open', 'report_done']
+
+async function postEvent(req, env, cors) {
+  const who = await visitor(req, env, cors)
+  if (!who) return new Response(null, { status: 204, headers: cors }) // 세지 않는 요청은 조용히 끝낸다
+  let b = null
+  try {
+    b = JSON.parse(await req.text())
+  } catch {
+    return json({ ok: false, error: 'body' }, 400, cors)
+  }
+  if (!b || !EVENTS.includes(b.name)) return json({ ok: false, error: 'name' }, 400, cors)
+  await env.DB.prepare('INSERT INTO events (day, name, v, n) VALUES (?1, ?2, ?3, 1) ON CONFLICT (day, name, v) DO UPDATE SET n = min(n + 1, 200)').bind(who.day, b.name, who.v).run()
+  return new Response(null, { status: 204, headers: cors })
+}
+
+async function countVisit(req, env, cors) {
+  try {
+    const who = await visitor(req, env, cors)
+    if (!who) return
+    const { day, v } = who
+    await env.DB.prepare('INSERT INTO visits (day, v, n) VALUES (?1, ?2, 1) ON CONFLICT (day, v) DO UPDATE SET n = n + 1').bind(day, v).run()
+  } catch (e) {
+    console.error('visit', String(e?.message || e))
+  }
+}
+
 async function getPlaces(req, env, ctx, cors) {
+  ctx.waitUntil(countVisit(req, env, cors))
   const id = await activeId(env.DB)
   if (!id) return json({ ok: false, error: 'not-published' }, 503, cors)
   const etag = `"s${id}"`
@@ -164,13 +210,49 @@ async function postReport(req, env, cors) {
 async function status(env) {
   const db = env.DB
   const id = await activeId(db)
-  const [draft, base, reports, snaps] = await Promise.all([
+  const today = kstDay()
+  const yesterday = kstDay(Date.now() - 86400_000)
+  const [draft, base, reports, snaps, vis] = await Promise.all([
     db.prepare('SELECT count(*) AS n, max(updated_at) AS at FROM places').first(),
     db.prepare("SELECT v FROM meta WHERE k = 'draft_base_date'").first(),
     db.prepare("SELECT count(*) AS n FROM reports WHERE status = 'new'").first(),
     db.prepare('SELECT id, place_count, created_at, note FROM snapshots ORDER BY id DESC LIMIT 10').all(),
+    db.prepare('SELECT sum(day = ?1) AS today, sum(day = ?2) AS yesterday FROM visits WHERE day IN (?1, ?2)').bind(today, yesterday).first(),
   ])
-  return json({ ok: true, active: id, draft: { count: draft.n, updatedAt: draft.at, baseDate: base?.v ?? null }, newReports: reports.n, snapshots: snaps.results })
+  return json({
+    ok: true,
+    active: id,
+    draft: { count: draft.n, updatedAt: draft.at, baseDate: base?.v ?? null },
+    newReports: reports.n,
+    visitors: { today: vis?.today ?? 0, yesterday: vis?.yesterday ?? 0 },
+    snapshots: snaps.results,
+  })
+}
+
+// 날짜별 방문자 수(DAU)·목록 받은 횟수·제보 수. 90일 넘은 방문 기록은 여기서 지운다
+async function stats(url, env) {
+  const db = env.DB
+  const days = Math.min(Math.max(Number(url.searchParams.get('days')) || 14, 1), KEEP_VISIT_DAYS)
+  const from = kstDay(Date.now() - (days - 1) * 86400_000)
+  const old = kstDay(Date.now() - KEEP_VISIT_DAYS * 86400_000)
+  await db.batch([db.prepare('DELETE FROM visits WHERE day < ?').bind(old), db.prepare('DELETE FROM events WHERE day < ?').bind(old)])
+  const [v, r, ev] = await Promise.all([
+    db.prepare('SELECT day, count(*) AS visitors, sum(n) AS loads FROM visits WHERE day >= ? GROUP BY day ORDER BY day').bind(from).all(),
+    // 제보 시각은 UTC로 저장돼 있어 9시간을 더해 한국 날짜로 묶는다
+    db.prepare("SELECT substr(datetime(created_at, '+9 hours'), 1, 10) AS day, count(*) AS reports FROM reports WHERE created_at >= ? GROUP BY day").bind(new Date(Date.parse(from) - 9 * 3600_000).toISOString()).all(),
+    db.prepare('SELECT name, count(DISTINCT v) AS users, sum(n) AS total FROM events WHERE day >= ? GROUP BY name').bind(from).all(),
+  ])
+  const evMap = new Map(ev.results.map((x) => [x.name, x]))
+  // 안 일어난 행동도 0으로 보여 준다. 방문자 수 대비 비율은 보는 쪽에서 계산한다
+  const events = EVENTS.map((name) => ({ name, users: evMap.get(name)?.users ?? 0, total: evMap.get(name)?.total ?? 0 }))
+  const vm = new Map(v.results.map((x) => [x.day, x]))
+  const rm = new Map(r.results.map((x) => [x.day, x.reports]))
+  const rows = []
+  for (let i = days - 1; i >= 0; i--) {
+    const day = kstDay(Date.now() - i * 86400_000)
+    rows.push({ day, visitors: vm.get(day)?.visitors ?? 0, loads: vm.get(day)?.loads ?? 0, reports: rm.get(day) ?? 0 })
+  }
+  return json({ ok: true, days: rows, events })
 }
 
 async function ingest(req, env) {
@@ -343,6 +425,7 @@ export default {
         if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors })
         if (path === '/api/places' && req.method === 'GET') return await getPlaces(req, env, ctx, cors)
         if (path === '/api/report' && req.method === 'POST') return await postReport(req, env, cors)
+        if (path === '/api/event' && req.method === 'POST') return await postEvent(req, env, cors)
         if (path === '/api/health') return json({ ok: true }, 200, cors)
         return json({ ok: false, error: 'not-found' }, 404, cors)
       }
@@ -355,6 +438,7 @@ export default {
         if (path === '/admin/publish' && req.method === 'POST') return await publish(req, env)
         if (path === '/admin/rollback' && req.method === 'POST') return await rollback(req, env)
         if (path === '/admin/reports' && req.method === 'GET') return await listReports(url, env)
+        if (path === '/admin/stats' && req.method === 'GET') return await stats(url, env)
         const m = /^\/admin\/reports\/(\d+)$/.exec(path)
         if (m && req.method === 'POST') return await setReport(req, env, Number(m[1]))
         return json({ ok: false, error: 'not-found' }, 404)

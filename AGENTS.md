@@ -10,11 +10,13 @@
 ## 더 읽을 곳 (필요할 때만)
 | 알고 싶은 것 | 문서 |
 |---|---|
+| **전체 흐름·기능별 코드 위치(먼저 읽기)** | `docs/architecture.md` |
 | 모든 작업 규칙(원본) | `CLAUDE.md` |
+| 데이터 API·DB(Cloudflare Worker + D1) | `worker/README.md` |
 | 서비스 구조, 인트로 레이어, 알려진 함정, 남은 일 | `README.md` |
 | 데이터 파일별 설명·출처·만드는 순서 | `data/README.md` |
 | 컬러 토큰 구조·명암비 | `docs/color-system.md` |
-| 요금 제보 설정 / 반영 절차 | `docs/report-setup.md`, `.claude/skills/price-report/SKILL.md` |
+| 제보 확인·반영 절차(D1 reports) | `.claude/skills/price-report/SKILL.md` (예전 구글 시트 설정은 `docs/report-setup.md`) |
 | 최근 작업 기록·다음 할 일 | 노션 'AI 공통 작업 노트' 허브 → 04 프로젝트 > 탕방 프로젝트 일지 |
 
 곳 수·요금 확인 수 같은 숫자는 문서마다 시점이 다르다. 최신 값은 `web/public/data/onsen.json`(`baseDate`, `places`)에서 직접 센다.
@@ -30,10 +32,14 @@ web/                     React 18 + Vite + TypeScript 화면
     PriceReport/         요금·시설 정보 제보 창
     GhostCursor/ OnsenLogo/ MilkLoader/ GlideSelect/ ElasticSlider/ PriceIcon/
   src/screens/MainScreen/  목록·미리보기·상세
-  src/lib/onsen.ts       타입·필터·정렬
+  src/lib/onsen.ts       타입·필터·정렬(추천순 점수 infoScore·recommendScore)
+  src/lib/api.ts         데이터 받기: Worker /api/places → 실패하면 public/data/onsen.json
   src/styles/            tangbang-colors.css(색 토큰), motion.css
-  api/report.js          제보 → 구글 시트 (Vercel 서버 기능)
-  public/data/onsen.json 화면이 읽는 유일한 데이터
+  api/favs.js            담아둔 곳 백업 쿠키 (Vercel 서버 기능)
+  api/report.js          예전 제보 → 구글 시트 (지금은 예비, 제보는 Worker로 감)
+  public/data/onsen.json 화면 데이터 원본 파일(초안으로 올려 공개, Worker가 안 될 때 비상용)
+worker/   Cloudflare Worker + D1: 공개 데이터·제보·방문자 수 API. 배포는 npx wrangler deploy (푸시로 안 올라감)
+scripts/d1_publish.mjs   운영 도구: 초안 올리기·공개·되돌리기·제보·방문자 수(stats)
 data/  raw(원본, 깃에 없음) · collected(수집) · curated(사람이 확인) · merged(합친 결과)
 src/bin/  데이터 도구(러스트): onsen_merge, export_web_data 등. cargo run --release --bin <이름> (새 PC는 scripts/setup.ps1 · setup.sh 먼저)
 (수집 도구 앱)  별도 저장소 taeolee1310/tangbang-collector(비공개)로 옮김, 2026-11-05. 이 폴더를 '프로젝트 폴더'로 골라 씀. 앱이 기대는 이름·경로는 CLAUDE.md '탕방 데이터 수집 도구' 항목
@@ -42,7 +48,7 @@ place geo make_map factcheck(src/bin) map.html   수업 연습 도구, 화면과
 ```
 
 ## 데이터 흐름
-`data/collected/*` + `data/curated/*` → `cargo run --release --bin onsen_merge` → `data/merged/onsen_merged.csv` → `cargo run --release --bin export_web_data` → `web/public/data/onsen.json`
+`data/collected/*` + `data/curated/*` → `cargo run --release --bin onsen_merge` → `data/merged/onsen_merged.csv` → `cargo run --release --bin export_web_data` → `web/public/data/onsen.json` → `d1_publish.mjs ingest`(초안) → `publish`(공개, 사용자 화면에 1분 안에 반영)
 
 ## 실행
 `web/`에서 `npm run dev` → **`http://localhost:5173`** 으로 연다(`127.0.0.1`이면 지도 안 뜸). `npm run build`는 타입 검사 + 빌드. 설치 명령은 제안만 한다.

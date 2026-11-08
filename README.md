@@ -4,6 +4,8 @@
 처음 들어오면 노을 지는 목욕탕 장면이 나오고, 그 장면을 보는 사람이 "아, 목욕 갈까?" 하고 느끼게 하는 것이 디자인 목표입니다.
 
 - 배포: https://tangbang.vercel.app (Vercel 프로젝트 `tangbang`, `main` 푸시 시 자동 배포)
+- 데이터 API·DB: Cloudflare Worker `tangbang-api` + D1 `tangbang` (데이터는 '공개' 버튼으로 반영, `worker/README.md`)
+- **처음이면 `docs/architecture.md`(전체 흐름·기능별 코드 위치)부터 읽으세요.**
 - 저장소: `taeolee1310/10_23_map_test`
 - 작업 일지: 노션 「공통작업 노트 > 04 프로젝트 > 탕방 프로젝트 일지」
 - 이 문서는 대화 컨텍스트가 초기화돼도 작업을 이어갈 수 있게, 서비스 구조와 **그동안 정해진 결정·규칙**을 함께 적은 것입니다. 작업 규칙의 원본은 `CLAUDE.md`입니다.

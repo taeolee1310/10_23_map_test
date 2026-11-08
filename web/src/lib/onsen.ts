@@ -135,9 +135,53 @@ export function filterPlaces<T extends Place>(places: T[], f: Filters, favs: Set
   )
 }
 
+// ───────── 추천순 ─────────
+// 추천 = "가기 전에 알고 갈 수 있는 정보가 많은 곳"을 먼저 보여 준다. 인기·광고·후기 별점은 쓰지 않는다(데이터가 없고, 정보가 확실한 곳이 동네 목욕탕을 고를 때 가장 쓸모 있음).
+// 정보 점수(0~10점, 항목마다 확인된 것만 센다):
+//   확인된 성인 입장료 3점 · 확인일이 최근 1년 안 1점 · 수건 1점 · 드라이기 1점 · 세신(금액 또는 결제 방법) 1점 · 대표 사진 1점 · 영업시간 1점 · 가기 전 알아 둘 것 1점
+// 내 위치를 알면 가까울수록 높게: 추천 점수 = 정보 점수 ÷ (1 + 거리km ÷ 2). 2km 떨어지면 절반, 6km면 1/4.
+//   (같은 정보면 가까운 곳이 위, 1km 안의 정보 없는 곳보다 3km 떨어진 정보 많은 곳이 위에 올 수 있다)
+// 점수가 같으면 가까운 순 → 이름순.
+export const RECOMMEND_HALF_KM = 2
+const FRESH_MS = 365 * 86400_000
+
+export function infoScore(p: Place, now = Date.now()) {
+  const f = p.facts
+  let s = 0
+  if (p.price?.adult != null) {
+    s += 3
+    const t = Date.parse(p.price.checked)
+    if (!Number.isNaN(t) && now - t <= FRESH_MS) s += 1
+  }
+  if (f?.towel?.women || f?.towel?.men) s += 1
+  const d = f?.hairdryer
+  if (d && (d.paid != null || d.none || d.has || d.women || d.men)) s += 1
+  const sh = f?.seshin
+  if (sh && (sh.price_full || sh.price_men || sh.price_women || sh.payment)) s += 1
+  if (p.photo) s += 1
+  if (f?.convenience?.hours && Object.keys(f.convenience.hours).length) s += 1
+  if (f?.notices?.length) s += 1
+  return s
+}
+
+export function recommendScore(p: PlaceWithDist, now = Date.now()) {
+  const info = infoScore(p, now)
+  return p.dist == null ? info : info / (1 + p.dist / RECOMMEND_HALF_KM)
+}
+
 export function sortPlaces(list: PlaceWithDist[], sort: string, hasMe: boolean) {
   const a = list.slice()
-  const by = sort === 'auto' ? (hasMe ? 'dist' : 'name') : sort
+  if (sort === 'auto') {
+    const now = Date.now()
+    const score = new Map(a.map((p) => [p.id, recommendScore(hasMe ? p : { ...p, dist: null }, now)]))
+    return a.sort(
+      (x, y) =>
+        score.get(y.id)! - score.get(x.id)! ||
+        (hasMe ? (x.dist ?? Infinity) - (y.dist ?? Infinity) : 0) ||
+        x.name.localeCompare(y.name, 'ko'),
+    )
+  }
+  const by = sort
   if (by === 'dist' && hasMe) {
     // 좌표 없는 곳은 거리를 모르니 맨 뒤로
     a.sort((x, y) => (x.dist ?? Infinity) - (y.dist ?? Infinity))

@@ -50,6 +50,25 @@ CREATE INDEX IF NOT EXISTS reports_who ON reports (who, created_at);
 CREATE INDEX IF NOT EXISTS reports_ip ON reports (ip_hash, created_at);
 CREATE INDEX IF NOT EXISTS reports_status ON reports (status, id);
 
+-- 하루 방문자 수(DAU). 사람마다 (접속 주소 + 브라우저 종류 + 그날 날짜)를 비밀 값과 섞은 해시 하나만 남긴다.
+-- 날짜가 섞여 있어 다른 날과 이어 붙일 수 없고, 원래 주소는 저장하지 않는다. 90일이 지나면 지운다.
+CREATE TABLE IF NOT EXISTS visits (
+  day TEXT NOT NULL,            -- 한국 날짜 YYYY-MM-DD
+  v TEXT NOT NULL,              -- 방문자 해시
+  n INTEGER NOT NULL DEFAULT 1, -- 그날 목록을 받은 횟수
+  PRIMARY KEY (day, v)
+) WITHOUT ROWID;
+
+-- 화면에서 일어난 핵심 행동 횟수(어디서 막히는지 보려는 것). 이름은 Worker가 정한 목록(EVENTS)만 받는다.
+-- 방문자 해시는 visits와 같은 방식(날짜가 섞여 다른 날과 이어 붙일 수 없음). 어떤 목욕탕을 눌렀는지·위치·입력한 글은 저장하지 않는다. 90일 뒤 지운다.
+CREATE TABLE IF NOT EXISTS events (
+  day TEXT NOT NULL,            -- 한국 날짜
+  name TEXT NOT NULL,           -- near · sort_auto · sort_dist · sort_name · detail · fav · report_open · report_done
+  v TEXT NOT NULL,              -- 방문자 해시
+  n INTEGER NOT NULL DEFAULT 1, -- 그날 그 사람이 한 횟수(200에서 멈춤)
+  PRIMARY KEY (day, name, v)
+) WITHOUT ROWID;
+
 -- 공개·되돌리기 기록
 CREATE TABLE IF NOT EXISTS publish_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

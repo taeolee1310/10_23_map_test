@@ -2,6 +2,7 @@
 
 서울의 목욕탕·사우나·온천 461곳을 지도와 목록으로 보여 주고, 확인된 요금을 알려 주는 서비스. 화면은 React + Vite(`web/`), 데이터 정리는 러스트(`src/bin/`, 2026-11-04 파이썬에서 옮김), 지도는 카카오 JavaScript SDK.
 줄마다 (왜)와 → 검사가 있다. 규칙 한 줄 = 검사 한 줄.
+**전체 흐름(화면 Vercel · 데이터 API Cloudflare Worker+D1 · 데이터 만들기 내 PC)과 기능별 코드 위치는 `docs/architecture.md`에 먼저 있다.** 구조를 바꾸면 그 문서도 같이 고친다. → 검사: 바뀐 기능이 문서 표에 있음
 
 ## 환경
 - 화면: Node, `web/`에서 `npm run dev`(주소 `http://localhost:5173`), `npm run build`(타입 검사 + 빌드). 설치 명령(`npm install` 등)은 제안만 하고 직접 돌리지 않는다.
@@ -9,7 +10,7 @@
 - 터미널은 PowerShell(Windows). 시간은 KST. 서비스는 **서울 전용**이다.
 
 ## 구조
-- `web/src/App.tsx` → `components/BathhouseIntro`(첫 화면) → `screens/MainScreen`(지도·목록·상세). 지도는 `components/KakaoMap`, 효과는 `components/GhostCursor`. 메인 화면 첫 안내(스포트라이트 온보딩 5단계: 내 위치 → 목욕탕 고르기 → 미리보기 카드 → 자세히 보는 두 가지 방법 → 상세 TOP 3)는 `components/Onboarding`이고 단계 내용은 `MainScreen.tsx`의 `TOUR_TEXT`에 있다. 첫 방문에만 열리며 제목 오른쪽 '어떻게 사용하는 거예요?' 버튼(모바일은 검색창 위 왼쪽 '사용법')으로 다시 본다(작은 '?' 아이콘은 사용법으로 읽히지 않아 2026-11-03 글자 버튼으로 바꿈. 인트로에는 넣지 않는다). 저장 키는 `tangbang:onboarding:v3`. 요금·가기 전 걱정 정보(수건·드라이기·세신 결제) 제보는 `components/PriceReport`(제보 창) → `web/api/report.js`(Vercel 서버 기능, 운영자 구글 시트에 Apps Script로 추가. 설정은 `docs/report-setup.md`). 제보는 화면에 바로 반영하지 않고 사람이 확인한 뒤 `data/curated/`에만 넣는다. 확인·반영 절차는 `/price-report`(`.claude/skills/price-report`).
+- `web/src/App.tsx` → `components/BathhouseIntro`(첫 화면) → `screens/MainScreen`(지도·목록·상세). 지도는 `components/KakaoMap`, 효과는 `components/GhostCursor`. 메인 화면 첫 안내(스포트라이트 온보딩 5단계: 내 위치 → 목욕탕 고르기 → 미리보기 카드 → 자세히 보는 두 가지 방법 → 상세 TOP 3)는 `components/Onboarding`이고 단계 내용은 `MainScreen.tsx`의 `TOUR_TEXT`에 있다. 첫 방문에만 열리며 제목 오른쪽 '어떻게 사용하는 거예요?' 버튼(모바일은 검색창 위 왼쪽 '사용법')으로 다시 본다(작은 '?' 아이콘은 사용법으로 읽히지 않아 2026-11-03 글자 버튼으로 바꿈. 인트로에는 넣지 않는다). 저장 키는 `tangbang:onboarding:v3`. 요금·가기 전 걱정 정보(수건·드라이기·세신 결제) 제보는 `components/PriceReport`(제보 창) → Cloudflare Worker `POST /api/report` → D1 `reports` 표(2026-11-06부터. 예전 `web/api/report.js`·구글 시트는 `API_BASE`가 빌 때만 쓰는 예비). 제보는 화면에 바로 반영하지 않고 사람이 확인한 뒤 `data/curated/`에만 넣는다. 확인·반영 절차는 `/price-report`(`.claude/skills/price-report`).
 - `web/src/styles/tangbang-colors.css`: 컬러 시스템. 색은 이 파일의 토큰만 쓴다. `web/src/styles/motion.css`: 움직임 곡선·길이.
 - 화면이 읽는 데이터는 `web/public/data/onsen.json` 하나. 만드는 법과 자료 분류는 `data/README.md`.
   - `cargo run --release --bin onsen_merge` → `data/merged/onsen_merged.csv`

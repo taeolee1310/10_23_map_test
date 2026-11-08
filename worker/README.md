@@ -15,7 +15,10 @@ node --env-file=.env scripts/d1_publish.mjs diff       # 무엇이 바뀌는지
 node --env-file=.env scripts/d1_publish.mjs publish    # 공개(1분 안에 사용자 화면에 반영)
 node --env-file=.env scripts/d1_publish.mjs rollback   # 잘못 공개했으면 직전 것으로
 node --env-file=.env scripts/d1_publish.mjs reports    # 새 제보 보기
+node --env-file=.env scripts/d1_publish.mjs stats 14   # 날짜별 방문자 수(DAU)·제보 수
 ```
+- 핵심 행동: 화면(`web/src/lib/track.ts`)이 8가지 이름(`EVENTS`)만 `POST /api/event`로 보내고 `events` 표에 사람별 횟수로 쌓인다. `stats`가 행동별 사람 수·횟수를 보여 준다. 이름을 늘리려면 Worker `EVENTS`와 `track.ts`를 같이 고친다.
+- 방문자 수: `/api/places`를 서비스 화면(허용 주소, localhost 제외)에서 부를 때마다 `visits` 표에 (접속 주소+브라우저+한국 날짜) 해시 하나로 센다. 원래 주소는 저장하지 않고 90일 뒤 지운다. 세기에 실패해도 목록 응답은 막지 않는다.
 - 공개 전 자동 검증: 필수 칸·서울 밖 좌표, 성인업소 키워드 이름, 휴대폰 번호 모양(tel 칸·주소·이름·URL 제외), 확인 요금과 예시 요금이 함께 있음, 스냅샷 1.5MB 초과(D1 한 행 한도 2MB), 곳 수 10% 넘게 감소(`--force`로만 통과).
 - 공개는 한 묶음(트랜잭션)이라 중간에 실패하면 전부 취소된다. `--expect`(수집 프로그램이 자동으로 넣음)로 화면이 본 공개본과 다르면 409로 막는다(다른 PC가 먼저 공개한 경우).
 - 오류는 `--json`이면 `{code, message, fix}`로 나와 수집 프로그램 '서비스 공개' 카드가 그대로 보여 준다(접속 불가·토큰 어긋남·무료 한도·오래된 상태·검사 실패 등).
@@ -27,12 +30,12 @@ node --env-file=.env scripts/d1_publish.mjs reports    # 새 제보 보기
 ```
 node worker/test/run-local.mjs
 ```
-Cloudflare 없이 Node 내장 SQLite로 같은 SQL을 돌린다(36개 확인: 공개·304·CORS·되돌리기·검증·제보 제한 등). 실제 D1의 한도·캐시는 흉내만 낸다.
+Cloudflare 없이 Node 내장 SQLite로 같은 SQL을 돌린다(60개 확인: 공개·304·CORS·되돌리기·검증·제보 제한·방문자 수·행동 기록 등). 실제 D1의 한도·캐시는 흉내만 낸다.
 
 ## 구성
 | 파일 | 내용 |
 | --- | --- |
-| `schema.sql` | 표 5개: places(초안) · snapshots(공개본) · meta · reports · publish_log |
+| `schema.sql` | 표 7개: places(초안) · snapshots(공개본) · meta · reports · visits(방문자 수) · events(핵심 행동) · publish_log |
 | `src/index.js` | API. 공개용 `/api/places` `/api/report`, 관리용 `/admin/*`(Bearer 토큰) |
 | `wrangler.toml` | 이름·D1 연결·허용 화면 주소(`ALLOWED_ORIGINS`). 비밀 값은 여기에 쓰지 않는다 |
 | `setup.ps1` | 처음 한 번 설치·배포 |

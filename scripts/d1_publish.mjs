@@ -10,6 +10,7 @@
 //   rollback [스냅샷id]     직전(또는 지정한) 공개본으로 되돌린다
 //   reports [new|reviewed|applied|rejected]   제보 목록
 //   report-set <id> <상태> [메모]             제보 상태 바꾸기
+//   stats [일수]            날짜별 방문자 수(DAU)·목록 받은 횟수·제보 수(기본 14일)
 //   fix-token               .env의 관리 토큰을 Worker 비밀 값으로 다시 넣는다(토큰이 어긋났을 때)
 // --json: 사람이 읽는 글 대신 JSON 한 줄을 낸다 → {ok, data} 또는 {ok:false, error:{code, message, fix, problems?}}
 // 토큰 값은 출력하지 않는다.
@@ -83,6 +84,17 @@ async function call(method, p, body) {
   throw fail('server', { message: `Worker가 오류를 냈어요(${j.error || r.status})` })
 }
 
+const EVENT_LABEL = {
+  near: "'내 주변 목욕탕' 누름",
+  sort_auto: '정렬: 추천순',
+  sort_dist: '정렬: 가까운 순',
+  sort_name: '정렬: 이름순',
+  detail: '자세히 보기 열기',
+  fav: '담아두기',
+  report_open: '제보 창 열기',
+  report_done: '제보 보내기 완료',
+}
+
 const readOnsen = (file) => {
   try {
     const d = JSON.parse(readFileSync(file, 'utf8').replace(/^﻿/, ''))
@@ -99,11 +111,12 @@ async function run() {
       const s = await call('GET', '/admin/status')
       const live = s.snapshots.find((x) => x.id === s.active)
       return {
-        data: { active: s.active, publishedAt: live?.created_at ?? null, liveCount: live?.place_count ?? null, draft: s.draft, newReports: s.newReports, snapshots: s.snapshots },
+        data: { active: s.active, publishedAt: live?.created_at ?? null, liveCount: live?.place_count ?? null, draft: s.draft, newReports: s.newReports, visitors: s.visitors ?? null, snapshots: s.snapshots },
         text: [
           `공개 중인 스냅샷: ${s.active ?? '없음'}${live ? ` (${live.created_at}, ${live.place_count}곳)` : ''}`,
           `초안: ${s.draft.count}곳 · 기준일 ${s.draft.baseDate ?? '-'} · 마지막으로 올린 때 ${s.draft.updatedAt ?? '-'}`,
           `새 제보: ${s.newReports}건`,
+          ...(s.visitors ? [`방문자(한국 날짜 기준): 오늘 ${s.visitors.today}명 · 어제 ${s.visitors.yesterday}명`] : []),
           ...s.snapshots.map((x) => `  #${x.id} ${x.created_at} ${x.place_count}곳${x.note ? ` · ${x.note}` : ''}`),
         ],
       }
@@ -143,8 +156,29 @@ async function run() {
       return {
         data: j,
         text: [
-          ...j.reports.map((r) => `#${r.id} ${r.created_at.slice(0, 16)} ${r.place_name} · 입장료 ${r.adult ?? '-'} 수건 ${r.towel ?? '-'} 세신 ${r.scrub ?? '-'} · ${r.source}${r.flags ? ` · [${r.flags}]` : ''}${r.memo ? ` · ${r.memo}` : ''}`),
+          ...j.reports.map(
+            (r) =>
+              `#${r.id} ${r.created_at.slice(0, 16)} ${r.place_name}(${r.place_id}) · 입장료 ${r.adult ?? '-'} 수건 ${r.towel ?? '-'} 세신 ${r.scrub ?? '-'}` +
+              `${r.towel_info ? ` · 수건 안내 ${r.towel_info}` : ''}${r.hairdryer ? ` · 드라이기 ${r.hairdryer}` : ''}${r.seshin_pay ? ` · 세신 결제 ${r.seshin_pay}` : ''}` +
+              ` · ${r.source}${r.flags ? ` · [${r.flags}]` : ''}${r.memo ? ` · ${r.memo}` : ''}${r.note ? ` · 검토: ${r.note}` : ''}`,
+          ),
           `${j.reports.length}건`,
+        ],
+      }
+    }
+    case 'stats': {
+      const days = Number(args[0]) || 14
+      const j = await call('GET', `/admin/stats?days=${days}`)
+      const total = j.days.reduce((a, d) => a + d.visitors, 0)
+      return {
+        data: j,
+        text: [
+          '날짜(한국)   방문자  목록받음  제보',
+          ...j.days.map((d) => `${d.day}  ${String(d.visitors).padStart(5)}  ${String(d.loads).padStart(7)}  ${String(d.reports).padStart(4)}`),
+          `최근 ${j.days.length}일 하루 평균 방문자 ${(total / j.days.length).toFixed(1)}명 (같은 기기·브라우저는 하루 1명으로 셈, 서비스 화면에서 온 요청만)`,
+          '',
+          `핵심 행동 (최근 ${j.days.length}일, 사람 수는 날마다 따로 셈해서 더한 값이라 같은 사람이 여러 날 하면 여러 번 포함)`,
+          ...(j.events || []).map((e) => `  ${EVENT_LABEL[e.name] || e.name}: ${e.users}명 · ${e.total}번`),
         ],
       }
     }
