@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { API_BASE, fetchPlaces } from '../../lib/api'
 import { CATEGORIES, EDITOR_KEY, catLabel, editorCall, go, storyPath, type Story, type StoryCategory } from '../../lib/stories'
 import type { Place } from '../../lib/onsen'
-import { ArticleBody } from './Magazine'
+import { ArticleBody, Book } from './Magazine'
 import './Magazine.css'
 import './Editor.css'
 
@@ -23,6 +23,33 @@ function authText(status: number, d: AuthFail) {
   return d.left ? `암호가 맞지 않아요. ${d.left}번 더 틀리면 15분 동안 잠겨요.` : '암호가 맞지 않아요.'
 }
 
+type PreviewView = 'mobile' | 'web'
+const VIEW_KEY = 'tangbang:editor-view'
+// 웹 미리보기: 실제 매거진의 책(Book)을 1120×640 무대에 그리고 미리보기 칸 너비에 맞춰 줄인다.
+// 책 안의 링크·버튼은 누르지 못하게 막는다(작성 중인 글을 두고 다른 화면으로 가지 않게). 양옆 넘김 버튼은 쓸 수 있다
+const STAGE_W = 1120
+const STAGE_H = 640
+function WebPreview({ story }: { story: Story }) {
+  const box = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(0.5)
+  useLayoutEffect(() => {
+    const el = box.current
+    if (!el) return
+    const fit = () => setScale(el.clientWidth / STAGE_W)
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  return (
+    <div ref={box} className="ed-web" style={{ height: STAGE_H * scale }}>
+      <div className="mag ed-web-stage" style={{ width: STAGE_W, height: STAGE_H, transform: `scale(${scale})` }}>
+        <Book story={story} next={null} preview />
+      </div>
+    </div>
+  )
+}
+
 export default function Editor() {
   const [token, setToken] = useState(() => {
     try {
@@ -33,6 +60,26 @@ export default function Editor() {
   })
   const [list, setList] = useState<Story[] | null>(null)
   const [d, setD] = useState<Draft>(empty)
+  // 미리보기 모양(모바일·웹). 이 브라우저에만 기억한다
+  const [view, setView] = useState<PreviewView>(() => {
+    try {
+      return localStorage.getItem(VIEW_KEY) === 'web' ? 'web' : 'mobile'
+    } catch {
+      return 'mobile'
+    }
+  })
+  const pickView = (v: PreviewView) => {
+    setView(v)
+    try {
+      localStorage.setItem(VIEW_KEY, v)
+    } catch {
+      /* 기억 못 해도 지금 화면은 바뀜 */
+    }
+  }
+  const previewStory = useMemo<Story>(
+    () => ({ id: d.id ?? 0, slug: 'preview', title: d.title || '제목', category: (d.category || 'unknown') as StoryCategory, summary: d.summary, cover: d.cover, author: d.author, place_ids: d.place_ids, status: d.status, published_at: null, updated_at: '', body: d.body }),
+    [d],
+  )
   const [msg, setMsg] = useState<{ ok: boolean; text: string; problems?: string[] } | null>(null)
   const [busy, setBusy] = useState(false)
   const [places, setPlaces] = useState<Place[]>([])
@@ -150,7 +197,7 @@ export default function Editor() {
           <button className="mag-btn" onClick={logout}>나가기</button>
         </div>
       </header>
-      <div className="ed-cols">
+      <div className={`ed-cols${view === 'web' ? ' ed-cols--web' : ''}`}>
         <aside className="ed-list">
           <button className="mag-btn" onClick={() => (setD(empty()), setMsg(null))}>+ 새 글</button>
           {list.map((s) => (
@@ -211,7 +258,13 @@ export default function Editor() {
         </form>
 
         <section className="ed-preview" aria-label="미리보기">
-          <p className="ed-help">미리보기(모바일 모양)</p>
+          <div className="ed-view" role="group" aria-label="미리보기 모양">
+            <button type="button" aria-pressed={view === 'mobile'} onClick={() => pickView('mobile')}>모바일</button>
+            <button type="button" aria-pressed={view === 'web'} onClick={() => pickView('web')}>웹</button>
+          </div>
+          {view === 'web' ? (
+            <WebPreview story={previewStory} />
+          ) : (
           <div className="mag ed-phone">
             {d.cover ? <img className="mag-cover mag-cover--hero" src={d.cover} alt="" /> : <div className="mag-cover mag-cover--hero mag-cover--empty" />}
             <div className="mag-scroll-in">
@@ -224,6 +277,7 @@ export default function Editor() {
               <div className="mag-body"><ArticleBody body={d.body} /></div>
             </div>
           </div>
+          )}
         </section>
       </div>
     </div>

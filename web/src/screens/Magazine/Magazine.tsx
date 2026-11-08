@@ -262,7 +262,8 @@ function Half(p: { side: 'left' | 'right'; col: number; geo: Geo; children: Reac
   )
 }
 
-function Book({ story, next }: { story: Story; next: Story | null }) {
+// preview: 작성 화면의 웹 미리보기. 행동 기록(끝까지 읽음)을 남기지 않고, ← → 키를 받지 않는다(본문을 쓰는 중이라)
+export function Book({ story, next, preview = false }: { story: Story; next: Story | null; preview?: boolean }) {
   const book = useRef<HTMLDivElement>(null)
   const flow = useRef<HTMLDivElement>(null)
   const leaf = useRef<HTMLDivElement>(null)
@@ -303,7 +304,7 @@ function Book({ story, next }: { story: Story; next: Story | null }) {
     document.fonts?.ready.then(count)
     const imgs = flow.current?.querySelectorAll('img') ?? []
     imgs.forEach((im) => im.addEventListener('load', count, { once: true }))
-  }, [count, story.slug])
+  }, [count, story.slug, story.body])
   useEffect(() => setSpread((s) => Math.min(s, spreads - 1)), [spreads])
 
   const anims = useRef<Animation[]>([])
@@ -369,6 +370,7 @@ function Book({ story, next }: { story: Story; next: Story | null }) {
     }
   }, [flip])
   useEffect(() => {
+    if (preview) return
     const onKey = (e: KeyboardEvent) => {
       if (e.altKey || e.ctrlKey || e.metaKey) return
       if (e.key === 'ArrowRight') turn(1, true)
@@ -376,17 +378,17 @@ function Book({ story, next }: { story: Story; next: Story | null }) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [turn])
+  }, [turn, preview])
   const readSent = useRef(false)
   useEffect(() => {
     readSent.current = false
   }, [story.slug])
   useEffect(() => {
-    if (spreads > 0 && spread === spreads - 1 && !readSent.current) {
+    if (!preview && spreads > 0 && spread === spreads - 1 && !readSent.current) {
       readSent.current = true
       track('story_read')
     }
-  }, [spread, spreads])
+  }, [spread, spreads, preview])
 
   // 본문 사본 4개가 같은 요소 객체를 쓰면 쪽을 넘길 때 React가 본문 안을 다시 비교하지 않는다
   const content = useMemo(
