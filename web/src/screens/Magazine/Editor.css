@@ -38,6 +38,16 @@ label .ed-chips { margin-top: 6px; }
 .ed-err { background: var(--color-state-error-bg); color: var(--color-text-primary); }
 .ed-err ul { margin: 6px 0 0; padding-left: 18px; }
 .ed-preview { position: sticky; top: 16px; }
+/* 사진 올리기: 대표 사진 칸 옆 버튼, 본문 칸 아래 버튼. 올리는 동안(disabled) 눌리지 않는 모양 */
+.ed-photo { display: flex; align-items: flex-end; gap: 8px; }
+.ed-photo label { flex: 1; min-width: 0; }
+.ed-photo .mag-btn, .ed-photo-body .mag-btn { flex: none; }
+.ed-photo-body { display: flex; }
+.ed-photo-body + .ed-help { margin-top: 0; }
+.ed-wrap .mag-btn:disabled { background: var(--button-outline-bg-disabled); border-color: var(--color-border-default); color: var(--button-outline-text-disabled); cursor: default; }
+.ed-wrap .mag-btn--primary:disabled { background: var(--button-primary-bg-disabled); border-color: var(--button-primary-bg-disabled); color: var(--button-primary-text-disabled); }
+.ed-wrap .mag-btn:disabled:active { transform: none; }
+.ed-item:disabled { cursor: default; opacity: .6; }
 .ed-phone { min-height: 0; max-height: calc(100dvh - 80px); overflow: auto; border: 6px solid var(--color-outline); border-radius: 32px; }
 /* 미리보기 모양 토글(모바일·웹) */
 /* 고른 쪽 뒤의 흰 손잡이가 옆으로 미끄러진다(transform만, 200ms). 버튼 두 개는 폭이 같아 손잡이를 100% 옮기면 맞는다 */

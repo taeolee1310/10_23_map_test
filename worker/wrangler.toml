@@ -12,5 +12,10 @@ binding = "DB"
 database_name = "tangbang"
 database_id = "3fe9aac3-c97c-4d2b-ac5d-0b343274ce57" # setup.ps1이 실제 값으로 바꾼다(비밀 값 아님)
 
+# 매거진 사진 저장소(R2 버킷은 미리 만들어 둠). 올리기는 POST /api/editor/photos, 읽기는 GET /api/photos/<키>
+[[r2_buckets]]
+binding = "tangbang_photos"
+bucket_name = "tangbang-photos"
+
 # 비밀 값(여기에 쓰지 않는다): ADMIN_TOKEN, REPORT_SALT → setup.ps1이 `wrangler secret put`으로 넣는다
 # 로컬 시험은 worker/.dev.vars(깃에 안 올림)에 둔다

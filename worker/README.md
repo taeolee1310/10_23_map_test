@@ -17,7 +17,7 @@ node --env-file=.env scripts/d1_publish.mjs rollback   # 잘못 공개했으면 
 node --env-file=.env scripts/d1_publish.mjs reports    # 새 제보 보기
 node --env-file=.env scripts/d1_publish.mjs stats 14   # 날짜별 방문자 수(DAU)·제보 수
 ```
-- 매거진: 글은 `stories` 표. 공개 글은 `GET /api/stories`·`/api/stories/<글 번호>`(저장할 때 서버가 매김, 첫 글만 예전 영문 주소도 받음), 작성은 서비스의 숨은 화면 `/magazine/write`가 `/api/editor/stories`(GET 목록·POST 저장)를 편집 토큰(`EDITOR_TOKEN`)으로 부른다. 편집 토큰은 글만 다루고 목욕탕 데이터 공개(`ADMIN_TOKEN`)는 못 한다. 처음 한 번 `node worker/setup-editor.mjs`가 토큰을 만들어 `.env`(`TANGBANG_EDITOR_TOKEN`)와 Worker 비밀 값에 넣는다(값은 출력 안 함).
+- 매거진: 글은 `stories` 표. 공개 글은 `GET /api/stories`·`/api/stories/<글 번호>`(저장할 때 서버가 매김, 첫 글만 예전 영문 주소도 받음), 작성은 서비스의 숨은 화면 `/magazine/write`가 `/api/editor/stories`(GET 목록·POST 저장)를 편집 토큰(`EDITOR_TOKEN`)으로 부른다. 편집 토큰은 글만 다루고 목욕탕 데이터 공개(`ADMIN_TOKEN`)는 못 한다. 사진은 `POST /api/editor/photos`(multipart, 필드 `file`)로 R2 버킷 `tangbang-photos`에 올리고(JPEG·PNG·WebP, 5MB 이하, 틀린 횟수 제한은 글 저장과 같음) `GET /api/photos/<키>`로 토큰 없이 읽는다. 처음 한 번 `node worker/setup-editor.mjs`가 토큰을 만들어 `.env`(`TANGBANG_EDITOR_TOKEN`)와 Worker 비밀 값에 넣는다(값은 출력 안 함).
 - 핵심 행동: 화면(`web/src/lib/track.ts`)이 8가지 이름(`EVENTS`)만 `POST /api/event`로 보내고 `events` 표에 사람별 횟수로 쌓인다. `stats`가 행동별 사람 수·횟수를 보여 준다. 이름을 늘리려면 Worker `EVENTS`와 `track.ts`를 같이 고친다.
 - 방문자 수: `/api/places`를 서비스 화면(허용 주소, localhost 제외)에서 부를 때마다 `visits` 표에 (접속 주소+브라우저+한국 날짜) 해시 하나로 센다. 원래 주소는 저장하지 않고 90일 뒤 지운다. 세기에 실패해도 목록 응답은 막지 않는다.
 - 공개 전 자동 검증: 필수 칸·서울 밖 좌표, 성인업소 키워드 이름, 휴대폰 번호 모양(tel 칸·주소·이름·URL 제외), 확인 요금과 예시 요금이 함께 있음, 스냅샷 1.5MB 초과(D1 한 행 한도 2MB), 곳 수 10% 넘게 감소(`--force`로만 통과).
@@ -31,13 +31,13 @@ node --env-file=.env scripts/d1_publish.mjs stats 14   # 날짜별 방문자 수
 ```
 node worker/test/run-local.mjs
 ```
-Cloudflare 없이 Node 내장 SQLite로 같은 SQL을 돌린다(73개 확인: 공개·304·CORS·되돌리기·검증·제보 제한·방문자 수·행동 기록·매거진 작성 권한·검사 등). 실제 D1의 한도·캐시는 흉내만 낸다.
+Cloudflare 없이 Node 내장 SQLite로 같은 SQL을 돌린다(116개 확인: 공개·304·CORS·되돌리기·검증·제보 제한·방문자 수·행동 기록·매거진 작성 권한·사진 올리기·읽기 등. R2는 Map 가짜 객체로 흉내 냄). 실제 D1의 한도·캐시는 흉내만 낸다.
 
 ## 구성
 | 파일 | 내용 |
 | --- | --- |
 | `schema.sql` | 표 8개: places(초안) · snapshots(공개본) · meta · reports · visits(방문자 수) · events(핵심 행동) · stories(매거진) · publish_log |
-| `src/index.js` | API. 공개용 `/api/places` `/api/report`, 관리용 `/admin/*`(Bearer 토큰) |
-| `wrangler.toml` | 이름·D1 연결·허용 화면 주소(`ALLOWED_ORIGINS`). 비밀 값은 여기에 쓰지 않는다 |
+| `src/index.js` | API. 공개용 `/api/places` `/api/report` `/api/photos/<키>`, 작성용 `/api/editor/*`(편집 토큰), 관리용 `/admin/*`(Bearer 토큰) |
+| `wrangler.toml` | 이름·D1 연결·R2 연결(`tangbang_photos`)·허용 화면 주소(`ALLOWED_ORIGINS`). 비밀 값은 여기에 쓰지 않는다 |
 | `setup.ps1` | 처음 한 번 설치·배포 |
 | `../scripts/d1_publish.mjs` | 수집 PC의 관리 도구 |

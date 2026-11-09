@@ -354,6 +354,107 @@ r = await edFrom('3.3.3.3', env.EDITOR_TOKEN)
 ok('전체에서 1시간에 30번 틀리면 모두 잠금(여러 곳에서 나눠 맞혀 보기 방지)', r.res.status === 429)
 sqlite.exec('DELETE FROM auth_fails')
 
+// 13. 매거진 사진 올리기·읽기. R2는 Map 기반 가짜 객체(put/get)로 흉내 낸다. 실제 R2·Cloudflare 한도는 확인하지 못한다
+const r2 = new Map()
+let r2Gets = 0
+env.tangbang_photos = {
+  async put(key, value, opts) {
+    r2.set(key, { bytes: new Uint8Array(value), httpMetadata: opts?.httpMetadata ?? {} })
+  },
+  async get(key) {
+    r2Gets++
+    const o = r2.get(key)
+    return o ? { body: new Blob([o.bytes]).stream(), httpMetadata: o.httpMetadata } : null
+  },
+}
+const JPG = [0xff, 0xd8, 0xff, 0xe0]
+const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
+const WEBP = [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]
+const GIF = [...'GIF89a'].map((c) => c.charCodeAt(0))
+const MB5 = 5 * 1024 * 1024
+const fill = (head, total) => {
+  const b = new Uint8Array(total)
+  b.set(head)
+  for (let i = head.length; i < total; i++) b[i] = i & 255
+  return b
+}
+const upload = (bytes, { name = 'a.jpg', type = 'image/jpeg', field = 'file', token = env.EDITOR_TOKEN, ip = '20.0.0.1' } = {}) => {
+  const fd = new FormData()
+  fd.append(field, new File([bytes], name, { type }))
+  return call('POST', '/api/editor/photos', { raw: fd, headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), 'CF-Connecting-IP': ip, Origin: 'https://tangbang.vercel.app' } })
+}
+sqlite.exec('DELETE FROM auth_fails')
+r = await upload(fill(JPG, 100), { token: '', ip: '21.0.0.1' })
+ok('사진 올리기: 편집 토큰이 없으면 401', r.res.status === 401 && r.j.error === 'auth' && r2.size === 0)
+const photoLefts = []
+for (let i = 0; i < 2; i++) photoLefts.push((await upload(fill(JPG, 100), { token: 'wrong-token', ip: '22.0.0.1' })).j.left)
+ok('사진 올리기: 틀린 토큰은 401이고 남은 횟수가 줄어듦(글 저장과 같은 횟수 제한)', photoLefts.join(',') === '4,3', photoLefts.join(','))
+r = await upload(fill(JPG, 100), { token: env.ADMIN_TOKEN, ip: '23.0.0.1' })
+ok('사진 올리기: 관리 토큰으로는 못 올림(편집 토큰만)', r.res.status === 401 && r2.size === 0)
+for (let i = 0; i < 3; i++) await upload(fill(JPG, 100), { token: 'wrong-token', ip: '22.0.0.1' })
+r = await upload(fill(JPG, 100), { token: 'wrong-token', ip: '22.0.0.1' })
+ok('사진 올리기: 5번 틀리면 잠금(429, 남은 초)', r.res.status === 429 && r.j.error === 'locked' && r.j.retry > 800 && r.res.headers.get('Retry-After'))
+r = await upload(fill(JPG, 100), { ip: '22.0.0.1' })
+ok('사진 올리기: 잠긴 동안은 맞는 암호도 받지 않음', r.res.status === 429 && r2.size === 0)
+sqlite.exec('DELETE FROM auth_fails')
+
+r = await upload(fill(GIF, 100), { name: 'a.jpg', type: 'image/jpeg' })
+ok('사진 올리기: 확장자·Content-Type이 jpg여도 실제 GIF면 415', r.res.status === 415 && r.j.error === 'type' && r2.size === 0)
+r = await upload(new TextEncoder().encode('<html><script>alert(1)</script></html>'), { name: 'x.png', type: 'image/png' })
+ok('사진 올리기: HTML을 png로 속여도 415', r.res.status === 415 && r2.size === 0)
+r = await upload(fill([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x41, 0x56, 0x45], 100), { name: 'a.webp', type: 'image/webp' })
+ok('사진 올리기: RIFF라도 WEBP가 아니면(WAVE) 415', r.res.status === 415 && r2.size === 0)
+r = await upload(fill(JPG, MB5 + 1))
+ok('사진 올리기: 5MB를 1바이트라도 넘으면 413', r.res.status === 413 && r.j.error === 'too-big' && r2.size === 0)
+r = await upload(fill(JPG, MB5 + 200 * 1024))
+ok('사진 올리기: 본문이 5MB+멀티파트 여유(64KB)를 넘으면 413', r.res.status === 413 && r2.size === 0)
+r = await upload(fill(GIF, MB5 + 1))
+ok('사진 올리기: 크기가 형식보다 먼저(큰 GIF도 413)', r.res.status === 413)
+r = await upload(fill(JPG, 100), { field: 'photo' })
+ok('사진 올리기: file 칸이 없으면 400', r.res.status === 400 && r.j.error === 'file' && r2.size === 0)
+r = await upload(new Uint8Array(0))
+ok('사진 올리기: 빈 파일은 400', r.res.status === 400 && r2.size === 0)
+r = await call('POST', '/api/editor/photos', { body: { file: 'x' }, headers: { Authorization: `Bearer ${env.EDITOR_TOKEN}` } })
+ok('사진 올리기: multipart가 아니면 400', r.res.status === 400 && r.j.error === 'body')
+r = await worker.fetch(new Request(BASE + '/api/editor/photos', { method: 'POST', headers: { Authorization: `Bearer ${env.EDITOR_TOKEN}`, 'Content-Type': 'multipart/form-data; boundary=zzz' }, body: 'garbage' }), env, ctx)
+ok('사진 올리기: 깨진 multipart는 400', r.status === 400 && r2.size === 0)
+r = await worker.fetch(new Request(BASE + '/api/editor/photos', { method: 'POST', headers: { Authorization: `Bearer ${env.EDITOR_TOKEN}` }, body: new FormData() }), { ...env, tangbang_photos: undefined }, ctx)
+ok('사진 올리기: R2 연결이 없으면 503 not-ready', r.status === 503 && (await r.json()).error === 'not-ready')
+
+const jpgBytes = fill(JPG, 3000)
+r = await upload(jpgBytes, { name: '../../내 사진 (1).png', type: 'image/png' })
+const photoUrl = r.j?.url
+const photoKey = photoUrl?.split('/api/photos/')[1]
+ok('사진 올리기: 정상(실제 형식은 JPEG, 파일 이름은 PNG라고 해도)', r.res.status === 200 && r.j.ok && photoUrl.startsWith(`${BASE}/api/photos/`) && photoUrl.startsWith('https://'), photoKey)
+ok('저장 키는 UUID + 실제 형식 확장자(사용자 파일 이름 없음)', /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.jpg$/.test(photoKey) && !photoKey.includes('png') && r2.size === 1)
+ok('R2에 Content-Type이 실제 형식으로 저장됨', r2.get(photoKey).httpMetadata.contentType === 'image/jpeg')
+ok('업로드 응답에 CORS 허용(작성 화면 주소)', r.res.headers.get('Access-Control-Allow-Origin') === 'https://tangbang.vercel.app')
+r = await call('GET', new URL(photoUrl).pathname)
+ok('같은 주소로 GET 200(토큰 없이 공개 읽기)', r.res.status === 200)
+ok('읽기: Content-Type은 저장할 때 형식', r.res.headers.get('Content-Type') === 'image/jpeg')
+ok('읽기: 1년 캐시(immutable)와 nosniff', r.res.headers.get('Cache-Control') === 'public, max-age=31536000, immutable' && r.res.headers.get('X-Content-Type-Options') === 'nosniff')
+const back = new Uint8Array(await (await worker.fetch(new Request(photoUrl), env, ctx)).arrayBuffer())
+ok('읽은 바이트가 올린 것과 같음', back.length === jpgBytes.length && back.every((v, i) => v === jpgBytes[i]), `${back.length}바이트`)
+r = await upload(fill(PNG, 500), { name: 'a.png', type: 'image/png' })
+const pngRes = await worker.fetch(new Request(r.j.url), env, ctx)
+ok('PNG도 올라가고 image/png로 읽힘', r.res.status === 200 && r.j.url.endsWith('.png') && pngRes.headers.get('Content-Type') === 'image/png')
+r = await upload(fill(WEBP, 500), { name: 'a.webp', type: 'image/webp' })
+const webpRes = await worker.fetch(new Request(r.j.url), env, ctx)
+ok('WebP도 올라가고 image/webp로 읽힘', r.res.status === 200 && r.j.url.endsWith('.webp') && webpRes.headers.get('Content-Type') === 'image/webp')
+r = await upload(fill(JPG, MB5))
+ok('정확히 5MB는 올라감(경계)', r.res.status === 200 && r.j.ok)
+r = await call('GET', '/api/photos/00000000-0000-4000-8000-000000000000.jpg')
+ok('읽기: 없는 키는 404', r.res.status === 404 && r.j.error === 'not-found')
+const badKeys = ['abc.jpg', '..%2Fsecret', 'a b.jpg', `${photoKey.replace('.jpg', '.gif')}`, photoKey.slice(0, -4), photoKey.toUpperCase()]
+const getsBefore = r2Gets
+const badRes = await Promise.all(badKeys.map((k) => call('GET', `/api/photos/${k}`)))
+r = await call('GET', '/api/photos/a/b.jpg')
+ok('읽기: 키 형식이 맞지 않거나 경로가 더 깊으면 404(R2를 부르지 않음)', badRes.every((x) => x.res.status === 404) && r.res.status === 404 && r2Gets === getsBefore, `${badKeys.length + 1}가지`)
+r = await worker.fetch(new Request(photoUrl), { ...env, tangbang_photos: undefined }, ctx)
+ok('읽기: R2 연결이 없으면 503', r.status === 503)
+ok('사진 올리기는 편집 토큰 관문 뒤에서만 일어남(실패 요청은 R2에 아무것도 안 씀)', r2.size === 4, `R2 ${r2.size}개`)
+sqlite.exec('DELETE FROM auth_fails')
+
 r = await call('GET', '/admin/status', { admin: true })
 ok('상태에 오늘·어제 방문자 수', r.j.visitors.today === 2 && r.j.visitors.yesterday === 0, `오늘 ${r.j.visitors.today}명`)
 ok('상태 조회', r.j.active === Number(sqlite.prepare("SELECT v FROM meta WHERE k = 'active_snapshot'").get().v) && r.j.draft.count === data.places.length, `공개 #${r.j.active}, 스냅샷 ${r.j.snapshots.length}개`)

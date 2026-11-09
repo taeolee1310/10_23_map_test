@@ -2,6 +2,8 @@
 // 공개용:  GET  /api/places   공개 스냅샷(onsen.json과 같은 모양 + publishedAt)
 //          POST /api/report   제보 받기(화면에 바로 반영하지 않음)
 //          POST /api/event    핵심 행동 횟수 세기(정해진 이름만, 방문자 해시로 사람 수 구분)
+//          GET  /api/photos/<키>  매거진 사진 읽기(R2, 토큰 없이 공개)
+// 작성용(Authorization: Bearer EDITOR_TOKEN): GET·POST /api/editor/stories(매거진 글) · POST /api/editor/photos(사진 올리기, R2)
 // 관리용(Authorization: Bearer ADMIN_TOKEN, 수집 PC의 scripts/d1_publish.mjs만 부른다):
 //          GET  /admin/status · POST /admin/ingest · GET /admin/diff · POST /admin/publish · POST /admin/rollback
 //          GET  /admin/reports?status=new · POST /admin/reports/<id> · GET /admin/stats?days=14(날짜별 방문자 수)
@@ -332,6 +334,85 @@ async function editorSave(req, env, cors) {
   return json({ ok: true, id: r.results[0].id, status }, 200, cors)
 }
 
+// ───────── 매거진 사진 ─────────
+// 올리기: POST /api/editor/photos (multipart, 필드 file). 편집 토큰 확인·틀린 횟수 제한은 /api/editor/* 공통 관문에서 이미 끝난 뒤에 온다.
+// 읽기:  GET /api/photos/<키> (공개, 토큰 없음). 사진은 공개 글에 나오는 것이라 읽기에는 암호를 두지 않는다.
+//        주의: 아직 공개하지 않은 글의 사진도 키(URL)만 알면 열린다. 키가 추측하기 어려운 UUID라서 이대로 둔다(목록 API는 없다).
+// 저장소는 R2 버킷 tangbang-photos(binding 이름 tangbang_photos, wrangler.toml). 파일 이름·확장자·Content-Type은 믿지 않고 앞부분 바이트로 형식을 정한다.
+const MAX_PHOTO = 5 * 1024 * 1024
+const MULTIPART_EXTRA = 64 * 1024 // multipart 머리글·경계선 몫. 이만큼까지는 본문이 사진 한도보다 커도 읽는다
+const PHOTO_TYPES = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' }
+const PHOTO_KEY = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/
+
+// 파일 앞부분 바이트(매직 넘버)로 실제 형식을 알아낸다. 모르면 null
+function sniffImage(b) {
+  const at = (i, ...v) => v.every((x, k) => b[i + k] === x)
+  if (at(0, 0xff, 0xd8, 0xff)) return 'jpg'
+  if (at(0, 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) return 'png'
+  if (at(0, 0x52, 0x49, 0x46, 0x46) && at(8, 0x57, 0x45, 0x42, 0x50)) return 'webp' // RIFF....WEBP
+  return null
+}
+
+// 요청 본문을 max바이트까지만 읽는다. 넘으면 읽기를 멈추고 null(메모리를 지키려고 한 번에 다 받지 않는다)
+async function readCapped(req, max) {
+  const len = Number(req.headers.get('Content-Length'))
+  if (Number.isFinite(len) && len > max) return null
+  if (!req.body) return new Uint8Array(0)
+  const reader = req.body.getReader()
+  const chunks = []
+  let n = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    n += value.length
+    if (n > max) {
+      await reader.cancel()
+      return null
+    }
+    chunks.push(value)
+  }
+  const buf = new Uint8Array(n)
+  let off = 0
+  for (const c of chunks) (buf.set(c, off), (off += c.length))
+  return buf
+}
+
+async function editorPhoto(req, env, cors) {
+  if (!env.tangbang_photos) return json({ ok: false, error: 'not-ready' }, 503, cors)
+  const ct = req.headers.get('Content-Type') || ''
+  if (!/^multipart\/form-data\b/i.test(ct)) return json({ ok: false, error: 'body' }, 400, cors)
+  const raw = await readCapped(req, MAX_PHOTO + MULTIPART_EXTRA)
+  if (!raw) return json({ ok: false, error: 'too-big' }, 413, cors)
+  let file
+  try {
+    file = (await new Response(raw, { headers: { 'Content-Type': ct } }).formData()).get('file')
+  } catch {
+    return json({ ok: false, error: 'body' }, 400, cors)
+  }
+  if (!file || typeof file === 'string' || !file.size) return json({ ok: false, error: 'file' }, 400, cors)
+  if (file.size > MAX_PHOTO) return json({ ok: false, error: 'too-big' }, 413, cors)
+  const bytes = await file.arrayBuffer()
+  const ext = sniffImage(new Uint8Array(bytes, 0, Math.min(12, bytes.byteLength)))
+  if (!ext) return json({ ok: false, error: 'type' }, 415, cors)
+  const key = `${crypto.randomUUID()}.${ext}` // 사용자 파일 이름은 쓰지 않는다
+  await env.tangbang_photos.put(key, bytes, { httpMetadata: { contentType: PHOTO_TYPES[ext] } })
+  return json({ ok: true, url: `${new URL(req.url).origin}/api/photos/${key}` }, 200, cors)
+}
+
+async function getPhoto(env, key) {
+  if (!PHOTO_KEY.test(key)) return json({ ok: false, error: 'not-found' }, 404)
+  if (!env.tangbang_photos) return json({ ok: false, error: 'not-ready' }, 503)
+  const obj = await env.tangbang_photos.get(key)
+  if (!obj) return json({ ok: false, error: 'not-found' }, 404)
+  return new Response(obj.body, {
+    headers: {
+      'Content-Type': obj.httpMetadata?.contentType || PHOTO_TYPES[key.split('.')[1]],
+      'Cache-Control': 'public, max-age=31536000, immutable', // 키가 내용마다 새로 만들어져 바뀌지 않는다
+      'X-Content-Type-Options': 'nosniff',
+    },
+  })
+}
+
 // ───────── 관리용 ─────────
 
 async function status(env) {
@@ -556,6 +637,8 @@ export default {
         if (path === '/api/stories' && req.method === 'GET') return await listStories(env, cors)
         const sm = /^\/api\/stories\/([a-z0-9-]{1,60})$/.exec(path)
         if (sm && req.method === 'GET') return await getStory(env, cors, sm[1])
+        const pm = /^\/api\/photos\/([^/]+)$/.exec(path)
+        if (pm && (req.method === 'GET' || req.method === 'HEAD')) return await getPhoto(env, pm[1])
         if (path.startsWith('/api/editor/')) {
           if (!env.EDITOR_TOKEN) return json({ ok: false, error: 'not-ready' }, 503, cors)
           const keys = await failKeys(req, env)
@@ -568,6 +651,7 @@ export default {
           await env.DB.prepare('DELETE FROM auth_fails WHERE k = ?1').bind(keys.ip).run()
           if (path === '/api/editor/stories' && req.method === 'GET') return await editorList(env, cors)
           if (path === '/api/editor/stories' && req.method === 'POST') return await editorSave(req, env, cors)
+          if (path === '/api/editor/photos' && req.method === 'POST') return await editorPhoto(req, env, cors)
           return json({ ok: false, error: 'not-found' }, 404, cors)
         }
         if (path === '/api/health') return json({ ok: true }, 200, cors)
