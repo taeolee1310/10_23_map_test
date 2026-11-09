@@ -1,0 +1,16 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="610.323" height="427.115" viewBox="0 0 610.323 427.115" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="&#236;&#150;&#145;&#235;&#168;&#184;&#235;&#166;&#172; &#236;&#186;&#144;&#235;&#166;&#173;&#237;&#132;&#176; &#194;&#183; &#236;&#155;&#144;&#235;&#179;&#184; &#237;&#152;&#184;&#237;&#157;&#161; &#235;&#170;&#168;&#236;&#133;&#152;">
+<path id="body" d="M103.161 239C78.1614 270 66.1614 308 65.1614 338C62.1614 369 82.1614 386 118.161 389C144.161 417 192.161 421 219.161 399C267.161 411 343.161 411 391.161 399C418.161 421 466.161 417 492.161 389C528.161 386 548.161 369 545.161 338C544.161 308 532.161 270 507.161 239" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" stroke="#527C77"/>
+<path id="left-hand" d="M118.161 344C146.161 322 189.161 326 214.161 346C236.161 363 236.161 385 219.161 399" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" stroke="#527C77"/>
+<path id="right-hand" d="M492.161 344C464.161 322 421.161 326 396.161 346C374.161 363 374.161 385 391.161 399" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" stroke="#527C77"/>
+<path id="left-eye" d="M197.161 223C216.495 239.667 235.495 239.333 254.161 222" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" stroke="#527C77"/>
+<path id="right-eye" d="M356.161 222C374.828 239.333 393.828 239.667 413.161 223" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" stroke="#527C77"/>
+<path id="smile" d="M269.161 255C281.161 263 292.828 262.667 304.161 254C315.495 262.667 327.161 263 339.161 255M280.161 263C296.161 291.667 312.161 291.667 328.161 263" stroke-width="23" stroke-linecap="round" stroke-linejoin="round" stroke="#527C77"/>
+<g id="Yangmeori">
+<path id="towel-crown" d="M146.161 78C192.161 34 241.161 14 305.161 14C369.161 14 418.161 34 464.161 78" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" stroke="#527C77"/>
+<path id="towel-band" d="M130.161 145C229.161 71 362.161 71 480.161 145M122.161 198C229.161 124 362.161 124 488.161 198" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" stroke="#527C77"/>
+<path id="left-roll" d="M146.161 78C97.1614 49 45.1614 69 24.1614 108C11.1614 132 11.1614 154 21.1614 177C4.16137 207 20.1614 242 51.1614 252C86.1614 265 119.161 248 133.161 219C148.161 187 137.161 154 108.161 141C79.1614 127 46.1614 143 44.1614 169C41.1614 192 57.1614 209 75.1614 203C89.1614 199 94.1614 187 87.1614 177" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" stroke="#527C77"/>
+<path id="right-roll" d="M464.161 78C513.161 49 565.161 69 586.161 108C599.161 132 599.161 154 589.161 177C606.161 207 590.161 242 559.161 252C524.161 265 491.161 248 477.161 219C462.161 187 473.161 154 502.161 141C531.161 127 564.161 143 566.161 169C569.161 192 553.161 209 535.161 203C521.161 199 516.161 187 523.161 177" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" stroke="#527C77"/>
+</g>
+</g>
+</svg>

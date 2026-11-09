@@ -51,11 +51,11 @@ web/src/
 │  ├─ ElasticSlider/            볼륨 슬라이더
 │  ├─ GlideSelect/              정렬 드롭다운 (React Bits, 아이콘은 인라인 SVG)
 │  ├─ KakaoMap/                 지도·핀·구별 묶음 마커·＋/－ 버튼
-│  └─ OnsenLogo/                캐릭터 로고와 모션 (색은 토큰으로 칠함)
+│  └─ OnsenLogo/                캐릭터 로고(양머리 + 타일탕, Figma 539:153)와 6초 모션 (색은 토큰으로 칠함)
 ├─ screens/MainScreen/          머리말·목록·미리보기·상세
 ├─ lib/onsen.ts                 타입, 필터, 정렬, 시설 유형 묶음(kindGroup)
 ├─ styles/                      tangbang-colors.css(색), motion.css(움직임)
-└─ assets/                      bathhouse/(Figma v3 에셋), map-pin/, onsen-logo/, banana-milk/, sound/
+└─ assets/                      bathhouse/(Figma v3 에셋), map-pin/, onsen-logo-sheep/(지금 로고), onsen-logo/(예전 로고, 쓰지 않음), banana-milk/, sound/
 
 data/                           README.md 에 파일별 설명·출처·만드는 순서
 ├─ raw/ (올리지 않음)  collected/  curated/(사람이 확인)  merged/
