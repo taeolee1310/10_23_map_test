@@ -4,6 +4,7 @@ import { CATEGORIES, EDITOR_KEY, catLabel, chaptersOf, editorCall, go, storyPath
 import type { Place } from '../../lib/onsen'
 import { PHOTO_ACCEPT, PhotoAuthError, PhotoError, shrinkPhoto, uploadPhoto } from '../../lib/photos'
 import { ArticleBody, Book, type BookLayout } from './Magazine'
+import RichBody, { type RichBodyHandle } from './RichBody'
 import './Magazine.css'
 import './Editor.css'
 
@@ -153,6 +154,9 @@ export default function Editor() {
   const coverFile = useRef<HTMLInputElement>(null)
   const bodyFile = useRef<HTMLInputElement>(null)
   const bodyBox = useRef<HTMLTextAreaElement>(null)
+  // 본문은 보이는 대로 쓰는 편집기(RichBody)가 기본이다. '글자로 고치기'를 켜면 예전처럼 글자 형식(---·##·사진 줄)을 직접 고친다
+  const rich = useRef<RichBodyHandle>(null)
+  const [raw, setRaw] = useState(false)
   const bodyCursor = useRef<number | null>(null) // 본문 칸을 떠날 때(사진 버튼을 누를 때 등) 기억한 커서 위치. 한 번도 안 눌렀으면 null(맨 끝에 넣는다)
   const caretAfter = useRef<number | null>(null) // 사진을 넣은 뒤 커서를 둘 자리(설명 칸 [ ] 안)
   const bodyNow = useRef('') // 올리는 사이에 글이 바뀌어도 지금 본문에 넣으려고 최신 본문을 따로 쥐고 있는다
@@ -262,8 +266,8 @@ export default function Editor() {
     bodyCursor.current = end
     set('body', before + lead + line + tail + after)
   }
-  const insertPhoto = (url: string) => insertBlock(`![](${url})`, 2)
-  // 장 나누기: '---' 한 줄을 넣고 커서를 그 아래 빈 줄에 둔다(이어서 사진이나 '## 장 제목'을 쓰도록)
+  const insertPhoto = (url: string) => (raw ? insertBlock(`![](${url})`, 2) : rich.current?.insertPhoto(url))
+  // 장 나누기(글자로 고치기에서): '---' 한 줄을 넣고 커서를 그 아래 빈 줄에 둔다(이어서 사진이나 '## 장 제목'을 쓰도록)
   const insertChapter = () => insertBlock('---', 'after')
   useEffect(() => {
     const c = caretAfter.current
@@ -370,23 +374,32 @@ export default function Editor() {
             {fileInput('cover', coverFile)}
           </div>
           {photoErr?.where === 'cover' && <p className="ed-err" role="alert">{photoErr.text}</p>}
-          <label>본문
-            <textarea
-              ref={bodyBox}
-              value={d.body}
-              rows={18}
-              onChange={(e) => set('body', e.target.value)}
-              onBlur={(e) => (bodyCursor.current = e.currentTarget.selectionStart)}
-              placeholder={SYNTAX}
-            />
-          </label>
-          <div className="ed-photo-body">
-            <button type="button" className="mag-btn" disabled={!!uploading} onClick={insertChapter}>장 나누기</button>
-            <button type="button" className="mag-btn" disabled={!!uploading} onClick={() => bodyFile.current?.click()}>{uploading === 'body' ? '올리는 중…' : '본문에 사진 넣기'}</button>
-            {fileInput('body', bodyFile)}
+          <div className="ed-body-head">
+            <span>본문</span>
+            <button type="button" className="ed-raw" aria-pressed={raw} onClick={() => setRaw((v) => !v)}>{raw ? '보이는 대로 쓰기' : '글자로 고치기'}</button>
           </div>
+          {raw ? (
+            <>
+              <textarea
+                ref={bodyBox}
+                aria-label="본문(글자 형식)"
+                value={d.body}
+                rows={18}
+                onChange={(e) => set('body', e.target.value)}
+                onBlur={(e) => (bodyCursor.current = e.currentTarget.selectionStart)}
+                placeholder={SYNTAX}
+              />
+              <div className="ed-photo-body">
+                <button type="button" className="mag-btn" disabled={!!uploading} onClick={insertChapter}>장 나누기</button>
+                <button type="button" className="mag-btn" disabled={!!uploading} onClick={() => bodyFile.current?.click()}>{uploading === 'body' ? '올리는 중…' : '본문에 사진 넣기'}</button>
+              </div>
+              <p className="ed-help">{SYNTAX}</p>
+            </>
+          ) : (
+            <RichBody ref={rich} value={d.body} onChange={(v) => set('body', v)} onPickPhoto={() => bodyFile.current?.click()} uploading={uploading === 'body'} />
+          )}
+          {fileInput('body', bodyFile)}
           {photoErr?.where === 'body' && <p className="ed-err" role="alert">{photoErr.text}</p>}
-          <p className="ed-help">{SYNTAX}</p>
           <div className="ed-places">
             <span>이 글에 나온 목욕탕 (상세 화면에 '이 목욕탕 이야기'로 나와요)</span>
             <div className="ed-chips">

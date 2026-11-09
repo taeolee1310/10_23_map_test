@@ -62,7 +62,7 @@ D1 표(`worker/schema.sql`):
 | `reports` | 사용자 제보(상태: new·reviewed·applied·rejected) | 사이트 → 운영자가 확인 |
 | `visits` | 하루 방문자 수. 사람마다 (접속 주소+브라우저+날짜) 해시 하나, 원래 주소 저장 안 함, 90일 뒤 지움. 서비스 화면에서 온 요청만 셈 | Worker `countVisit` |
 | `events` | 핵심 행동 횟수 10가지(내 주변·정렬 3종·자세히 보기·담아두기·제보 창 열기·제보 완료·매거진 열기·글 끝까지 읽기). 이름만 저장(어떤 목욕탕인지·위치·입력한 글은 저장 안 함), 사람은 visits와 같은 해시, 같은 사람 같은 행동은 하루 200번까지만, 90일 뒤 지움. 브라우저의 '추적 안 함'이 켜져 있으면 안 보냄 | 화면 `lib/track.ts` → Worker `/api/event` |
-| `stories` | 매거진 글(임시 저장·공개·내림). 본문은 글자만(빈 줄=문단, `---`=장 나누기, `## `=소제목·장 제목, `> `=인용, `![설명](https://…)`=사진), HTML·script 거절. 장은 사진과 글을 묶는 단위로 책에서는 새 쪽에서 시작하고, 작성 화면 장 목록이 장별 사진·글자·쪽 수를 보여 준다(`lib/stories.ts` `chaptersOf`, `Book` `onLayout`). 글쓰기 기준은 `/magazine-write` 스킬 | 작성 화면 → `/api/editor/stories`(편집 토큰 `EDITOR_TOKEN`), 공개 글은 `/api/stories` |
+| `stories` | 매거진 글(임시 저장·공개·내림). 본문은 글자만(빈 줄=문단, `---`=장 나누기, `## `=소제목·장 제목, `> `=인용, `![설명](https://…)`=사진), HTML·script 거절. 장은 사진과 글을 묶는 단위로 책에서는 새 쪽에서 시작하고, 작성 화면 장 목록이 장별 사진·글자·쪽 수를 보여 준다(`lib/stories.ts` `chaptersOf`, `Book` `onLayout`). 작성 화면 본문은 독자 화면 모양 그대로 쓰는 편집기(`screens/Magazine/RichBody.tsx`, 도구 막대: 사진·장 나누기·장 제목·인용·본문)이고 저장은 같은 글자 형식이다. '글자로 고치기'로 글자 형식을 직접 고칠 수 있다. 글쓰기 기준은 `/magazine-write` 스킬 | 작성 화면 → `/api/editor/stories`(편집 토큰 `EDITOR_TOKEN`), 공개 글은 `/api/stories` |
 | `publish_log` | 공개·되돌리기 기록 | Worker |
 | R2 `tangbang-photos` (binding `tangbang_photos`) | 매거진 사진. JPEG·PNG·WebP만(앞부분 바이트로 확인), 5MB 이하, 키는 `UUID.확장자`(사용자 파일 이름 안 씀). 읽기 `GET /api/photos/<키>`는 토큰 없이 공개(1년 캐시). 목록 API는 없고, 공개 전 글의 사진도 주소를 알면 열린다(주소가 추측하기 어려운 UUID라서 허용) | 작성 화면 → `POST /api/editor/photos`(편집 토큰, 틀린 횟수 제한은 글 저장과 같음) |
 
