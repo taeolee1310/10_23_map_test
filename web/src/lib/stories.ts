@@ -62,20 +62,45 @@ export function storyDate(iso: string | null) {
   return { md, wd: ['Sun.', 'Mon.', 'Tue.', 'Wed.', 'Thu.', 'Fri.', 'Sat.'][d.getUTCDay()] }
 }
 
-// 본문 해석: 빈 줄 = 문단, '## ' = 소제목, '> ' = 인용, '![설명](https://…)' 한 줄 = 사진. HTML은 쓰지 않는다(화면은 글자로만 넣는다)
-export type Block = { kind: 'p' | 'h' | 'quote'; text: string } | { kind: 'img'; src: string; alt: string }
+// 본문 해석: 빈 줄 = 문단, '## ' = 소제목, '> ' = 인용, '![설명](https://…)' 한 줄 = 사진, '---' 한 줄 = 장 나누기. HTML은 쓰지 않는다(화면은 글자로만 넣는다)
+// 장(章): 사진과 글을 한 묶음으로 두는 단위. '---' 앞뒤에 빈 줄이 없어도 장 나누기로 읽는다
+export type Block = { kind: 'p' | 'h' | 'quote'; text: string } | { kind: 'img'; src: string; alt: string } | { kind: 'ch'; n: number }
+export const CHAPTER_LINE = /^-{3,}[ \t]*$/m
 export function parseBody(body: string): Block[] {
   const out: Block[] = []
-  for (const chunk of body.replace(/\r\n?/g, '\n').split(/\n\s*\n/)) {
+  let ch = 0
+  const text = body.replace(/\r\n?/g, '\n').replace(new RegExp(CHAPTER_LINE.source, 'gm'), '\n\n---\n\n')
+  for (const chunk of text.split(/\n\s*\n/)) {
     const t = chunk.trim()
     if (!t) continue
     const img = /^!\[([^\]]*)\]\((https:\/\/[^)\s]+)\)$/.exec(t)
-    if (img) out.push({ kind: 'img', alt: img[1], src: img[2] })
+    if (t === '---') out.push({ kind: 'ch', n: ++ch })
+    else if (img) out.push({ kind: 'img', alt: img[1], src: img[2] })
     else if (t.startsWith('## ')) out.push({ kind: 'h', text: t.slice(3).trim() })
     else if (t.startsWith('>')) out.push({ kind: 'quote', text: t.split('\n').map((l) => l.replace(/^>\s?/, '')).join('\n') })
     else out.push({ kind: 'p', text: t })
   }
   return out
+}
+
+// 작성 화면의 장 목록용 요약. 0번은 첫 '---' 앞의 여는 글이다(비어 있을 수 있음).
+// 글자 수는 띄어쓰기·줄바꿈을 빼고 센다
+export type ChapterInfo = { n: number; title: string; photos: number; chars: number }
+export function chaptersOf(body: string): ChapterInfo[] {
+  const list: ChapterInfo[] = [{ n: 0, title: '', photos: 0, chars: 0 }]
+  for (const b of parseBody(body)) {
+    if (b.kind === 'ch') {
+      list.push({ n: b.n, title: '', photos: 0, chars: 0 })
+      continue
+    }
+    const c = list[list.length - 1]
+    if (b.kind === 'img') c.photos++
+    else {
+      if (!c.title && b.kind === 'h') c.title = b.text
+      c.chars += b.text.replace(/\s/g, '').length
+    }
+  }
+  return list
 }
 
 // 글 주소는 글 번호(/magazine/12). 서버가 매기고 바뀌지 않는다. 번호 방식 전에 공개한 글은 예전 영문 주소도 열린다

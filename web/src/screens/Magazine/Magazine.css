@@ -67,6 +67,12 @@
 .mag-body p { font-family: var(--mag-serif); font-size: 16px; line-height: 2.05; color: var(--color-text-secondary); margin: 0 0 16px; white-space: pre-line; }
 .mag-body h3 { font-family: var(--mag-serif); font-size: 20px; font-weight: 700; margin: 26px 0 12px; break-after: avoid; }
 .mag-body blockquote { margin: 22px 0; padding: 18px 8px; border-top: 1px solid var(--mag-line); border-bottom: 1px solid var(--mag-line); text-align: center; font-family: var(--mag-serif); font-size: 20px; line-height: 1.7; color: var(--color-text-primary); white-space: pre-line; break-inside: avoid; }
+/* 장 나누기(본문의 '---'): 짧은 굵은 선 위, 라틴 장 번호 아래. 책에서는 장마다 새 쪽에서 시작(break-before) */
+.mag-ch { margin: 34px 0 18px; text-align: center; break-before: column; break-after: avoid; }
+.mag-ch::before { content: ''; display: block; width: 56%; height: 2px; margin: 0 auto 16px; background: var(--color-text-primary); }
+.mag-ch span { font-family: var(--mag-latin); font-size: 13px; letter-spacing: .22em; color: var(--color-text-link); }
+.mag-book .mag-ch { margin-top: 0; }
+.mag-ch + h3 { margin-top: 0; }
 .mag-fig { margin: 18px 0; break-inside: avoid; }
 .mag-fig img { display: block; width: 100%; max-height: 46vh; object-fit: cover; background: var(--color-bg-surface-muted); }
 .mag-fig figcaption { font-size: 12px; color: var(--color-text-muted); margin-top: 6px; }

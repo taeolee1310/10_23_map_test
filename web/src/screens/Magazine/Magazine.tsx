@@ -110,7 +110,12 @@ export function ArticleBody({ body }: { body: string }) {
   return (
     <>
       {blocks.map((b, i) =>
-        b.kind === 'img' ? (
+        b.kind === 'ch' ? (
+          // 장 나누기: 짧은 굵은 선 + 장 번호. 책에서는 새 쪽에서 시작한다
+          <div key={i} className="mag-ch" data-ch={b.n}>
+            <span>CHAPTER {String(b.n).padStart(2, '0')}</span>
+          </div>
+        ) : b.kind === 'img' ? (
           <figure key={i} className="mag-fig">
             <img src={b.src} alt={b.alt} loading="lazy" />
             {b.alt && <figcaption>{b.alt}</figcaption>}
@@ -262,8 +267,14 @@ function Half(p: { side: 'left' | 'right'; col: number; geo: Geo; children: Reac
   )
 }
 
+// 작성 화면에 알려 주는 쪽 배치: 전체 쪽 수와, 장마다 시작하는 쪽 번호(0 = 대표 사진 쪽). starts[0]은 여는 글, starts[n]은 n장
+export type BookLayout = { pages: number; starts: number[] }
+
 // preview: 작성 화면의 웹 미리보기. 행동 기록(끝까지 읽음)을 남기지 않고, ← → 키를 받지 않는다(본문을 쓰는 중이라)
-export function Book({ story, next, preview = false }: { story: Story; next: Story | null; preview?: boolean }) {
+// onLayout: 쪽을 다시 셀 때마다 장별 시작 쪽을 알려 준다. jump: 작성 화면의 장 목록에서 고른 펼침면으로 바로 넘긴다(key가 바뀔 때마다)
+export function Book({ story, next, preview = false, onLayout, jump }: { story: Story; next: Story | null; preview?: boolean; onLayout?: (l: BookLayout) => void; jump?: { spread: number; key: number } }) {
+  const onLayoutRef = useRef(onLayout)
+  onLayoutRef.current = onLayout
   const book = useRef<HTMLDivElement>(null)
   const flow = useRef<HTMLDivElement>(null)
   const leaf = useRef<HTMLDivElement>(null)
@@ -288,8 +299,15 @@ export function Book({ story, next, preview = false }: { story: Story; next: Sto
   const count = useCallback(() => {
     const el = flow.current
     if (!el || !geo.w) return
-    const cols = Math.max(1, Math.round((el.scrollWidth + geo.g) / (geo.w + geo.g)))
+    const step = geo.w + geo.g
+    const cols = Math.max(1, Math.round((el.scrollWidth + geo.g) / step))
     setSpreads(Math.ceil(cols / 2))
+    // 장 시작 쪽: 다단 안에서 요소의 offsetLeft는 그 요소가 놓인 단의 왼쪽 끝(transform·확대와 상관없음)
+    if (onLayoutRef.current) {
+      const colOf = (e: HTMLElement | null) => (e ? Math.max(0, Math.round(e.offsetLeft / step)) : 0)
+      const starts = [colOf(el.querySelector<HTMLElement>('.mag-body')), ...[...el.querySelectorAll<HTMLElement>('.mag-ch')].map(colOf)]
+      onLayoutRef.current({ pages: cols, starts })
+    }
   }, [geo])
   useLayoutEffect(() => {
     setSpread(0)
@@ -306,6 +324,11 @@ export function Book({ story, next, preview = false }: { story: Story; next: Sto
     imgs.forEach((im) => im.addEventListener('load', count, { once: true }))
   }, [count, story.slug, story.body])
   useEffect(() => setSpread((s) => Math.min(s, spreads - 1)), [spreads])
+  useEffect(() => {
+    if (!jump) return
+    setFlip(0)
+    setSpread(Math.max(0, Math.min(jump.spread, spreads - 1)))
+  }, [jump]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const anims = useRef<Animation[]>([])
   const queued = useRef<{ d: 1 | -1; instant: boolean } | null>(null)

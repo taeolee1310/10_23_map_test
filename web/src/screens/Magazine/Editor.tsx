@@ -1,9 +1,9 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { API_BASE, fetchPlaces } from '../../lib/api'
-import { CATEGORIES, EDITOR_KEY, catLabel, editorCall, go, storyPath, type Story, type StoryCategory } from '../../lib/stories'
+import { CATEGORIES, EDITOR_KEY, catLabel, chaptersOf, editorCall, go, storyPath, type ChapterInfo, type Story, type StoryCategory } from '../../lib/stories'
 import type { Place } from '../../lib/onsen'
 import { PHOTO_ACCEPT, PhotoAuthError, PhotoError, shrinkPhoto, uploadPhoto } from '../../lib/photos'
-import { ArticleBody, Book } from './Magazine'
+import { ArticleBody, Book, type BookLayout } from './Magazine'
 import './Magazine.css'
 import './Editor.css'
 
@@ -17,7 +17,44 @@ const AUTHORS = ['이노곤', '탕방 편집부']
 const empty = (): Draft => ({ title: '', category: '', summary: '', cover: '', body: '', author: AUTHORS[0], place_ids: [], status: 'draft' })
 const STATUS_LABEL: Record<Story['status'], string> = { draft: '임시 저장', published: '공개 중', hidden: '내림' }
 const IMG_LINE = /^!\[[^\]]*\]\(.*\)$/ // 사진 한 줄 ![설명](주소)
-const SYNTAX ='빈 줄 = 새 문단 · ## 소제목 · > 인용문 · ![사진 설명](https://사진주소) 한 줄 = 사진'
+const SYNTAX = '빈 줄 = 새 문단 · --- 한 줄 = 장 나누기 · ## 장 제목 · > 인용문 · ![사진 설명](https://사진주소) 한 줄 = 사진'
+
+// 장 목록: 본문을 '---'로 나눈 장마다 사진 수·글자 수, 웹(책)에서는 몇 쪽에 놓이는지 보여 준다.
+// 한 장이 2쪽(한 펼침면)을 넘으면 알린다. 장을 누르면 미리보기가 그 장으로 간다
+const PAGE_LIMIT = 2
+function ChapterList({ chapters, layout, view, onPick }: { chapters: ChapterInfo[]; layout: BookLayout | null; view: 'mobile' | 'web'; onPick: (n: number) => void }) {
+  if (chapters.length < 2) return null // 장을 나누지 않은 글은 목록이 필요 없다
+  const pageOf = (n: number) => {
+    if (view !== 'web' || !layout || layout.starts.length !== chapters.length) return null
+    const from = layout.starts[n]
+    const to = n + 1 < layout.starts.length ? layout.starts[n + 1] - 1 : layout.pages - 1
+    return { from, to: Math.max(from, to) }
+  }
+  return (
+    <ol className="ed-chapters" aria-label="장 목록">
+      {chapters.map((c) => {
+        if (c.n === 0 && !c.chars && !c.photos) return null // 첫 장 앞에 글이 없으면 여는 글은 빼고 보여 준다
+        const p = pageOf(c.n)
+        const empty = !c.chars && !c.photos
+        const long = p && p.to - p.from + 1 > PAGE_LIMIT
+        return (
+          <li key={c.n}>
+            <button type="button" className={`ed-ch${empty || long ? ' ed-ch--warn' : ''}`} onClick={() => onPick(c.n)}>
+              <strong>{c.n === 0 ? '여는 글' : `${c.n}장${c.title ? ` · ${c.title}` : ''}`}</strong>
+              <small>
+                사진 {c.photos} · {c.chars}자
+                {p && ` · ${p.from === p.to ? `${p.from + 1}쪽` : `${p.from + 1}–${p.to + 1}쪽`}`}
+              </small>
+              {empty && <em>본문이 비었어요</em>}
+              {!empty && long && <em>한 펼침면을 넘어요. 글을 줄이거나 장을 나눠 보세요</em>}
+              {!empty && !long && c.n > 0 && !c.title && <em className="ed-ch-soft">장 제목(## )이 없어요</em>}
+            </button>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
 
 // 암호를 틀렸을 때 안내. 같은 곳에서 5번 틀리면 15분 잠긴다(Worker FAIL_RULES)
 type AuthFail = { left?: number; retry?: number }
@@ -26,13 +63,21 @@ function authText(status: number, d: AuthFail) {
   return d.left ? `암호가 맞지 않아요. ${d.left}번 더 틀리면 15분 동안 잠겨요.` : '암호가 맞지 않아요.'
 }
 
+const reduceMotionNow = () => {
+  try {
+    return matchMedia('(prefers-reduced-motion: reduce)').matches
+  } catch {
+    return false
+  }
+}
+
 type PreviewView = 'mobile' | 'web'
 const VIEW_KEY = 'tangbang:editor-view'
 // 웹 미리보기: 실제 매거진의 책(Book)을 1120×640 무대에 그리고 미리보기 칸 너비에 맞춰 줄인다.
 // 책 안의 링크·버튼은 누르지 못하게 막는다(작성 중인 글을 두고 다른 화면으로 가지 않게). 양옆 넘김 버튼은 쓸 수 있다
 const STAGE_W = 1120
 const STAGE_H = 640
-function WebPreview({ story }: { story: Story }) {
+function WebPreview({ story, onLayout, jump }: { story: Story; onLayout: (l: BookLayout) => void; jump?: { spread: number; key: number } }) {
   const box = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(0.5)
   useLayoutEffect(() => {
@@ -47,7 +92,7 @@ function WebPreview({ story }: { story: Story }) {
   return (
     <div ref={box} className="ed-web" style={{ height: STAGE_H * scale }}>
       <div className="mag ed-web-stage" style={{ width: STAGE_W, height: STAGE_H, transform: `scale(${scale})` }}>
-        <Book story={story} next={null} preview />
+        <Book story={story} next={null} preview onLayout={onLayout} jump={jump} />
       </div>
     </div>
   )
@@ -83,6 +128,23 @@ export default function Editor() {
     () => ({ id: d.id ?? 0, slug: 'preview', title: d.title || '제목', category: (d.category || 'unknown') as StoryCategory, summary: d.summary, cover: d.cover, author: d.author, place_ids: d.place_ids, status: d.status, published_at: null, updated_at: '', body: d.body }),
     [d],
   )
+  // 장 목록: 본문에서 바로 세고, 쪽 배치는 웹 미리보기의 책이 알려 준다(모바일 미리보기일 때는 쪽 없음)
+  const chapters = useMemo(() => chaptersOf(d.body), [d.body])
+  const [layout, setLayout] = useState<BookLayout | null>(null)
+  const onLayout = useCallback((l: BookLayout) => setLayout((o) => (o && o.pages === l.pages && o.starts.join() === l.starts.join() ? o : l)), [])
+  const [jump, setJump] = useState<{ spread: number; key: number }>()
+  const phone = useRef<HTMLDivElement>(null)
+  const pickChapter = (n: number) => {
+    if (view === 'web') {
+      const start = layout?.starts[n]
+      if (start != null) setJump({ spread: Math.floor(start / 2), key: Date.now() })
+      return
+    }
+    // 모바일 미리보기: 휴대폰 틀 안에서만 스크롤한다(scrollIntoView는 바깥 화면까지 밀 수 있어 쓰지 않음)
+    const box = phone.current
+    const el = n === 0 ? box?.querySelector('.mag-body') : box?.querySelector(`.mag-ch[data-ch="${n}"]`)
+    if (box && el) box.scrollTo({ top: box.scrollTop + el.getBoundingClientRect().top - box.getBoundingClientRect().top - 12, behavior: reduceMotionNow() ? 'auto' : 'smooth' })
+  }
   const [msg, setMsg] = useState<{ ok: boolean; text: string; problems?: string[] } | null>(null)
   const [busy, setBusy] = useState(false)
   // 사진 올리기: 올리는 동안 사진 버튼은 잠그고, 실패 안내는 누른 버튼 바로 아래에 보여 준다
@@ -180,9 +242,9 @@ export default function Editor() {
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((x) => ({ ...x, [k]: v }))
   bodyNow.current = d.body
 
-  // 본문의 커서 자리(없으면 맨 끝)에 사진 한 줄을 넣는다. 사진은 앞뒤에 빈 줄이 있어야 사진으로 읽힌다(parseBody가 빈 줄로 문단을 나눔).
-  // 설명은 비워 두고 커서를 [ ] 안에 둔다.
-  const insertPhoto = (url: string) => {
+  // 본문의 커서 자리(없으면 맨 끝)에 한 줄(사진·장 나누기)을 앞뒤 빈 줄과 함께 넣는다. 빈 줄이 있어야 따로 읽힌다(parseBody가 빈 줄로 문단을 나눔).
+  // caret: 넣은 뒤 커서를 둘 자리(줄 안의 글자 위치). 사진은 설명 칸 [ ] 안, 장 나누기는 다음 줄(장 제목을 쓰도록)
+  const insertBlock = (line: string, caret: number | 'after') => {
     const body = bodyNow.current
     const ta = bodyBox.current
     const cursor = ta && document.activeElement === ta ? ta.selectionStart : bodyCursor.current // 올리는 사이에 본문을 다시 누르고 있으면 지금 커서
@@ -194,12 +256,15 @@ export default function Editor() {
     const before = body.slice(0, at)
     const after = body.slice(at)
     const lead = !before || before.endsWith('\n\n') ? '' : before.endsWith('\n') ? '\n' : '\n\n'
-    const line = `![](${url})`
     const tail = after.startsWith('\n\n') ? '' : after.startsWith('\n') ? '\n' : '\n\n'
-    caretAfter.current = at + lead.length + 2
-    bodyCursor.current = at + lead.length + line.length + tail.length
+    const end = at + lead.length + line.length + tail.length
+    caretAfter.current = caret === 'after' ? end : at + lead.length + caret
+    bodyCursor.current = end
     set('body', before + lead + line + tail + after)
   }
+  const insertPhoto = (url: string) => insertBlock(`![](${url})`, 2)
+  // 장 나누기: '---' 한 줄을 넣고 커서를 그 아래 빈 줄에 둔다(이어서 사진이나 '## 장 제목'을 쓰도록)
+  const insertChapter = () => insertBlock('---', 'after')
   useEffect(() => {
     const c = caretAfter.current
     const ta = bodyBox.current
@@ -316,6 +381,7 @@ export default function Editor() {
             />
           </label>
           <div className="ed-photo-body">
+            <button type="button" className="mag-btn" disabled={!!uploading} onClick={insertChapter}>장 나누기</button>
             <button type="button" className="mag-btn" disabled={!!uploading} onClick={() => bodyFile.current?.click()}>{uploading === 'body' ? '올리는 중…' : '본문에 사진 넣기'}</button>
             {fileInput('body', bodyFile)}
           </div>
@@ -351,12 +417,13 @@ export default function Editor() {
             <button type="button" aria-pressed={view === 'mobile'} onClick={() => pickView('mobile')}>모바일</button>
             <button type="button" aria-pressed={view === 'web'} onClick={() => pickView('web')}>웹</button>
           </div>
+          <ChapterList chapters={chapters} layout={layout} view={view} onPick={pickChapter} />
           {view === 'web' ? (
             <div className="ed-swap" key="web">
-              <WebPreview story={previewStory} />
+              <WebPreview story={previewStory} onLayout={onLayout} jump={jump} />
             </div>
           ) : (
-          <div className="mag ed-phone ed-swap" key="mobile">
+          <div className="mag ed-phone ed-swap" key="mobile" ref={phone}>
             {d.cover ? <img className="mag-cover mag-cover--hero" src={d.cover} alt="" /> : <div className="mag-cover mag-cover--hero mag-cover--empty" />}
             <div className="mag-scroll-in">
               <header className="mag-art-head">
