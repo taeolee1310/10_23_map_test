@@ -29,6 +29,7 @@ import './MainScreen.css'
 import { fetchPlaces } from '../../lib/api'
 import { track } from '../../lib/track'
 import { fetchStories, go, type Story } from '../../lib/stories'
+import BottomNav from '../../components/BottomNav/BottomNav'
 
 // 목록 데이터는 lib/api.ts가 받는다(데이터 API → 실패하면 정적 파일 /data/onsen.json)
 // 손가락이 주 입력인 기기에서는 드롭다운 항목을 크게(누르기 쉬운 높이)
@@ -41,7 +42,7 @@ const SORTS = [
 ]
 const PAGE = 60
 const TOUR_KEY = 'tangbang:onboarding:v3' // 안내를 한 번 봤는지(이 브라우저에만 저장). v2: 미리보기 칩·핀 두 번 누르기(2026-11-02), v3: 상세 TOP 3 단계 추가(2026-11-02)
-const TOUR_KEY_MAG = 'tangbang:onboarding:v4' // v4: 매거진 단계 추가(2026-11-08). 공개된 매거진 글이 있을 때만 이 키와 단계를 쓴다(글이 없으면 매거진 버튼도 안 보임)
+const TOUR_KEY_MAG = 'tangbang:onboarding:v5' // v4: 매거진 단계 추가(2026-11-08), v5: 모바일은 매거진이 하단 네비게이션 바의 탭으로 옮겨 감(2026-11-10). 공개된 매거진 글이 있을 때만 이 키와 단계를 쓴다(글이 없으면 매거진 버튼도 안 보임)
 const NARROW = '(max-width: 820px)' // MainScreen.css 모바일 기준과 같다
 // 온보딩 4단계 문구
 const TOUR_TEXT = [
@@ -51,7 +52,8 @@ const TOUR_TEXT = [
   { title: '자세히 보는 두 가지 방법', body: "카드의 '자세히 보기'를 누르거나, 지도에서 고른 핀을 한 번 더 누르면 자세한 정보로 넘어가요." },
   { title: '가기 전 걱정 TOP 3', body: '자세한 정보 맨 위에서 수건·드라이기·세신 정보를 먼저 확인하세요. 모르는 항목은 알려 주시면 확인한 뒤 반영해요.' },
 ]
-const TOUR_TEXT_MAG = { title: '목욕 이야기 매거진', body: '탕 속 비밀, 목욕 꿀팁, 별난 목욕탕, 동네 수다를 모았어요. 위쪽 매거진 버튼으로 언제든 읽을 수 있어요.' }
+// 매거진으로 가는 곳: 넓은 화면은 제목 옆 버튼, 모바일은 하단 네비게이션 바의 탭
+const TOUR_TEXT_MAG = { title: '목욕 이야기 매거진', body: '탕 속 비밀, 목욕 꿀팁, 별난 목욕탕, 동네 수다를 모았어요.', wide: '위쪽 매거진 버튼으로 언제든 읽을 수 있어요.', narrow: '아래 매거진 탭으로 언제든 읽을 수 있어요.' }
 const FAV_KEY = 'onsen_fav'
 // 담아둔 곳 백업: 같은 목록을 서버 쿠키(web/api/favs.js)에도 적어 두고, 사파리가 localStorage를 지웠을 때 되살린다
 const FAV_BACKUP = '/api/favs'
@@ -495,10 +497,10 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
     ...(hasMag
       ? [
           {
-            // 매거진 글이 있을 때만: 상단 '매거진' 버튼(모바일은 사용법 옆)을 비춘다
-            target: window.matchMedia(NARROW).matches ? '.mag-entry--narrow' : '.mag-entry--wide',
+            // 매거진 글이 있을 때만: 상단 '매거진' 버튼(모바일은 하단 바의 매거진 탭)을 비춘다
+            target: window.matchMedia(NARROW).matches ? '.bnav [data-tab="magazine"]' : '.mag-entry--wide',
             title: TOUR_TEXT_MAG.title,
-            body: TOUR_TEXT_MAG.body,
+            body: `${TOUR_TEXT_MAG.body} ${window.matchMedia(NARROW).matches ? TOUR_TEXT_MAG.narrow : TOUR_TEXT_MAG.wide}`,
             onEnter: () => closeDetail(),
           },
         ]
@@ -520,7 +522,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
   }
 
   return (
-    <div className="onsen-main" id="shell">
+    <div className={`onsen-main${hasMag ? ' onsen-main--bnav' : ''}`} id="shell">
       {TOUCH && <PullRefresh scrollerId="shell" onRefresh={onRefresh} />}
       <header className="hero">
         <div className="hero-copy">
@@ -551,11 +553,6 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
           <button type="button" className="help help--narrow" onClick={openTour}>
             <IconHelp />사용법
           </button>
-          {hasMag && (
-            <button type="button" className="help help--narrow mag-entry mag-entry--narrow" onClick={openMagazine}>
-              매거진
-            </button>
-          )}
           <label className="search">
             <IconSearch />
             <span className="sr">목욕탕 검색</span>
@@ -742,6 +739,8 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
         출처: 행정안전부 온천이용업소 현황, 서울시 목욕장업 인허가 정보, 카카오 로컬 API(장소·주차장 검색), 요금: 업체 가격표(네이버 플레이스)·행안부 착한가격업소, 지도: 카카오맵, 구 경계: 통계청 SGIS(공공누리 제1유형). 데이터 기준일 {data.baseDate}.
       </p>
       <PriceReport place={reportFor} onClose={() => setReportFor(null)} onMessage={showToast} />
+      {/* 모바일 하단 네비게이션 바: 갈 곳이 둘 이상일 때만(공개된 매거진 글이 있을 때). 홈 탭을 다시 누르면 맨 위로 */}
+      {hasMag && <BottomNav current="map" onCurrent={() => document.getElementById('shell')?.scrollTo({ top: 0, behavior: 'smooth' })} />}
       <Onboarding steps={tourSteps} open={tourOpen} onClose={closeTour} />
     </div>
   )

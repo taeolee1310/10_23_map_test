@@ -387,10 +387,11 @@
 .onsen-main .mag-entry { padding: 0 var(--space-3); }
 .onsen-main .story-link { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .onsen-main .story-link .btn { max-width: 100%; white-space: normal; text-align: left; min-height: 44px; }
-.onsen-main .help--narrow.mag-entry { margin-left: 6px; }
 @media (max-width: 820px) {
-  .onsen-main .help--wide { display: none; }
+  .onsen-main .help--wide, .onsen-main .mag-entry--wide { display: none; } /* 매거진 버튼도 좁은 화면에서는 검색창 위 것 하나만(제목 옆 것이 같이 보여 두 개였다) */
   .onsen-main .help--narrow { display: inline-flex; margin-bottom: 10px; }
+  /* 하단 네비게이션 바가 있을 때: 바 높이만큼 아래 여백을 둬서 맨 아래 내용이 가려지지 않게 한다 */
+  .onsen-main.onsen-main--bnav { padding-bottom: calc(var(--bnav-h) + 10px); }
 }
 
 /* 메인 화면 로고: 기준 색 토큰으로 칠한다(인트로의 로고 색은 그대로) */

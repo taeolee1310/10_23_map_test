@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { CATEGORIES, catLabel, chaptersOf, fetchStories, fetchStory, go, isStoryKey, parseBody, storyDate, storyPath, type Story, type StoryCategory } from '../../lib/stories'
 import { track } from '../../lib/track'
 import './Magazine.css'
+import BottomNav from '../../components/BottomNav/BottomNav'
 
 // 매거진: 웹(821px 이상)은 책장을 넘기는 펼침면, 모바일은 위에서 아래로 스크롤. 같은 데이터·같은 본문 해석을 쓰고 모양만 다르다.
 const WIDE = '(min-width: 821px)'
@@ -37,6 +38,8 @@ export default function Magazine({ slug }: { slug: string | null }) {
     <div className="mag mag--lock" onCopy={block} onCut={block} onContextMenu={block} onDragStart={block}>
       <TopBar compact={!!slug} />
       {slug ? <StoryView slug={slug} stories={stories ?? []} /> : <StoryList stories={stories} failed={failed} />}
+      {/* 모바일 하단 네비게이션 바(넓은 화면은 위쪽 메뉴). 글을 읽는 중에 매거진 탭을 누르면 목록으로 간다 */}
+      <BottomNav current="magazine" />
     </div>
   )
 }

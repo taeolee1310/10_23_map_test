@@ -221,7 +221,9 @@
 
 @media (max-width: 820px) {
   .mag-top { flex-direction: column; align-items: center; padding: 22px 16px 6px; }
-  .mag-nav { position: static; flex-direction: row; gap: 18px; margin-top: 10px; font-size: 15px; }
+  /* 모바일은 화면 이동을 하단 네비게이션 바가 맡는다: 위쪽 메뉴는 숨기고, 바 높이만큼 아래 여백을 둔다 */
+  .mag-nav { display: none; }
+  .mag { padding-bottom: var(--bnav-h); box-sizing: border-box; }
   .mag-list { padding: 8px 0 56px; }
   .mag-h { display: none; }
   .mag-cats { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; gap: 20px; padding: 0 16px; scrollbar-width: none; }
@@ -229,8 +231,6 @@
   .mag-grid { grid-template-columns: minmax(0, 1fr); }
   .mag-top--compact { flex-direction: row; padding: 4px 16px; }
   .mag-top--compact .mag-logo { font-size: 19px; }
-  .mag-top--compact .mag-nav { margin-top: 0; gap: 16px; }
-  .mag-nav a { min-height: 44px; }
   /* 카테고리 줄: 옆으로 더 있다는 것이 보이게 오른쪽 끝을 옅게 지운다(마스크의 검정은 색이 아니라 '보임') */
   .mag-cats { padding-right: 40px; -webkit-mask-image: linear-gradient(90deg, black calc(100% - 36px), transparent); mask-image: linear-gradient(90deg, black calc(100% - 36px), transparent); }
   .mag-card { border-right: 0; padding: 22px 20px 26px; }

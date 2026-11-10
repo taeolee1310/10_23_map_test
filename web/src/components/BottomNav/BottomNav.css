@@ -1,0 +1,19 @@
+/* 모바일 하단 네비게이션 바. 색은 tangbang-colors.css의 semantic 토큰만 쓴다. 지금 화면의 탭 = Bath Teal(선택·포인트) */
+/* --bnav-h: 바 높이(아이폰 아래 홈 막대 자리 포함). 바를 그리는 화면은 같은 값만큼 아래 여백을 둔다 */
+:root { --bnav-h: calc(56px + env(safe-area-inset-bottom, 0px)); }
+.bnav { display: none; }
+@media (max-width: 820px) {
+  /* z-index 40: 화면을 덮는 상세(49·50)·사용법 안내(1000)·제보 창(1100)보다 아래 */
+  .bnav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: flex; box-sizing: border-box; height: var(--bnav-h); padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--color-bg-surface); border-top: 1px solid var(--color-border-default); font-family: 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif; }
+  .bnav a { flex: 1; min-width: 0; display: grid; justify-items: center; align-content: center; gap: 2px; color: var(--color-text-muted); font-size: 11px; line-height: 14px; font-weight: 600; text-decoration: none;
+    -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; transition: color 200ms ease; }
+  .bnav a[aria-current] { color: var(--color-text-link); }
+  .bnav a svg { transition: transform var(--dur-press) var(--ease-out); }
+  .bnav a:active svg { transform: scale(0.9); }
+  .bnav a:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: -4px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bnav a, .bnav a svg { transition: none; }
+  .bnav a:active svg { transform: none; }
+}
