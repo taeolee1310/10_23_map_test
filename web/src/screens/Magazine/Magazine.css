@@ -19,6 +19,9 @@
   transition: transform var(--dur-press) var(--ease-out), background-color 200ms ease, color 200ms ease, opacity 200ms ease;
 }
 .mag-btn:active, .mag-turn:not(:disabled):active, .mag-cats button:active { transform: scale(0.97); }
+/* 독자 화면: 글자 선택·길게 눌러 저장·그림 끌기를 막는다(Magazine.tsx에서 복사·오른쪽 버튼 메뉴도 막음) */
+.mag--lock { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.mag--lock img { -webkit-user-drag: none; }
 .mag :focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 3px; }
 
 /* 머리 */
@@ -188,7 +191,11 @@
 .mag-book .mag-fig--inline + .mag-ch { margin-top: 18px; padding-top: 0; }
 /* 앞 장의 글이 넘쳐 사진이 오른쪽 쪽에 걸릴 때 두는 빈 쪽 */
 .mag-book .mag-blank { display: grid; place-items: center; height: calc(var(--book-h) - var(--book-pad) * 2); break-before: column; color: var(--color-text-subtle); letter-spacing: .3em; }
-/* 쪽 바깥 여백(글이 없는 자리)을 잡고 끌어서 넘긴다. 종이 결(5)보다 위 */
+/* 쪽 어디서나 끌어서 넘긴다(Book bookDrag). 세로 스크롤은 그대로 두고 가로 끌기만 받는다. 그림이 따로 끌려 나오지 않게 한다 */
+.mag-book { cursor: grab; touch-action: pan-y; }
+.mag-book a, .mag-book button { cursor: pointer; }
+.mag-book img { -webkit-user-drag: none; }
+/* 쪽 바깥 여백: 올리면 장 끝이 들리고, 누르면 한 장 넘어간다. 종이 결(5)보다 위 */
 .mag-grab { position: absolute; top: 0; bottom: 0; width: var(--book-pad); z-index: 6; cursor: grab; touch-action: pan-y; }
 .mag-grab:active { cursor: grabbing; }
 .mag-grab--prev { left: 0; }

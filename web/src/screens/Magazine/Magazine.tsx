@@ -17,6 +17,8 @@ function useWide() {
 }
 const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+const block = (e: { preventDefault: () => void }) => e.preventDefault()
+
 export default function Magazine({ slug }: { slug: string | null }) {
   const [stories, setStories] = useState<Story[] | null>(null)
   const [failed, setFailed] = useState(false)
@@ -30,7 +32,9 @@ export default function Magazine({ slug }: { slug: string | null }) {
   }, [slug])
 
   return (
-    <div className="mag">
+    // 독자 화면은 글·그림을 긁어 가지 못하게 한다: 글자 선택·복사·오른쪽 버튼 메뉴·그림 끌어 저장을 막는다(주소 공유는 '공유하기'로).
+    // 화면 캡처나 개발자 도구까지 막을 수는 없다. 작성 화면에는 적용하지 않는다
+    <div className="mag mag--lock" onCopy={block} onCut={block} onContextMenu={block} onDragStart={block}>
       <TopBar compact={!!slug} />
       {slug ? <StoryView slug={slug} stories={stories ?? []} /> : <StoryList stories={stories} failed={failed} />}
     </div>
@@ -314,6 +318,7 @@ function Scroll({ story, next }: { story: Story; next: Story | null }) {
 // 넘기는 장은 세로 띠 STRIPS개로 나뉘어 띠마다 조금씩 더 꺾인다: 들릴 때는 바깥 끝이 먼저 가고, 내려앉을 때는 바깥 끝이 늦게 따라온다(종이가 휘는 모양).
 // 띠 경계마다 기울기에 맞춘 그늘을 이어 붙여 휜 면처럼 보이게 한다. 움직이는 것은 transform·opacity뿐이다.
 // 쪽 바깥 여백을 잡고 끌어도 넘어간다: 끄는 만큼 장이 따라오고, 반 넘게 끌거나 빠르게 밀고 놓으면 마저 넘어가고 아니면 돌아온다.
+// 쪽 어디서나(링크·버튼 위는 빼고) 넘길 방향으로 8px 넘게 끌면 끌기가 시작된다. 쪽 안을 그냥 누르는 것은 넘기지 않는다.
 // 마우스를 여백에 올리면 장 끝이 살짝 들려 잡을 수 있다는 것을 알린다. 여백을 그냥 누르면 한 장 넘어간다.
 // 첫 쪽은 대표 사진. 장 여는 사진이 있는 장은 왼쪽 쪽 전체가 사진, 오른쪽 쪽이 글이다.
 // 움직임 원칙: 버튼으로 넘길 때만 책장이 돈다. ← → 키는 자주 반복하는 동작이라 바로 바뀐다.
@@ -570,6 +575,57 @@ export function Book({ story, next, preview = false, onLayout, jump }: { story: 
     setFlip(d)
     return true
   }
+  // 끄는 동안의 움직임·놓기는 책 전체에서 받는다(여백에서 시작한 끌기도 여기로 올라온다)
+  const cand = useRef<{ x: number; d: 1 | -1; id: number } | null>(null) // 쪽 안에서 누른 뒤 아직 끌기로 정해지지 않은 상태
+  const bookDrag = {
+    onPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => {
+      if (e.button !== 0 || flip || scrub.current) return
+      if ((e.target as HTMLElement).closest('a, button, .mag-grab')) return
+      const r = e.currentTarget.getBoundingClientRect()
+      cand.current = { x: e.clientX, d: e.clientX > r.left + r.width / 2 ? 1 : -1, id: e.pointerId }
+    },
+    onPointerMove: (e: ReactPointerEvent<HTMLDivElement>) => {
+      const c = cand.current
+      if (c) {
+        if ((c.x - e.clientX) * c.d < 8) return
+        cand.current = null
+        if (!begin(c.d, 'drag')) return
+        e.currentTarget.setPointerCapture(c.id)
+        grab.current = { x: c.x, p0: 0, lastP: 0, lastT: e.timeStamp, t0: e.timeStamp, v: 0, moved: true }
+      }
+      const g = grab.current
+      const s = scrub.current
+      const half = e.currentTarget.getBoundingClientRect().width / 2
+      if (!g || !s || !half) return
+      // 장의 바깥 끝이 손을 따라온다: 끝의 가로 위치(책등에서 half ~ -half)를 넘어간 각도로 바꾼다
+      const travel = (g.x - e.clientX) * s.dir
+      if (Math.abs(travel) > 4) g.moved = true
+      const edge = Math.max(-half, Math.min(half, half * Math.cos(Math.PI * g.p0) - travel))
+      const p = Math.max(0.01, Math.acos(edge / half) / Math.PI)
+      const dt = e.timeStamp - g.lastT
+      if (dt > 0) {
+        g.v = (p - g.lastP) / dt
+        g.lastP = p
+        g.lastT = e.timeStamp
+      }
+      setP(p)
+    },
+    onPointerUp: (e: ReactPointerEvent) => {
+      cand.current = null
+      const g = grab.current
+      const s = scrub.current
+      grab.current = null
+      if (!g || !s) return
+      const tap = !g.moved && e.timeStamp - g.t0 < 500 // 여백을 끌지 않고 누르기만 했으면 한 장 넘긴다
+      const v = e.timeStamp - g.lastT > 120 ? 0 : g.v // 멈췄다가 놓으면 속도는 없는 것으로
+      settle(tap || v > 0.0015 || (s.p > 0.5 && v > -0.0015) ? 1 : 0)
+    },
+    onPointerCancel: () => {
+      cand.current = null
+      grab.current = null
+      if (scrub.current?.mode === 'drag') settle(0)
+    },
+  }
   const grabProps = (d: 1 | -1) => ({
     onPointerEnter: (e: ReactPointerEvent) => {
       if (e.pointerType === 'mouse' && !e.buttons) begin(d, 'peek')
@@ -592,37 +648,6 @@ export function Book({ story, next, preview = false, onLayout, jump }: { story: 
       e.currentTarget.setPointerCapture(e.pointerId)
       e.preventDefault()
       grab.current = { x: e.clientX, p0: s.p, lastP: s.p, lastT: e.timeStamp, t0: e.timeStamp, v: 0, moved: false }
-    },
-    onPointerMove: (e: ReactPointerEvent) => {
-      const g = grab.current
-      const s = scrub.current
-      const half = (book.current?.getBoundingClientRect().width ?? 0) / 2
-      if (!g || !s || !half) return
-      // 장의 바깥 끝이 손을 따라온다: 끝의 가로 위치(책등에서 half ~ -half)를 넘어간 각도로 바꾼다
-      const travel = (g.x - e.clientX) * s.dir
-      if (Math.abs(travel) > 4) g.moved = true
-      const edge = Math.max(-half, Math.min(half, half * Math.cos(Math.PI * g.p0) - travel))
-      const p = Math.max(0.01, Math.acos(edge / half) / Math.PI)
-      const dt = e.timeStamp - g.lastT
-      if (dt > 0) {
-        g.v = (p - g.lastP) / dt
-        g.lastP = p
-        g.lastT = e.timeStamp
-      }
-      setP(p)
-    },
-    onPointerUp: (e: ReactPointerEvent) => {
-      const g = grab.current
-      const s = scrub.current
-      grab.current = null
-      if (!g || !s) return
-      const tap = !g.moved && e.timeStamp - g.t0 < 500 // 끌지 않고 누르기만 했으면 한 장 넘긴다
-      const v = e.timeStamp - g.lastT > 120 ? 0 : g.v // 멈췄다가 놓으면 속도는 없는 것으로
-      settle(tap || v > 0.0015 || (s.p > 0.5 && v > -0.0015) ? 1 : 0)
-    },
-    onPointerCancel: () => {
-      grab.current = null
-      if (scrub.current?.mode === 'drag') settle(0)
     },
     onClick: () => {
       if (!plain.current) return
@@ -789,7 +814,7 @@ export function Book({ story, next, preview = false, onLayout, jump }: { story: 
   return (
     <main className="mag-book-stage">
       <button className="mag-turn mag-turn--prev" aria-label="이전 장" title="이전 장 (←)" disabled={spread === 0} onClick={() => turn(-1)}>‹</button>
-      <div className="mag-book" ref={book}>
+      <div className="mag-book" ref={book} {...bookDrag}>
         {/* 아래에 깔린 두 쪽. 넘기는 동안 오른쪽(앞으로)·왼쪽(뒤로)은 넘긴 뒤 보일 쪽을 미리 깐다 */}
         {/* 왼쪽 쪽이 본문 원본(화면 읽기 프로그램이 읽음), 나머지는 같은 본문을 잘라 보여 주는 사본 */}
         <Half side="left" col={L} geo={geo} flowRef={flow} extra={<div ref={castL} className="mag-shade mag-shade--r" />}>
@@ -821,7 +846,7 @@ export function Book({ story, next, preview = false, onLayout, jump }: { story: 
             ))}
           </nav>
         ) : (
-          <span className="mag-hint">쪽 가장자리를 끌거나 ← → 키, 양옆 버튼으로 넘겨요</span>
+          <span className="mag-hint">쪽을 끌거나 ← → 키, 양옆 버튼으로 넘겨요</span>
         )}
         <span className="mag-count">
           {spread + 1} / {spreads}
