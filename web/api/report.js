@@ -42,7 +42,9 @@ const loadPlaces = async (host) => {
 }
 
 // 사람이 검토할 때 눈에 띄게 하는 표시. 걸러내지는 않고 표시만 한다.
+// 기준은 data/report_rules.json·worker/src/index.js와 같게. 입장료는 위쪽 끝 '이상'부터 표시한다.
 const RANGE = { adult: [3000, 30000], towel: [0, 5000], scrub: [5000, 60000] }
+const odd = (k, v) => v < RANGE[k][0] || (k === 'adult' ? v >= RANGE[k][1] : v > RANGE[k][1])
 const contact = /\d[\d\s-]{7,}\d|https?:|www\.|@/i
 
 const won = (v) => {
@@ -92,7 +94,7 @@ export default async function handler(req, res) {
   } else flags.push('업체 확인 못 함')
   for (const [k, label] of [['adult', '입장료'], ['towel', '수건'], ['scrub', '세신']]) {
     const v = { adult, towel, scrub }[k]
-    if (v != null && (v < RANGE[k][0] || v > RANGE[k][1])) flags.push(`${label} 이상값`)
+    if (v != null && odd(k, v)) flags.push(`${label} 이상값`)
   }
   if (contact.test(memo)) {
     flags.push('연락처 의심')

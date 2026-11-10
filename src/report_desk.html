@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>탕방 제보함</title>
+<link rel="stylesheet" href="/colors.css">
+<style>
+  /* 색은 tangbang-colors.css의 semantic·component 토큰만 쓴다 */
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--color-bg-page); color: var(--color-text-primary); font: 15px/1.55 "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; }
+  button, input, select { font: inherit; color: inherit; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 24px 24px 120px; }
+  header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 18px; margin: 0; }
+  .sub { color: var(--color-text-secondary); font-size: 13px; margin: 2px 0 0; }
+  .demo { background: var(--color-state-warning-bg); color: var(--color-state-warning-text); border-radius: var(--radius-sm); padding: 4px 12px; font-size: 13px; }
+  .cols { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
+  .card { background: var(--color-bg-surface); border: 1px solid var(--color-border-default); border-radius: var(--radius-md); }
+  .list { overflow: clip; }
+  .list h3, .step { font-size: 12px; font-weight: 600; color: var(--color-text-muted); margin: 0; }
+  .list h3 { padding: 10px 14px; border-bottom: 1px solid var(--color-border-subtle); }
+  .sweep { padding: 10px 14px; border-bottom: 1px solid var(--color-border-subtle); }
+  .sweep .btn { width: 100%; justify-content: center; }
+  .item { display: block; width: 100%; min-height: 44px; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--color-border-subtle); border-left: 4px solid transparent; padding: 12px 14px 12px 10px; cursor: pointer; }
+  .item:hover { background: var(--color-action-outline-hover); }
+  .item[aria-current="true"] { background: var(--color-bg-surface-muted); border-left-color: var(--color-border-focus); }
+  .item b { display: block; font-weight: 600; overflow-wrap: anywhere; }
+  .item span.s { display: block; color: var(--color-text-secondary); font-size: 13px; margin-bottom: 4px; overflow-wrap: anywhere; }
+  .chip { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: var(--radius-sm); background: var(--badge-neutral-bg); color: var(--badge-neutral-text); }
+  .chip.new { background: var(--badge-facility-bg); color: var(--badge-facility-text); }
+  .chip.warn { background: var(--color-state-warning-bg); color: var(--color-state-warning-text); }
+  .chip.bad { background: var(--color-state-error-bg); color: var(--color-text-primary); }
+  .chip.ok { background: var(--color-state-success-bg); color: var(--color-text-primary); }
+  .detail { padding: 20px 22px; min-width: 0; }
+  .head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-start; justify-content: space-between; }
+  .head .links { display: flex; flex-wrap: wrap; gap: 8px; }
+  .addr { color: var(--color-text-secondary); font-size: 13px; margin: 2px 0 0; overflow-wrap: anywhere; }
+  .step { margin: 18px 0 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .rows { display: grid; gap: 10px; }
+  .field { border: 1px solid var(--color-border-subtle); border-radius: var(--radius-sm); padding: 12px; min-width: 0; }
+  .field[data-mode="ok"], .field[data-mode="diff"] { border-color: var(--color-border-focus); }
+  .field .top { display: grid; grid-template-columns: 96px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  .k { color: var(--color-text-secondary); font-size: 13px; padding-top: 2px; }
+  .v { font-weight: 600; overflow-wrap: anywhere; }
+  .v small, .v .tag { display: block; color: var(--color-text-secondary); font-weight: 400; font-size: 12px; overflow-wrap: anywhere; }
+  .v .tag.sus { color: var(--color-state-warning-text); }
+  .v.none { color: var(--color-text-muted); font-weight: 400; }
+  .col-h { display: grid; grid-template-columns: 96px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; padding: 0 13px 4px; font-size: 12px; color: var(--color-text-muted); }
+  .proof { margin: 10px 0 0; padding: 8px 10px; background: var(--color-bg-surface-muted); border-radius: var(--radius-sm); font-size: 13px; color: var(--color-text-secondary); }
+  .proof b { font-weight: 600; color: var(--color-text-primary); font-size: 12px; }
+  .proof div { overflow-wrap: anywhere; margin-top: 2px; }
+  .picks { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 10px; }
+  .pick { min-height: 40px; padding: 0 12px; border-radius: var(--radius-pill); border: 1px solid var(--chip-border); background: var(--chip-bg); color: var(--chip-text); cursor: pointer; }
+  .pick:hover { background: var(--chip-bg-hover); }
+  .pick[aria-pressed="true"] { background: var(--chip-bg-selected); color: var(--chip-text-selected); border-color: var(--chip-border-selected); }
+  .diff { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+  .diff label { font-size: 13px; color: var(--color-text-secondary); display: inline-flex; gap: 6px; align-items: center; }
+  .reports { margin: 10px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--color-text-secondary); }
+  .reports li { padding: 2px 0; overflow-wrap: anywhere; }
+  .btn { min-height: 44px; padding: 0 16px; border-radius: var(--radius-sm); border: 1px solid var(--button-outline-border); background: var(--button-outline-bg); color: var(--button-outline-text); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+  .btn:hover { background: var(--button-outline-bg-hover); }
+  .btn.small { min-height: 36px; padding: 0 12px; font-size: 13px; }
+  .btn.primary { background: var(--button-primary-bg); border-color: var(--button-primary-bg); color: var(--button-primary-text); }
+  .btn.primary:hover { background: var(--button-primary-bg-hover); }
+  .btn:focus-visible, .item:focus-visible, .pick:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+  input[type="number"], input[type="text"], select { min-height: 40px; padding: 0 10px; border: 1px solid var(--color-border-default); border-radius: var(--radius-sm); background: var(--color-bg-surface); max-width: 100%; min-width: 0; }
+  input[type="number"] { width: 130px; }
+  .act { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+  .act .btn.primary { justify-content: center; min-width: 140px; }
+  .other { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--color-border-subtle); }
+  .other input[type="text"] { flex: 1 1 180px; }
+  .hint { color: var(--color-text-secondary); font-size: 13px; margin: 8px 0 0; }
+  .msg { margin: 0 0 14px; padding: 10px 12px; border-radius: var(--radius-sm); font-size: 14px; overflow-wrap: anywhere; display: flex; gap: 12px; align-items: flex-start; justify-content: space-between; }
+  .msg.err { background: var(--color-state-error-bg); }
+  .msg.good { background: var(--color-state-success-bg); }
+  .msg .lines { min-width: 0; }
+  .msg .lines div:not(:first-child) { font-size: 13px; color: var(--color-text-secondary); }
+  .empty { padding: 40px 20px; text-align: center; color: var(--color-text-secondary); }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--color-bg-band); border-top: 1px solid var(--color-border-default); }
+  .bar .in { max-width: 1160px; margin: 0 auto; padding: 12px 24px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+  .bar p { margin: 0; font-size: 14px; min-width: 0; flex: 1 1 240px; overflow-wrap: anywhere; }
+  dialog { border: 1px solid var(--color-border-default); border-radius: var(--radius-md); background: var(--color-bg-surface); color: var(--color-text-primary); padding: 20px 22px; width: min(520px, calc(100vw - 32px)); }
+  dialog::backdrop { background: var(--color-bg-inverse); opacity: 0.4; }
+  dialog h2 { margin-bottom: 8px; }
+  dialog ul { margin: 0 0 16px; padding-left: 18px; font-size: 14px; overflow-wrap: anywhere; max-height: 50vh; overflow: auto; }
+  dialog .acts { display: flex; justify-content: flex-end; gap: 8px; }
+  @media (max-width: 760px) {
+    .wrap { padding: 16px 16px 180px; }
+    .cols { grid-template-columns: minmax(0, 1fr); }
+    .field .top { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+    .col-h { display: none; }
+    .act { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (prefers-reduced-motion: no-preference) { .item, .btn, .pick { transition: background-color 0.12s; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>탕방 제보함</h1>
+      <p class="sub" id="summary">제보를 읽는 중이에요</p>
+    </div>
+    <span class="demo" id="demo" hidden>예시 모드 · 아무것도 바뀌지 않아요</span>
+  </header>
+  <div class="cols">
+    <nav class="card list" aria-label="새 제보">
+      <h3 id="list-title">새 제보</h3>
+      <div class="sweep" id="sweep-box" hidden><button class="btn small" id="sweep"></button></div>
+      <div id="list"></div>
+    </nav>
+    <main class="card detail" id="detail"><p class="empty">제보를 읽는 중이에요</p></main>
+  </div>
+</div>
+<div class="bar"><div class="in">
+  <p id="bar-text"></p>
+  <button class="btn" id="export">화면에 내보내기</button>
+</div></div>
+<dialog id="confirm">
+  <h2 id="c-title"></h2>
+  <ul id="c-list"></ul>
+  <div class="acts">
+    <button class="btn" id="c-no">취소</button>
+    <button class="btn primary" id="c-yes">확인</button>
+  </div>
+</dialog>
+<script>
+const TOKEN = '__TOKEN__'
+const $ = (id) => document.getElementById(id)
+// 제보 내용은 항상 textContent로만 넣는다(innerHTML 금지)
+const el = (tag, props = {}, ...kids) => {
+  const n = document.createElement(tag)
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') n.className = v
+    else if (k === 'text') n.textContent = v
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v)
+    else if (v !== false && v != null) n.setAttribute(k, v === true ? '' : v)
+  }
+  for (const c of kids.flat(3)) if (c != null && c !== false) n.append(c)
+  return n
+}
+const CHIP_CLASS = { '새 정보': 'new', '인상 가능성': 'warn', '확인값과 다름': 'warn', '충돌': 'bad', '이미 반영됨': 'ok' }
+const SWEEP_CHIPS = ['시험', '반려 추천', '이미 반영됨']
+const SOURCES = ['네이버 플레이스 가격표(업체 등록)', '업체 공식 홈페이지', '네이버 방문자 후기·블로그(최근 1년)', '공공데이터(착한가격업소 등)', '직접 방문 확인']
+const REASONS = ['근거와 다름', '허위·이상값', '서비스에 없는 업체', '시험·장난 제보', '이미 반영된 값']
+const SIDE = { women: '여탕', men: '남탕' }
+const SRC_KEY = 'tangbang:desk:src'
+const remember = (v) => { try { localStorage.setItem(SRC_KEY, v) } catch {} }
+const remembered = () => { try { return localStorage.getItem(SRC_KEY) || '' } catch { return '' } }
+
+let data = null
+let selKey = null
+let lastMsg = null // { kind, lines, undo }
+let picks = {} // 칸마다 고른 것: { mode: 'ok' | 'diff', value, sides }. 없으면 '못 봄'
+let barNote = null
+
+async function api(path, body) {
+  try {
+    const r = await fetch(path, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Desk-Token': TOKEN }, body: JSON.stringify(body) })
+    return await r.json()
+  } catch {
+    return { ok: false, error: '제보함 프로그램과 연결이 끊겼어요. 터미널에서 다시 실행해 주세요' }
+  }
+}
+
+function ask(title, lines, yesLabel) {
+  return new Promise((done) => {
+    $('c-title').textContent = title
+    $('c-list').replaceChildren(...lines.map((t) => el('li', { text: t })))
+    $('c-yes').textContent = yesLabel
+    const d = $('confirm')
+    const close = (v) => { d.close(); $('c-yes').onclick = $('c-no').onclick = d.oncancel = null; done(v) }
+    $('c-yes').onclick = () => close(true)
+    $('c-no').onclick = () => close(false)
+    d.oncancel = () => close(false)
+    d.showModal()
+  })
+}
+
+async function load(nextIndex) {
+  const j = await api('/api/reports')
+  if (!j.ok) {
+    data = null
+    $('summary').textContent = '제보를 읽지 못했어요'
+    $('list').replaceChildren()
+    $('sweep-box').hidden = true
+    $('detail').replaceChildren(el('p', { class: 'msg err', text: j.error }), el('p', { class: 'hint' }, el('button', { class: 'btn', text: '다시 읽기', onclick: () => load() })))
+    return
+  }
+  data = j
+  $('demo').hidden = !j.demo
+  const need = ['새 정보', '인상 가능성', '확인값과 다름', '충돌'].reduce((a, c) => a + j.counts[c], 0)
+  $('summary').textContent = `새 제보 ${j.total}건 · 확인할 것 ${need}건 · 정리 대상 ${j.sweep}건 (${j.cond})`
+  $('list-title').textContent = `새 제보 ${j.total}건 · 업체 ${j.groups.length}곳`
+  $('sweep-box').hidden = j.sweep === 0
+  $('sweep').textContent = `정리 대상 ${j.sweep}건 한 번에 처리`
+  // 판정한 뒤에는 같은 자리의 다음 업체로 넘어간다
+  if (nextIndex != null) selKey = j.groups[Math.min(nextIndex, j.groups.length - 1)]?.key ?? null
+  else if (!j.groups.some((g) => g.key === selKey)) selKey = j.groups[0]?.key ?? null
+  picks = {}
+  renderList()
+  renderDetail()
+  renderBar()
+}
+
+function renderList() {
+  $('list').replaceChildren(
+    ...data.groups.map((g) => {
+      const first = g.fields.map((f) => `${f.label} ${f.reported.map((r) => r.text).join(' 대 ')}`).join(' · ')
+      return el('button', { class: 'item', 'aria-current': g.key === selKey ? 'true' : 'false', onclick: () => { selKey = g.key; lastMsg = null; picks = {}; renderList(); renderDetail() } },
+        el('b', { text: g.place_name }),
+        el('span', { class: 's', text: `${first} · ${g.report_ids.length}건` }),
+        el('span', { class: 'chip ' + (CHIP_CLASS[g.chip] || ''), text: g.chip }),
+      )
+    }),
+  )
+  if (!data.groups.length) $('list').append(el('p', { class: 'empty', text: '새 제보가 없어요' }))
+}
+
+// 안내는 입력 칸을 다시 그리지 않고 안내 자리만 바꾼다(적어 둔 값이 지워지지 않게)
+function paintMsg() {
+  const box = $('msg')
+  if (!box) return
+  box.replaceChildren(...(lastMsg ? [el('div', { class: 'msg ' + lastMsg.kind, role: 'status' },
+    el('div', { class: 'lines' }, lastMsg.lines.map((t) => el('div', { text: t }))),
+    lastMsg.undo && el('button', { class: 'btn small', text: '되돌리기', onclick: undo }))] : []))
+}
+function showMsg(kind, lines, undoable) {
+  lastMsg = { kind, lines, undo: undoable }
+  paintMsg()
+  $('msg')?.scrollIntoView({ block: 'nearest' })
+}
+
+const dryerSides = (text) => {
+  const s = {}
+  for (const part of String(text).split(' · ')) {
+    if (part.startsWith('여탕 ')) s.women = part.slice(3)
+    else if (part.startsWith('남탕 ')) s.men = part.slice(3)
+  }
+  return s
+}
+
+// 칸 하나에서 고를 수 있는 '맞음' 버튼들. 수건·드라이기는 어느 탕인지까지 골라야 한다
+function okChoices(f) {
+  const good = f.reported.filter((r) => !r.outlier)
+  const many = good.length > 1
+  const out = []
+  for (const r of good) {
+    const name = many ? `${r.text} ` : ''
+    if (f.kind === 'price' || f.kind === 'pay') out.push({ label: `${name}맞음`, value: r.value })
+    else {
+      const sided = f.kind === 'dryer' ? dryerSides(r.value) : {}
+      if (sided.women || sided.men) out.push({ label: `${name}맞음`, sides: { women: sided.women || '', men: sided.men || '' } })
+      else out.push(
+        { label: `${name}여탕·남탕 다 맞음`, sides: { women: r.value, men: r.value } },
+        { label: `${name}여탕만 맞음`, sides: { women: r.value, men: '' } },
+        { label: `${name}남탕만 맞음`, sides: { women: '', men: r.value } },
+      )
+    }
+  }
+  return out
+}
+
+function fieldCard(g, f) {
+  const p = picks[f.key]
+  const proof = g.evidence?.by?.[f.key] || []
+  const set = (v) => { picks[f.key] = v; renderDetail() }
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b)
+  const choices = okChoices(f).map((c) => {
+    const v = { mode: 'ok', ...(c.sides ? { sides: c.sides } : { value: c.value }) }
+    return el('button', { class: 'pick', 'aria-pressed': same(p, v) ? 'true' : 'false', text: c.label, onclick: () => set(v) })
+  })
+  let diffBox = null
+  if (p?.mode === 'diff') {
+    if (f.kind === 'price') diffBox = el('input', { type: 'number', min: 0, max: 200000, step: 100, inputmode: 'numeric', placeholder: '근거에서 본 값', 'aria-label': `${f.label} 근거 값`, value: p.value ?? '', oninput: (e) => { p.value = e.target.value === '' ? null : Number(e.target.value); paintApply(g) } })
+    else if (f.kind === 'pay') diffBox = el('select', { 'aria-label': `${f.label} 근거 값`, onchange: (e) => { p.value = e.target.value; paintApply(g) } }, el('option', { value: '', text: '고르기' }), data.options.pay.map((o) => el('option', { value: o, text: o, selected: p.value === o })))
+    else diffBox = ['women', 'men'].map((side) => el('label', {}, SIDE[side],
+      el('select', { onchange: (e) => { p.sides[side] = e.target.value; paintApply(g) } }, el('option', { value: '', text: '모름' }), (f.kind === 'towel' ? data.options.towel : data.options.dryer).map((o) => el('option', { value: o, text: o, selected: p.sides[side] === o })))))
+  }
+  return el('div', { class: 'field', 'data-mode': p?.mode || 'skip' },
+    el('div', { class: 'top' },
+      el('span', { class: 'k', text: f.label }),
+      el('div', { class: 'v' }, f.reported.map((r) => el('div', {}, r.text,
+        el('small', { text: `제보 ${r.ids.map((i) => '#' + i).join(', ')}` }),
+        r.mark && el('span', { class: 'tag sus', text: `${r.mark === 'fake' ? '허위 기준' : '의심'}: ${r.why}` })))),
+      f.current.text
+        ? el('div', { class: 'v' }, f.current.text, el('small', { text: [f.current.checked && `확인일 ${f.current.checked}`, f.current.source].filter(Boolean).join(' · ') }))
+        : el('div', { class: 'v none', text: '없음' })),
+    proof.length > 0 && el('div', { class: 'proof' }, el('b', { text: `수집해 둔 네이버 근거 (${g.evidence.collected || '날짜 모름'} 수집)` }), proof.map((t) => el('div', { text: t }))),
+    g.can_apply && el('div', { class: 'picks', role: 'group', 'aria-label': `${f.label} 근거 확인` },
+      choices,
+      el('button', { class: 'pick', 'aria-pressed': p?.mode === 'diff' ? 'true' : 'false', text: '다름', onclick: () => set(f.kind === 'price' || f.kind === 'pay' ? { mode: 'diff', value: null } : { mode: 'diff', sides: { women: '', men: '' } }) }),
+      el('button', { class: 'pick', 'aria-pressed': !p ? 'true' : 'false', text: '못 봄', onclick: () => { delete picks[f.key]; renderDetail() } })),
+    diffBox && el('div', { class: 'diff' }, diffBox),
+  )
+}
+
+// 고른 것 → 서버에 보낼 근거. 값이 덜 채워진 칸이 있으면 그 칸 이름을 알려 준다
+function evidenceOf(g) {
+  const ev = {}
+  for (const f of g.fields) {
+    const p = picks[f.key]
+    if (!p) continue
+    if (p.sides) {
+      if (!p.sides.women && !p.sides.men) return { missing: f.label }
+      ev[f.key] = p.sides
+    } else {
+      if (p.value == null || p.value === '') return { missing: f.label }
+      ev[f.key] = p.value
+    }
+  }
+  return { ev }
+}
+function paintApply(g) {
+  const b = $('apply')
+  if (b) b.textContent = `반영 (${Object.keys(picks).length}칸)`
+}
+
+async function decide(g, verdict, extra) {
+  const index = data.groups.findIndex((x) => x.key === g.key)
+  const j = await api('/api/decide', { place_id: g.place_id, place_name: g.place_name, ids: g.report_ids, verdict, ...extra })
+  if (j.error) return showMsg('err', [j.error])
+  const word = { apply: '반영했어요', reject: '반려했어요', unknown: '확인 못 함으로 남겼어요' }[verdict]
+  lastMsg = {
+    kind: j.ok ? 'good' : 'err', undo: j.done.length > 0 || j.wrote.length > 0,
+    lines: [
+      `${g.place_name}: ${word}${j.demo ? ' (예시 모드라 실제로는 바꾸지 않았어요)' : ''}`,
+      ...j.wrote.map((w) => `파일: ${w}`),
+      ...j.done.map((d) => `제보 #${d.id} → ${d.status} · ${d.note}`),
+      ...j.failed.map((d) => `제보 #${d.id} 상태를 못 바꿨어요(${d.status}): ${d.error}`),
+      ...(j.failed.length ? ['파일은 이미 적었어요. 같은 판정을 한 번 더 누르면 남은 제보 상태만 다시 바꿔요.'] : []),
+    ],
+  }
+  await load(j.ok ? index : undefined)
+}
+
+async function undo() {
+  const j = await api('/api/undo', {})
+  lastMsg = j.error ? { kind: 'err', lines: [j.error] } : { kind: j.ok ? 'good' : 'err', lines: [`되돌렸어요: ${j.label}`, ...j.lines] }
+  await load()
+}
+
+function renderDetail() {
+  const d = $('detail')
+  const g = data?.groups.find((x) => x.key === selKey)
+  const msg = el('div', { id: 'msg' })
+  if (!g) {
+    d.replaceChildren(msg, el('p', { class: 'empty', text: '새 제보가 없어요. 제보가 들어오면 여기에 나타나요.' }))
+    return paintMsg()
+  }
+  const q = encodeURIComponent(g.place_name)
+  const naver = g.evidence?.naver_id ? `https://m.place.naver.com/place/${encodeURIComponent(g.evidence.naver_id)}/home` : `https://map.naver.com/p/search/${q}`
+  const kids = [
+    el('div', { class: 'head' },
+      el('div', {},
+        el('h2', { text: g.place_name }),
+        el('p', { class: 'addr', text: `${g.addr || '서비스 목록에 없는 업체'} · ` }, el('span', { class: 'chip ' + (CHIP_CLASS[g.chip] || ''), text: g.chip }), ` ${g.reason}`, g.warn && el('span', { class: 'chip warn', text: `의심: ${g.warn}` }))),
+      g.in_service && el('div', { class: 'links' },
+        el('a', { class: 'btn small', href: naver, target: '_blank', rel: 'noopener noreferrer', text: g.evidence?.naver_id ? '네이버 플레이스' : '네이버에서 찾기' }),
+        g.kakao_url && el('a', { class: 'btn small', href: g.kakao_url.replace(/^http:/, 'https:'), target: '_blank', rel: 'noopener noreferrer', text: '카카오맵' }))),
+    el('h3', { class: 'step' }, el('span', { text: g.can_apply ? '1 제보와 근거 · 근거에서 본 칸만 골라 주세요' : '1 제보 내용' }),
+      g.can_apply && el('button', { class: 'btn small', text: '전부 맞음', onclick: () => {
+        for (const f of g.fields) {
+          const c = okChoices(f)
+          if (c.length === 1) picks[f.key] = { mode: 'ok', ...(c[0].sides ? { sides: c[0].sides } : { value: c[0].value }) }
+        }
+        renderDetail()
+        if (g.fields.some((f) => !picks[f.key])) showMsg('good', ['탕을 골라야 하는 칸(수건·드라이기)과 값이 여러 개인 칸은 직접 골라 주세요.'])
+      } })),
+    el('div', { class: 'col-h' }, el('span'), el('span', { text: '제보 값' }), el('span', { text: '지금 화면 값' })),
+    el('div', { class: 'rows' }, g.fields.map((f) => fieldCard(g, f))),
+    el('ul', { class: 'reports' }, g.reports.map((r) => el('li', { text: `#${r.id} · ${r.at} · ${r.source}${r.memo ? ` · 메모: ${r.memo}` : ''}` }))),
+    el('h3', { class: 'step' }, el('span', { text: '2 판정' })),
+  ]
+  const reason = el('select', { 'aria-label': '반려 사유' }, REASONS.map((r) => el('option', { value: r, text: r, selected: r === (g.chip === '시험' ? '시험·장난 제보' : g.chip === '이미 반영됨' ? '이미 반영된 값' : g.chip === '반려 추천' ? (g.in_service ? '허위·이상값' : '서비스에 없는 업체') : '근거와 다름') })))
+  const memo = el('input', { type: 'text', maxlength: 80, placeholder: '어디까지 봤는지 (예: 네이버 가격표 없음)', 'aria-label': '확인 못 함 메모' })
+  if (g.can_apply) {
+    const src = el('select', { id: 'src', 'aria-label': '근거 출처', onchange: (e) => remember(e.target.value) }, el('option', { value: '', text: '근거 출처 고르기' }), SOURCES.map((s) => el('option', { value: s, text: s, selected: s === remembered() })))
+    kids.push(el('div', { class: 'act' }, src,
+      el('button', { class: 'btn primary', id: 'apply', text: `반영 (${Object.keys(picks).length}칸)`, onclick: () => {
+        const { ev, missing } = evidenceOf(g)
+        if (missing) return showMsg('err', [`${missing}: 근거에서 본 값을 골라 주세요.`])
+        if (!Object.keys(ev).length) return showMsg('err', ['근거에서 본 칸이 없어요. 칸마다 맞음 또는 다름을 골라 주세요.'])
+        if (!src.value) return showMsg('err', ['근거 출처를 골라 주세요.'])
+        decide(g, 'apply', { evidence: ev, source: src.value })
+      } })))
+  } else kids.push(el('p', { class: 'hint', text: '이 묶음은 반영할 수 없어요. 반려하거나 확인 못 함으로 남겨 주세요.' }))
+  kids.push(el('div', { class: 'other' },
+    reason, el('button', { class: 'btn', text: '반려', onclick: () => decide(g, 'reject', { reason: reason.value }) }),
+    memo, el('button', { class: 'btn', text: '확인 못 함', onclick: () => decide(g, 'unknown', { memo: memo.value }) })))
+  d.replaceChildren(...[msg, ...kids].filter(Boolean))
+  paintMsg()
+}
+
+$('sweep').onclick = async () => {
+  const targets = data.groups.filter((g) => SWEEP_CHIPS.includes(g.chip))
+  const lines = targets.map((g) => `${g.place_name} · ${g.reason} · ${g.report_ids.length}건 → ${g.chip === '이미 반영됨' ? '확인함' : '반려'}`)
+  if (!(await ask(`정리 대상 ${data.sweep}건을 처리할까요?`, [...lines, '파일은 바꾸지 않고 제보 상태만 바꿔요. 바로 되돌릴 수 있어요.'], '처리'))) return
+  const j = await api('/api/sweep', {})
+  lastMsg = j.error ? { kind: 'err', lines: [j.error] } : { kind: j.ok ? 'good' : 'err', undo: j.done.length > 0, lines: [`정리했어요: ${j.done.length}건${j.demo ? ' (예시 모드라 실제로는 바꾸지 않았어요)' : ''}`, ...j.failed.map((d) => `제보 #${d.id} 상태를 못 바꿨어요: ${d.error}`)] }
+  await load()
+}
+
+function renderBar() {
+  $('bar-text').textContent = barNote || (data?.stale ? '반영한 값이 아직 사용자 화면에 나가지 않았어요.' : '반영한 값은 내보내야 사용자 화면에 나가요.')
+}
+// 내보내기: 화면 데이터를 다시 만들어 초안으로 올리고(사용자 화면은 그대로), 차이를 보여 준 뒤 한 번 확인받고 공개한다
+$('export').onclick = async () => {
+  barNote = '화면 데이터를 다시 만드는 중이에요. 1~2분 걸릴 수 있어요.'
+  renderBar()
+  const j = await api('/api/rebuild', {})
+  if (!j.ok) { barNote = `내보내지 못했어요: ${j.error}`; return renderBar() }
+  if (j.demo) { barNote = j.lines.join(' '); return renderBar() }
+  const c = j.counts
+  if (c.added + c.removed + c.changed === 0) { barNote = '공개본과 차이가 없어요. 내보낼 것이 없습니다.'; return renderBar() }
+  barNote = `초안을 올렸어요(사용자 화면은 아직 그대로). 바뀐 곳 ${c.changed} · 새로 생김 ${c.added} · 빠짐 ${c.removed} · 대인 요금 바뀜 ${c.priceChanged}`
+  renderBar()
+  const lines = [
+    `공개본 ${c.live}곳 → 초안 ${c.draft}곳`,
+    `내용 바뀜 ${c.changed}곳 · 새로 생김 ${c.added}곳 · 빠짐 ${c.removed}곳`,
+    ...(j.priceChanges || []).map((p) => `요금: ${p.name} ${p.before ?? '없음'} → ${p.after ?? '없음'}`),
+    ...(j.added?.length ? [`새로 생김: ${j.added.join(', ')}`] : []),
+    ...(j.removed?.length ? [`빠짐: ${j.removed.join(', ')}`] : []),
+    '공개하면 1분 안에 사용자 화면에 반영돼요.',
+  ]
+  if (!(await ask('사용자 화면에 공개할까요?', lines, '공개'))) return
+  const p = await api('/api/publish', {})
+  barNote = p.ok ? `공개했어요: 스냅샷 #${p.from ?? '-'} → #${p.to} (${p.count}곳). 1분 안에 사용자 화면에 반영돼요.` : `공개하지 못했어요: ${p.error}`
+  renderBar()
+}
+load()
+</script>
+</body>
+</html>

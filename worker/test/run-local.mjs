@@ -231,6 +231,27 @@ r = await call('GET', '/admin/reports?status=new', { admin: true })
 ok('관리용 제보 목록', r.j.reports.length === 5, `${r.j.reports.length}건`)
 r = await call('POST', `/admin/reports/${r.j.reports[0].id}`, { admin: true, body: { status: 'reviewed', note: '시험' } })
 ok('제보 상태 바꾸기', r.j.ok)
+// 표시 기준이 제보함 기준 파일(data/report_rules.json)의 경계값과 같은지
+{
+  const rules = JSON.parse(readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../../data/report_rules.json'), 'utf8'))
+  const edge = [
+    ['adult', rules.adult.min - 1, true], ['adult', rules.adult.min, false],
+    ['adult', rules.adult.suspect_from - 1, false], ['adult', rules.adult.suspect_from, true],
+    ['towel', rules.towel.max, false], ['towel', rules.towel.max + 1, true],
+    ['scrub', rules.scrub.min - 1, true], ['scrub', rules.scrub.min, false],
+    ['scrub', rules.scrub.max, false], ['scrub', rules.scrub.max + 1, true],
+  ]
+  const wrong = []
+  const lastId = sqlite.prepare('SELECT MAX(id) AS id FROM reports').get().id
+  for (const [i, [k, v, want]] of edge.entries()) {
+    const body = { placeId: p0.id, placeName: p0.name, [k]: v, source: '현장 가격표', deviceId: `dev-edge-${i}` }
+    const res = await call('POST', '/api/report', { body, headers: { 'CF-Connecting-IP': `5.6.7.${i}` } })
+    const row = sqlite.prepare('SELECT flags FROM reports ORDER BY id DESC LIMIT 1').get()
+    if (!res.j.ok || row.flags.includes('이상값') !== want) wrong.push(`${k} ${v}`)
+  }
+  sqlite.prepare('DELETE FROM reports WHERE id > ?').run(lastId) // 시험용 메모리 DB. 뒤 시험의 제보 수를 건드리지 않게 치운다
+  ok('이상값 표시가 제보함 기준 파일의 경계값과 같음', wrong.length === 0, wrong.join(', ') || `${edge.length}개 경계값`)
+}
 
 // 9. 방문자 수(DAU)
 await settle()

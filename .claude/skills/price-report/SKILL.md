@@ -8,6 +8,8 @@ argument-hint: "[확인 | 반영]  (비우면 확인 → 제안 → 승인 후 �
 
 사용자가 사이트에서 보낸 제보는 **단서**다. 화면에는 근거를 확인한 값만 올린다. 이 절차는 읽기 → 확인 → 제안 → (승인) → 반영 → 상태 갱신 순서로 간다.
 
+- **사람이 직접 할 때는 제보함을 쓴다(2026-11-10)**: `cargo run --release --bin report_desk`(`http://127.0.0.1:8765`, 내 PC 전용). 같은 규칙(업체별 묶기·칩·근거 확인한 칸만 반영·상태와 검토 메모)이 `src/reportdesk.rs`에 코드로 있다. Claude가 이 절차를 대신할 때도 묶기·칩 판단은 그 규칙을 따르고, 반영하는 파일·칸·검토 메모 모양을 제보함과 같게 한다. 요구사항은 `docs/prd-report-triage.md`. 허위·의심 기준(입장료 3,000원 미만·40,000원 이상은 허위, 30,000원 이상과 확인값의 절반 이하·두 배 이상은 의심)의 숫자는 `data/report_rules.json`에만 있다.
+
 - **제보가 쌓이는 곳(2026-11-06부터)**: Cloudflare D1의 `reports` 표. 사이트 제보 창(`web/src/components/PriceReport`) → Worker `POST /api/report`(`worker/src/index.js` `postReport`)가 검사한 뒤 넣는다. 읽기·상태 바꾸기는 프로젝트 폴더에서 관리 도구로 한다(값·토큰은 출력되지 않는다).
   - 새 제보 보기: `node --env-file=.env scripts/d1_publish.mjs reports new` (`--json`을 붙이면 칸 전체)
   - 상태 바꾸기: `node --env-file=.env scripts/d1_publish.mjs report-set <번호> <상태> <검토 메모>`

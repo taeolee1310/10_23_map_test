@@ -21,7 +21,10 @@ const TOWEL = ['무제한', '1장', '2장', '3장 이상']
 const DRYER = ['무료', '유료', '없음']
 const PAY = ['현금만', '카드 가능']
 const MAX_WON = 200000
+// 표시 기준은 data/report_rules.json과 같게(run-local.mjs가 그 파일의 경계값으로 시험한다).
+// 입장료는 위쪽 끝 '이상'(제보함의 의심 시작값)부터, 수건·세신은 위쪽 끝 '초과'부터 표시한다.
 const RANGE = { adult: [3000, 30000], towel: [0, 5000], scrub: [5000, 60000] }
+const odd = (k, v) => v < RANGE[k][0] || (k === 'adult' ? v >= RANGE[k][1] : v > RANGE[k][1])
 const LIMIT_WHO_HOUR = 5
 const LIMIT_IP_DAY = 30
 const contact = /\d[\d\s-]{7,}\d|https?:|www\.|@/i
@@ -216,7 +219,7 @@ async function postReport(req, env, cors) {
   placeName = place.name // 이름은 서버 목록 기준으로 기록한다
   for (const [k, label] of [['adult', '입장료'], ['towel', '수건'], ['scrub', '세신']]) {
     const v = { adult, towel, scrub }[k]
-    if (v != null && (v < RANGE[k][0] || v > RANGE[k][1])) flags.push(`${label} 이상값`)
+    if (v != null && odd(k, v)) flags.push(`${label} 이상값`)
   }
   if (contact.test(memo)) {
     flags.push('연락처 의심')
