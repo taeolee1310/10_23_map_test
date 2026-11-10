@@ -16,6 +16,23 @@ export function towelText(t: Facts['towel']): string | null {
 const dryerOne = (d: DryerInfo): string | null =>
   d.none ? '없음' : d.paid === true ? (d.price != null ? `유료 ${won(d.price)}` : '유료') : d.paid === false ? '무료' : d.has ? '있음' : null
 
+/** 제보 창에 넘기는 '이미 확인된 값'(칸 이름 → 문구). 확인된 칸은 채워진 칸으로, 없는 칸은 빈칸으로 보인다. 문구는 상세 화면과 같은 함수에서 만든다 */
+export function reportKnown(p: { price: Price | null; facts?: Facts }): Partial<Record<'adult' | 'towel' | 'scrub' | 'towelInfo' | 'hairdryerW' | 'hairdryerM' | 'seshinPay', string>> {
+  const f = p.facts
+  const h = f?.hairdryer
+  const both = h && !h.women && !h.men ? dryerOne(h) : null // 어느 탕인지 모르는 공통 값은 두 칸에 같이 보여 준다
+  const out = {
+    adult: p.price?.adult != null ? won(p.price.adult) : null,
+    towel: p.price?.towel != null ? won(p.price.towel) : null,
+    scrub: seshinPriceText(f?.seshin),
+    towelInfo: towelText(f?.towel)?.replace(/수건 /g, '') ?? null,
+    hairdryerW: (h?.women && dryerOne(h.women)) || both,
+    hairdryerM: (h?.men && dryerOne(h.men)) || both,
+    seshinPay: f?.seshin?.payment ? (f.seshin.payment === 'cash_only' ? '현금 결제만 가능' : '카드 결제 가능') : null,
+  }
+  return Object.fromEntries(Object.entries(out).filter(([, v]) => v))
+}
+
 /** 근거가 후기 1건뿐인 값에 붙이는 안내. 값과 같은 위계로 쓰지 않고 (i) 아이콘 툴팁으로 둔다 */
 export const LOW_NOTE = '후기 1건 기준이라 실제와 다를 수 있어요'
 

@@ -42,7 +42,8 @@
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 24' preserveAspectRatio='none'%3E%3Cpath d='M0 24V13C240 -1 480 3 720 12s480 13 720 1V24Z' fill='%23FDF6D0'/%3E%3C/svg%3E") center bottom / 100% 100% no-repeat; }
 .onsen-main .hero-copy { position: relative; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, clamp(280px, 50%, 560px)); gap: 8px 40px; align-items: end; max-width: 1360px; margin: 0 auto; }
 .onsen-main .brand { display: flex; align-items: center; gap: 18px; min-width: 0; }
-.onsen-main .brand-badge { flex: none; display: grid; place-items: center; padding: 10px 12px; border: 0; border-radius: 24px; background: var(--color-bg-surface); box-shadow: 0 6px 18px rgba(var(--brown-rgb),.28); cursor: pointer; font: inherit; color: inherit; }
+/* 하얀 배지 크기는 그대로 두고 안의 로고만 10% 줄였다(2026-11-10): 줄어든 만큼 안쪽 여백을 더한다. 로고 가로:세로 = 814:858 */
+.onsen-main .brand-badge { --badge-logo: clamp(52px, 5.6vw, 72px); flex: none; display: grid; place-items: center; padding: calc(10px + var(--badge-logo) * 0.05) calc(12px + var(--badge-logo) * 0.0474); border: 0; border-radius: 24px; background: var(--color-bg-surface); box-shadow: 0 6px 18px rgba(var(--brown-rgb),.28); cursor: pointer; font: inherit; color: inherit; }
 .onsen-main .brand-badge:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 3px; }
 .onsen-main .eyebrow b { font-size: 15px; font-weight: 800; letter-spacing: -.01em; margin-right: 2px; }
 .onsen-main .eyebrow { margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: .18em; color: var(--ink); }
@@ -62,6 +63,20 @@
 .onsen-main .qp:active:not(:disabled) { transform: scale(.97); transition-duration: var(--dur-press); }
 .onsen-main .qp:disabled { background: var(--chip-bg-disabled); border-color: var(--chip-border-disabled); color: var(--chip-text-disabled); cursor: default; }
 .onsen-main .qp svg { color: inherit; }
+/* '내 주변 목욕탕': 위치를 구하는 동안 아래에서 물이 차오른다(인트로 버튼과 같은 물 색·물결).
+   물(.qp-fill)은 버튼 높이의 1.6배짜리 판을 transform으로만 올린다: 숨김(아래) → run 10초 동안 86%까지 → done 가득 → 옅어지며 사라짐 */
+.onsen-main .qp-label { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 6px; transition: color var(--dur-base) var(--ease-out); }
+.onsen-main .qp-fill { position: absolute; z-index: 1; left: 0; right: 0; top: 0; height: 160%; background: linear-gradient(180deg, var(--cta-liquid-fill-a), var(--cta-liquid-fill-b)); pointer-events: none;
+  opacity: 0; transform: translateY(calc(62.5% + 14px)); transition: opacity var(--dur-base) ease, transform 0s linear var(--dur-base); }
+.onsen-main .qp-wave { position: absolute; top: -12px; left: 0; width: 200%; height: 16px; }
+.onsen-main .qp-stop--a { stop-color: var(--cta-liquid-fill-a); }
+.onsen-main .qp-stop--b { stop-color: var(--cta-liquid-fill-b); }
+.onsen-main .qp[data-fill='run'] .qp-fill { opacity: 1; transform: translateY(8.75%); transition: opacity 120ms ease, transform 10s cubic-bezier(0.1, 0.7, 0.2, 1); }
+.onsen-main .qp[data-fill='done'] .qp-fill { opacity: 1; transform: translateY(-18.75%); transition: transform 360ms var(--ease-out); }
+.onsen-main .qp[data-fill='run'] .qp-wave, .onsen-main .qp[data-fill='done'] .qp-wave { animation: qp-slosh 1.6s linear infinite; }
+.onsen-main .qp[data-fill='run'] .qp-label, .onsen-main .qp[data-fill='done'] .qp-label { color: var(--cta-liquid-text-filled); }
+.onsen-main .qp[aria-busy='true'] { cursor: progress; }
+@keyframes qp-slosh { to { transform: translateX(-50%); } }
 .onsen-main .qp b { background: var(--badge-facility-bg); color: var(--badge-facility-text); border-radius: var(--radius-pill); padding: 0 8px; font-size: 12px; line-height: 16px; font-weight: 600; }
 /* min-height: 지도(240)+간격+미리보기가 들어갈 만큼은 항상 확보한다. 그 아래로 줄어들면 위 .onsen-main이 스크롤된다 */
 .onsen-main #app { flex: 1 1 0; min-height: 420px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
@@ -349,6 +364,8 @@
 .onsen-main #list.anim .item, .onsen-main .preview.swap { animation: om-fade 240ms ease both !important; }
 .onsen-main #detail { transform: none !important; }
 .onsen-main .item, .onsen-main .qp, .onsen-main .pin, .onsen-main .bubble, .onsen-main .fab { transform: none !important; }
+/* 모션 줄이기: 물이 차오르지 않고, 찾는 동안 버튼이 물 색으로만 바뀐다 */
+.onsen-main .qp[data-fill='run'] .qp-fill { transform: translateY(-18.75%); }
 }
 @keyframes om-fade { from { opacity: 0; } }
 

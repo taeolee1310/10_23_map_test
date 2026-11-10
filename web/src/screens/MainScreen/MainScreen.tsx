@@ -22,7 +22,7 @@ import PriceReport from '../../components/PriceReport'
 import Onboarding, { type TourStep } from '../../components/Onboarding'
 import { IconBanana, IconDrop, IconHelp, IconLocate, IconPin, IconSearch } from './Icons'
 import PlaceDetail from './PlaceDetail'
-import { worries } from './PlaceFacts'
+import { worries, reportKnown } from './PlaceFacts'
 import PlaceList from './PlaceList'
 import PlacePreview from './PlacePreview'
 import './MainScreen.css'
@@ -125,6 +125,11 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
   const [me, setMe] = useState<LatLng | null>(null)
   const [nearGu, setNearGu] = useState('') // '내 주변 목욕탕'을 눌렀을 때 안내하는, 내 위치가 속한 구
   const [note, setNote] = useState('')
+  // 위치를 구하는 중인지. fill은 '내 주변 목욕탕' 버튼의 물 채움 단계: idle(없음) → run(차오르는 중) → done(가득 찬 뒤 사라짐)
+  const [locating, setLocating] = useState(false)
+  const [fill, setFill] = useState<'idle' | 'run' | 'done'>('idle')
+  const fillTimer = useRef(0)
+  const busy = useRef(false) // 구하는 중에 또 누른 것은 받지 않는다
   const [toast, setToast] = useState('')
   const [toastOn, setToastOn] = useState(false) // 글자는 남겨 두고 보이고 안 보이는 것만 바꿔, 사라질 때도 부드럽게
   const [selId, setSelId] = useState<string | null>(null)
@@ -282,6 +287,18 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
       setNote('이 브라우저에서는 위치를 쓸 수 없어요. 검색으로 목욕탕을 찾아 보세요.')
       return
     }
+    if (busy.current) return
+    busy.current = true
+    setLocating(true)
+    window.clearTimeout(fillTimer.current)
+    setFill('run')
+    // 끝나면: 물이 가득 찬 뒤(성공) 또는 바로(실패) 원래 버튼으로 돌아간다
+    const finish = (ok: boolean) => {
+      busy.current = false
+      setLocating(false)
+      setFill(ok ? 'done' : 'idle')
+      if (ok) fillTimer.current = window.setTimeout(() => setFill('idle'), 700)
+    }
     setNote('가까운 목욕탕까지 직선거리를 보여 드리려고 지금 위치를 한 번만 사용해요. 저장하거나 서버로 보내지 않아요.')
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -289,20 +306,24 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
         if (p.lat < 33 || p.lat > 39 || p.lng < 124 || p.lng > 132) {
           setNote('한국 밖에 계신 것 같아요. 검색으로 목욕탕을 찾아 보세요.')
           setMe(null)
+          finish(false)
           return
         }
+        finish(true)
         setNote('')
         setMe(p)
         after?.(p)
       },
-      (err) =>
+      (err) => {
+        finish(false)
         setNote(
           err.code === 1
             ? '위치 권한이 꺼져 있어요. 괜찮아요, 검색으로 목욕탕을 찾을 수 있어요.'
             : err.code === 2
               ? '이 기기에서 위치를 구하지 못했어요. 기기의 위치 서비스를 켜 보시거나, 지역을 고르거나 검색으로 찾아 보세요.'
               : '지금은 위치를 가져오지 못했어요. 지역을 고르거나 검색으로 찾아 보세요.',
-        ),
+        )
+      },
       { timeout: 10000, maximumAge: 60000 },
     )
   }, [])
@@ -329,6 +350,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
       findGu(p).then(setNearGu)
       updateFilters({ favOnly: false })
       requestFit(near, [p]) // 위 updateFilters의 맞춤보다 나중에 불러서 이쪽이 이긴다
+      showToast('내 위치를 찾았어요. 가까운 곳부터 보여 드려요')
     })
   }
 
@@ -483,11 +505,11 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
       : []),
   ]
   // 요금 제보: 제보 창을 열고, 보낸 결과는 알림으로 알려 준다
-  const [reportFor, setReportFor] = useState<{ id: string; name: string } | null>(null)
+  const [reportFor, setReportFor] = useState<{ id: string; name: string; known?: ReturnType<typeof reportKnown> } | null>(null)
   const reportPrice = (id: string) => {
     const p = places.find((d) => d.id === id)
     track('report_open')
-    setReportFor({ id, name: p?.name ?? id })
+    setReportFor({ id, name: p?.name ?? id, known: p ? reportKnown(p) : undefined }) // 이미 확인된 칸은 채워서, 모르는 칸만 빈칸으로 보여 준다
   }
   const guText = filters.gu.length > 1 ? `${filters.gu[0]} 외 ${filters.gu.length - 1}개 구` : filters.gu[0] ?? ''
   const count = (nearOnly ? `내 위치 ${NEAR_KM}km 안 ` : '') + (guText ? guText + ' ' : '') + (inView && bounds ? `지도 안 ${view.length}곳` : `${view.length}곳`)
@@ -505,7 +527,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
           <div className="brand">
             {/* 로고 = 홈: 누르면 메인 화면 처음 상태로 돌아간다 */}
             <button type="button" className="brand-badge" aria-label="탕방 홈으로" onMouseEnter={() => setLogoRun((n) => n + 1)} onClick={goHome}>
-              <OnsenLogo height="clamp(52px, 5.6vw, 72px)" title="탕방" playKey={logoRun} />
+              <OnsenLogo height="calc(var(--badge-logo) * 0.9)" title="탕방" playKey={logoRun} />
             </button>
             <div>
               <p className="eyebrow"><b>탕방</b> · 서울의 목욕탕을 찾아서</p>
@@ -540,7 +562,21 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
             <input type="search" placeholder="이름이나 구로 찾기" autoComplete="off" value={query} onChange={(e) => onQuery(e.target.value)} />
           </label>
           <div className="quick">
-            <button className="qp" onClick={goNear}><IconPin />내 주변 목욕탕</button>
+            {/* 위치를 구하는 동안(길면 10초) 버튼에 물이 차오른다(인트로 '목욕탕 찾아보기' 버튼과 같은 물). 물은 장식이고 글자는 물 위 레이어 */}
+            <button className="qp qp--near" data-fill={fill} aria-busy={locating} onClick={goNear}>
+              <span className="qp-label"><IconPin />{locating ? '내 위치 찾는 중…' : '내 주변 목욕탕'}</span>
+              <span className="qp-fill" aria-hidden="true">
+                <svg className="qp-wave" viewBox="0 0 120 12" preserveAspectRatio="none" focusable="false">
+                  <defs>
+                    <linearGradient id="qp-liquid-grad" x1="0" x2="1">
+                      <stop offset="0" className="qp-stop--a" />
+                      <stop offset="1" className="qp-stop--b" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M0 6 Q 15 0 30 6 T 60 6 T 90 6 T 120 6 V12 H0 Z" fill="url(#qp-liquid-grad)" />
+                </svg>
+              </span>
+            </button>
             <button className="qp" disabled={!pricedCount} title={pricedCount ? '' : '확인된 곳이 생기면 열려요'} onClick={() => updateFilters({ priceOnly: true })}>
               <IconDrop />확인된 곳{pricedCount ? <b>{pricedCount}</b> : null}
             </button>
@@ -686,7 +722,8 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
                 <IconLocate />
               </button>
             </div>
-            <div id="toast" role="status" className={toastOn ? 'show' : ''}>{toast}</div>
+            {/* 위치를 구하는 동안은 지도 위 알림이 계속 떠 있다(버튼이 화면 밖에 있어도 알 수 있게) */}
+            <div id="toast" role="status" className={locating || toastOn ? 'show' : ''}>{locating ? '내 위치를 찾고 있어요…' : toast}</div>
           </div>
           <PlacePreview
             place={selected}
