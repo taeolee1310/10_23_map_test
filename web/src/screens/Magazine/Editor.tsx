@@ -74,10 +74,11 @@ const reduceMotionNow = () => {
 
 type PreviewView = 'mobile' | 'web'
 const VIEW_KEY = 'tangbang:editor-view'
-// 웹 미리보기: 실제 매거진의 책(Book)을 1120×640 무대에 그리고 미리보기 칸 너비에 맞춰 줄인다.
+// 웹 미리보기: 실제 매거진의 책(Book)을 1120×800 무대에 그리고 미리보기 칸 너비에 맞춰 줄인다.
+// 무대 높이는 독자 화면에서 책이 가장 클 때(높이 720px)와 같게 맞춘다: 장 여는 사진이 한 쪽을 가득 채우는 배치를 그대로 본다
 // 책 안의 링크·버튼은 누르지 못하게 막는다(작성 중인 글을 두고 다른 화면으로 가지 않게). 양옆 넘김 버튼은 쓸 수 있다
 const STAGE_W = 1120
-const STAGE_H = 640
+const STAGE_H = 800
 function WebPreview({ story, onLayout, jump }: { story: Story; onLayout: (l: BookLayout) => void; jump?: { spread: number; key: number } }) {
   const box = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(0.5)
@@ -143,7 +144,7 @@ export default function Editor() {
     }
     // 모바일 미리보기: 휴대폰 틀 안에서만 스크롤한다(scrollIntoView는 바깥 화면까지 밀 수 있어 쓰지 않음)
     const box = phone.current
-    const el = n === 0 ? box?.querySelector('.mag-body') : box?.querySelector(`.mag-ch[data-ch="${n}"]`)
+    const el = n === 0 ? box?.querySelector('.mag-body') : box?.querySelector(`[data-ch="${n}"]`)
     if (box && el) box.scrollTo({ top: box.scrollTop + el.getBoundingClientRect().top - box.getBoundingClientRect().top - 12, behavior: reduceMotionNow() ? 'auto' : 'smooth' })
   }
   const [msg, setMsg] = useState<{ ok: boolean; text: string; problems?: string[] } | null>(null)
