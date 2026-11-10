@@ -150,6 +150,53 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
     return () => document.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
+  // 모바일 키보드: 키보드가 올라오면 화면의 보이는 부분(visualViewport)만큼으로 창을 줄이고,
+  // 지금 입력하는 칸을 보이는 부분 맨 위로 올린다(키보드에 가리지 않게). 키보드가 내려가면 원래 크기로 돌아온다.
+  // scrollIntoView는 바깥 화면까지 밀 수 있어 쓰지 않고, 창 안의 스크롤 위치만 바꾼다
+  useEffect(() => {
+    if (!open) return
+    const card = boxRef.current
+    const modal = card?.parentElement
+    if (!card || !modal) return
+    const vv = window.visualViewport
+    const follow = () => {
+      const el = document.activeElement
+      if (!(el instanceof HTMLElement) || !card.contains(el) || !el.matches('input, textarea')) return
+      const target = el.closest<HTMLElement>('.pr-slot, .pr-modal__memo') ?? el
+      const sc = card.scrollHeight > card.clientHeight + 1 ? card : modal // 좁은 화면은 카드가, 넓은 화면은 바깥이 스크롤된다
+      sc.scrollTop += target.getBoundingClientRect().top - sc.getBoundingClientRect().top - 12
+    }
+    const fit = () => {
+      // 키보드가 올라온 경우만(확대해서 보는 중은 제외): 보이는 높이가 화면보다 80px 넘게 줄었을 때
+      const kb = !!vv && Math.abs(vv.scale - 1) < 0.01 && vv.height < window.innerHeight - 80
+      modal.classList.toggle('pr-modal--kb', kb) // 키보드가 올라온 동안은 아래에 여백을 둬서 맨 아래 칸도 위로 올릴 수 있게 한다
+      if (vv && kb) {
+        modal.style.setProperty('--pr-vh', `${vv.height}px`)
+        modal.style.setProperty('--pr-top', `${vv.offsetTop}px`)
+      } else {
+        modal.style.removeProperty('--pr-vh')
+        modal.style.removeProperty('--pr-top')
+      }
+      follow()
+    }
+    let t = 0
+    // 칸을 열어 입력을 시작할 때: 바로 한 번, 키보드가 다 올라온 뒤 한 번 더
+    const onFocus = () => {
+      requestAnimationFrame(follow)
+      window.clearTimeout(t)
+      t = window.setTimeout(fit, 350)
+    }
+    card.addEventListener('focusin', onFocus)
+    vv?.addEventListener('resize', fit)
+    vv?.addEventListener('scroll', fit)
+    return () => {
+      window.clearTimeout(t)
+      card.removeEventListener('focusin', onFocus)
+      vv?.removeEventListener('resize', fit)
+      vv?.removeEventListener('scroll', fit)
+    }
+  }, [open])
+
   // 내가 채운 값(화면 문구). 금액 칸은 '9,000원', 고르는 칸은 고른 말 그대로
   const mine = (k: SlotKey) => (k === 'adult' || k === 'towel' || k === 'scrub' ? (vals[k] ? comma(vals[k]) + '원' : '') : info[k])
   const filled = SLOTS.filter((s) => mine(s.key))
