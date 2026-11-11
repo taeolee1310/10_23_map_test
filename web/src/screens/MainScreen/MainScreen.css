@@ -492,7 +492,9 @@
 .onsen-main .worry .coin { flex: none; display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--color-state-warning-text); }
 .onsen-main .worry .coin img { display: block; width: 10px; height: 10px; }
 /* 모르는 칸: 누르는 버튼(점선 알약). 흐린 글자로 두지 않는다 */
-.onsen-main .worry .tile-ask { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 44px; margin: -6px 0; padding: 0 8px; white-space: nowrap; border: 1px dashed var(--color-border-focus); border-radius: var(--radius-pill); background: transparent; color: var(--secondary); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background-color var(--dur-base) var(--ease-out), transform var(--dur-press) var(--ease-out); }
+.onsen-main .worry .tile-ask { display: inline-flex; align-items: center; justify-content: center; position: relative; gap: 3px; min-height: 32px; margin: 0; padding: 0 7px; white-space: nowrap; border: 1px dashed var(--color-border-focus); border-radius: var(--radius-pill); background: transparent; color: var(--secondary); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: background-color var(--dur-base) var(--ease-out), transform var(--dur-press) var(--ease-out); }
+/* 보이는 버튼은 32px로 줄였지만 누르는 곳은 위아래 6px씩 넓혀 44px를 지킨다 */
+.onsen-main .worry .tile-ask::after { content: ''; position: absolute; inset: -6px 0; }
 .onsen-main .worry .tile-ask:hover { background: var(--color-bg-surface-muted); }
 .onsen-main .worry .tile-ask:active { transform: scale(0.97); }
 .onsen-main .worry .tile-ask:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
