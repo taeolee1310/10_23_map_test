@@ -212,6 +212,7 @@ export function Notices({ facts }: { facts?: Facts }) {
 /** onAsk(side, focus): 보던 탕과 누른 칸을 넘겨, 제보 창이 그 탕·그 칸으로 열리게 한다 */
 export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: (side?: BathSide, focus?: 'towel' | 'dryer' | 'seshin') => void }) {
   const [side, setSide] = useState<BathSide>(savedSide)
+  const [swapped, setSwapped] = useState(false) // 탭을 한 번이라도 바꿨는지(바꿀 때만 타일이 다시 올라온다. 처음 열 때는 움직이지 않는다)
   const list = worryRows(facts)
   if (!list.some((r) => r.text)) {
     return (
@@ -227,7 +228,9 @@ export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: (side?: Ba
     )
   }
   const pick = (k: BathSide) => {
+    if (k === side) return
     setSide(k)
+    setSwapped(true)
     try {
       localStorage.setItem(SIDE_KEY, k)
     } catch {
@@ -241,7 +244,7 @@ export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: (side?: Ba
     <section className="sec worry" aria-labelledby="worry-h">
       <div className="worry-top">
         <h3 id="worry-h">{CHECK_TITLE}</h3>
-        <div className="bath-tabs" role="group" aria-label="어느 탕 정보를 볼지 고르기">
+        <div className="bath-tabs" data-side={side} role="group" aria-label="어느 탕 정보를 볼지 고르기">
           {(['women', 'men'] as const).map((k) => (
             <button key={k} type="button" className={side === k ? 'on' : ''} aria-pressed={side === k} onClick={() => pick(k)}>
               <BathBadge side={k} />
@@ -249,9 +252,10 @@ export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: (side?: Ba
           ))}
         </div>
       </div>
-      <ul className="worry-tiles" aria-label={`${BATH_LABEL[side]} 정보`}>
-        {tiles.map((w) => (
-          <li key={w.label}>
+      {/* key를 탕으로 줘서 탭을 바꾸면 세 칸이 새로 그려진다. 탭이 움직인 쪽(남탕은 오른쪽, 여탕은 왼쪽)에서 한 칸씩 밀려 들어온다 */}
+      <ul key={side} className={`worry-tiles${swapped ? ` swap from-${side === 'men' ? 'right' : 'left'}` : ''}`} aria-label={`${BATH_LABEL[side]} 정보`} aria-live="polite">
+        {tiles.map((w, i) => (
+          <li key={w.label} style={{ '--i': i } as React.CSSProperties}>
             <PriceIcon name={w.icon} />
             <span>{w.label}</span>
             {w.parts.length ? (
