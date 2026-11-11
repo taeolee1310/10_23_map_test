@@ -244,7 +244,7 @@ export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: (side?: Ba
     <section className="sec worry" aria-labelledby="worry-h">
       <div className="worry-top">
         <h3 id="worry-h">{CHECK_TITLE}</h3>
-        <div className="bath-tabs" data-side={side} role="group" aria-label="어느 탕 정보를 볼지 고르기">
+        <div className={`bath-tabs${swapped ? ' swapped' : ''}`} data-side={side} role="group" aria-label="어느 탕 정보를 볼지 고르기">
           {(['women', 'men'] as const).map((k) => (
             <button key={k} type="button" className={side === k ? 'on' : ''} aria-pressed={side === k} onClick={() => pick(k)}>
               <BathBadge side={k} />

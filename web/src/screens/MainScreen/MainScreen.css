@@ -474,6 +474,9 @@
 .onsen-main .bath-tabs button.on { opacity: 1; }
 .onsen-main .bath-tabs button:active { transform: scale(0.97); }
 .onsen-main .bath-tabs button:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+/* 고른 탭의 배지 그림은 입구 천막(노렌)이라, 탭이 바뀔 때 위쪽을 축으로 한 번 펄럭이고 멈춘다. 처음 열 때는 움직이지 않는다 */
+.onsen-main .bath-tabs.swapped button.on .bath-badge svg { transform-origin: 50% 0; animation: noren-sway var(--dur-slow) var(--ease-in-out) both; }
+@keyframes noren-sway { 0% { transform: skewX(0); } 30% { transform: skewX(-8deg) scaleY(1.04); } 60% { transform: skewX(5deg) scaleY(0.99); } 82% { transform: skewX(-2deg); } 100% { transform: skewX(0); } }
 .onsen-main .worry ul.worry-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .onsen-main .worry .worry-tiles li { min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px; padding: 10px 4px; border: 0; border-radius: var(--radius-sm); background: var(--color-bg-surface); text-align: center; }
 .onsen-main .worry .worry-tiles li > span:not(.price-icon) { flex: none; }
@@ -504,6 +507,7 @@
 /* 움직임 줄이기: 자리 이동은 빼고 옅어졌다 나타나는 것만 남긴다 */
 @media (prefers-reduced-motion: reduce) {
   .onsen-main .bath-tabs::before, .onsen-main .bath-tabs button, .onsen-main .worry .tile-ask { transition: none; }
+  .onsen-main .bath-tabs.swapped button.on .bath-badge svg { animation: none; }
   .onsen-main .worry .worry-tiles.swap li, .onsen-main .worry .worry-tiles.swap.from-left li { transition: opacity var(--dur-press) ease; transition-delay: 0s; }
   @starting-style { .onsen-main .worry .worry-tiles.swap.from-right li, .onsen-main .worry .worry-tiles.swap.from-left li { transform: none; } }
 }
