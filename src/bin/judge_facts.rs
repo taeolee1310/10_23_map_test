@@ -751,6 +751,89 @@ fn newest_said_price(reviews: Option<&Vec<Review>>, blogs: Option<&Vec<Review>>,
     said.into_iter().find(|x| x.0 == newest)
 }
 
+// 후기·블로그 문장에 적힌 세신 요금: '세신은 35000원', '세신 기본 2.5만', '여탕 세신 3만원', '세신비: 전신 3만원', '여자 때밀이: 28,000원'
+// 세신·때밀이 바로 뒤에 금액이 붙은 것만 받는다(멀리 떨어진 금액은 음료·입장료일 수 있다).
+re!(
+    SESHIN_SAY,
+    r"(여탕|여자|여성|남탕|남자|남성)?\s*(?:세신|때밀이)\s*(?:비용|요금|가격|비|료)?\s*(?:\(([^)]{1,10})\))?\s*(?:은|는|이|가|도|:|：)?\s*(?:기본|전신)?\s*(?:은|는|이|:|：)?\s*(\d{1,2},\d{3}|\d{5}|\d(?:\.\d)?\s*만(?:\s*\d\s*천)?)\s*원?"
+);
+// 기본 세신이 아닌 것: 등·부분 세신, 오이·마사지 같은 추가 코스
+re!(SESHIN_PART, r"(?:등|오이|마사지|미니|건강|아로마|경락|부분|반신|\+)\s*$");
+re!(SESHIN_PAREN_SKIP, r"\+|마사지|오이|샴푸|등|미니|아로마|경락");
+// 금액 뒤에 붙어 '정확한 값이 아님'을 뜻하는 말: 3만원부터, 2만원대, 3만원 이하, 추가
+re!(SESHIN_VAGUE, r"^\s*(?:부터|이하|이상|초반|중반|후반|추가|~|∼|대(?:[^가-힣]|$))");
+re!(SESHIN_UNSURE, r"기억|것\s*같|아마|였나|인가");
+re!(SESHIN_AMOUNT, r"^(\d(?:\.\d)?)\s*만(?:\s*(\d)\s*천)?$");
+
+fn seshin_num(s: &str) -> Option<i64> {
+    let n = match SESHIN_AMOUNT.captures(s.trim()) {
+        Some(c) => (c[1].parse::<f64>().ok()? * 10_000.0) as i64 + c.get(2).map_or(0, |k| k.as_str().parse::<i64>().unwrap_or(0) * 1_000),
+        None => s.replace([',', ' '], "").parse().ok()?,
+    };
+    // 기본 세신 값의 범위. 이보다 싸면 등 세신·때수건, 비싸면 마사지 코스일 가능성이 크다
+    (15_000..=60_000).contains(&n).then_some(n)
+}
+
+/// 한 문장에서 (탕, 금액)을 뽑는다. 탕: 0 공통 · 1 여탕 · 2 남탕
+fn seshin_in_line(ln: &str) -> Vec<(usize, i64)> {
+    let mut out = Vec::new();
+    for c in SESHIN_SAY.captures_iter(ln) {
+        let m = c.get(0).unwrap();
+        let before: String = ln[..m.start()].chars().rev().take(20).collect::<Vec<_>>().into_iter().rev().collect();
+        let after: String = ln[m.end()..].chars().take(20).collect();
+        if SESHIN_PART.is_match(&before)
+            || c.get(2).is_some_and(|p| SESHIN_PAREN_SKIP.is_match(p.as_str()))
+            || SESHIN_VAGUE.is_match(&after)
+            || SESHIN_UNSURE.is_match(&before)
+            || SESHIN_UNSURE.is_match(&after)
+        {
+            continue;
+        }
+        let Some(n) = seshin_num(&c[3]) else { continue };
+        let side = match c.get(1).map(|s| s.as_str()) {
+            Some(s) if s.starts_with('여') => 1,
+            Some(_) => 2,
+            None => 0,
+        };
+        out.push((side, n));
+    }
+    out
+}
+
+/// 가격표에 세신이 없을 때: 최근 1년 후기·블로그에 적힌 세신 요금 중 탕별로 가장 최근 것.
+/// 같은 날 금액이 엇갈리면 그 탕은 쓰지 않는다. 여탕·남탕 값이 있으면 그쪽을 쓰고, 없으면 탕을 안 밝힌 값을 공통으로 쓴다.
+fn seshin_said(reviews: Option<&Vec<Review>>, blogs: Option<&Vec<Review>>) -> Option<(Value, String)> {
+    let from = util::fresh_from();
+    let mut said: [Vec<(String, i64, &'static str)>; 3] = [vec![], vec![], vec![]];
+    for (src, list) in [("방문자 후기", reviews), ("블로그", blogs)] {
+        for rv in list.into_iter().flatten().filter(|rv| rv.date >= from) {
+            for ln in &rv.lines {
+                for (side, n) in seshin_in_line(ln) {
+                    said[side].push((rv.date.clone(), n, src));
+                }
+            }
+        }
+    }
+    let pick = |v: &Vec<(String, i64, &'static str)>| -> Option<(String, i64, &'static str)> {
+        let newest = v.iter().map(|x| x.0.clone()).max()?;
+        let same: BTreeSet<i64> = v.iter().filter(|x| x.0 == newest).map(|x| x.1).collect();
+        (same.len() == 1).then(|| v.iter().find(|x| x.0 == newest).cloned().unwrap())
+    };
+    let (full, women, men) = (pick(&said[0]), pick(&said[1]), pick(&said[2]));
+    let i = |n: i64| Value::from(n);
+    let (v, used) = match (&women, &men) {
+        (Some(w), Some(m)) if w.1 == m.1 => (obj(vec![("price_full", i(w.1))]), w.clone().max(m.clone())),
+        (Some(w), Some(m)) => (obj(vec![("price_men", i(m.1)), ("price_women", i(w.1))]), w.clone().max(m.clone())),
+        (Some(w), None) => (obj(vec![("price_women", i(w.1))]), w.clone()),
+        (None, Some(m)) => (obj(vec![("price_men", i(m.1))]), m.clone()),
+        (None, None) => {
+            let f = full?;
+            (obj(vec![("price_full", i(f.1))]), f)
+        }
+    };
+    Some((v, format!("중간·{} {}", used.2, used.0)))
+}
+
 /// 요금 정하기(가장 최근 자료 기준). 가격표는 올린 날을 알 수 없어 '지금 업체가 올린 값'으로 본다.
 /// 최근 1년 후기·블로그가 가격표보다 높은 입장료를 말하면 가격표가 안 고쳐진 것으로 보고 그 값을 쓴다(요금은 오르기만 하는 경우가 대부분).
 /// 더 낮으면 할인·예전 값일 수 있어 가격표를 그대로 둔다. 가격표가 없으면 최근 후기·블로그 값을 쓴다.
@@ -1205,6 +1288,14 @@ fn main() -> Result<()> {
             None => r,
         };
         let (v, why) = judge_seshin(&r);
+        // 가격표로 못 정했으면 최근 1년 후기·블로그에 적힌 세신 요금을 쓴다(가게가 올린 가격표가 항상 먼저)
+        let (v, why) = match v {
+            Some(v) => (Some(v), why),
+            None => match seshin_said(reviews.get(&kid), blogs.get(&kid)) {
+                Some((v, w)) => (Some(v), w),
+                None => (None, why),
+            },
+        };
         let n_seshin = match &v {
             Some(v) => format!("{} ({why})", dump(v)),
             None => format!("불명({why})"),
@@ -1364,6 +1455,52 @@ mod tests {
         assert!(got.contains(&"찜질방 운영 안 함 (8~10월)".to_string()), "{got:?}");
         assert!(got.contains(&"찜질방 마감 22:00 (네이버 등록 23:00)".to_string()), "{got:?}");
         assert!(got.contains(&"영업 마감 22:30 (네이버 등록 23:00)".to_string()), "{got:?}");
+    }
+
+    /// 실제 블로그·후기 문장(2026-11-11 수집분)에서 기본 세신 요금만 뽑는다
+    #[test]
+    fn seshin_from_real_sentences() {
+        let one = |s: &str| seshin_in_line(s);
+        assert_eq!(one("세신은 35000원"), vec![(0, 35_000)]);
+        assert_eq!(one("세신가격은 3만원이다."), vec![(0, 30_000)]);
+        assert_eq!(one("세신 신청 하는 방법 돈 위에 락커키 올려두기 세신사 두 분 상주 세신 기본 2.5만 음료 가격 저렴 냉커피 2,500원"), vec![(0, 25_000)]);
+        assert_eq!(one("영업시간 06~5시 30분 대인 9천원 세신 전신 2.5만원 등 1.3만원"), vec![(0, 25_000)]);
+        assert_eq!(one("목욕비: 대인 1만원 소인 5천원 세신비: 전신 3만원, 등 1.5만원, 샴푸 3천원"), vec![(0, 30_000)]);
+        assert_eq!(one("목욕비 대인 8천원 *2025년 11월 27일 현재 세신 가능 여탕 세신 3만원 전화"), vec![(1, 30_000)]);
+        assert_eq!(one("가격 목욕: 10,000원 녹주찜질: 15,000원 여자 때밀이: 28,000원(30-40분) 머리 감기: 5,000원"), vec![(1, 28_000)]);
+        assert_eq!(one("세신 30,000원 세신(+오이 마사지) 40,000원 샴푸 5,000원"), vec![(0, 30_000)]);
+        assert_eq!(one("세신(아까나시) 3만원 등 2만원 세신 + 샴푸 3.5만원"), vec![(0, 30_000)]);
+        assert_eq!(one("세신은 기본 2만원, 마사지 포함 3만원 두 가지 뿐"), vec![(0, 20_000)]);
+        assert_eq!(one("때밀이 비용은 25,000원 샴푸 5,000원 등 15,000원 미니마사지 60,000원"), vec![(0, 25_000)]);
+        // 받지 않는 것: 등·오이 세신, '부터', 때수건 값, 기억이 불확실한 글, 세신과 떨어진 금액
+        for s in [
+            "등 세신: 15,000원",
+            "오이 세신 50,000원",
+            "남탕은 건강세신이 22,000원부터 시작해서 코스별로 가격이 올라가니",
+            "때밀이 가격은 3천원으로 송월타올인데 저렴하게 판매중",
+            "가격표를 찍지 못해서 기억을 더듬어 보면 세신은 4만원 이였고",
+            "(세신 가격 정확히 기억안나지만 2만원 초중반대)",
+            "나는 세신이 목적이였기 때문에 주말 낮 목욕만 11,000원 결제했다.",
+            "세신만 받는 코스는 10만원도 안해서",
+            "세신도 심야 추가요금(3천원)이 있나봄",
+        ] {
+            assert!(one(s).is_empty(), "{s} → {:?}", one(s));
+        }
+    }
+
+    /// 탕별로 가장 최근 값을 쓰고, 1년 넘은 글과 같은 날 엇갈린 값은 쓰지 않는다
+    #[test]
+    fn seshin_said_newest_per_side() {
+        let today = util::today_kst();
+        let b = vec![rv(&today, &["여탕 세신 3만원"]), rv("2020-01-01", &["세신은 15000원"])];
+        let r = vec![rv(&today, &["남자 세신 25,000원"])];
+        let (v, why) = seshin_said(Some(&r), Some(&b)).unwrap();
+        assert_eq!(v, obj(vec![("price_men", Value::from(25_000)), ("price_women", Value::from(30_000))]));
+        assert!(why.starts_with("중간·"), "{why}");
+        let clash = vec![rv(&today, &["세신은 30000원", "세신은 35000원"])];
+        assert!(seshin_said(None, Some(&clash)).is_none());
+        let old = vec![rv("2020-01-01", &["세신은 30000원"])];
+        assert!(seshin_said(None, Some(&old)).is_none());
     }
 
     /// 요일별 영업시간이 없으면 홈 화면 '23:00에 영업 종료'와 비교한다
