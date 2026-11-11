@@ -25,8 +25,10 @@ const MAX_WON = 200000
 // 입장료는 위쪽 끝 '이상'(제보함의 의심 시작값)부터, 수건·세신은 위쪽 끝 '초과'부터 표시한다.
 const RANGE = { adult: [3000, 30000], towel: [0, 5000], scrub: [5000, 60000] }
 const odd = (k, v) => v < RANGE[k][0] || (k === 'adult' ? v >= RANGE[k][1] : v > RANGE[k][1])
-const LIMIT_WHO_HOUR = 5
-const LIMIT_IP_DAY = 30
+// 둘 다 최근 24시간 기준. 기기 한도가 한 사람 몫(직접 다녀온 두세 곳 + 고쳐 보내기)이고,
+// 주소 한도는 기기 번호를 지워 가며 보내는 경우를 막는다(같은 와이파이·통신사 주소를 여럿이 쓰므로 기기보다 넉넉하게).
+const LIMIT_WHO_DAY = 5
+const LIMIT_IP_DAY = 15
 const contact = /\d[\d\s-]{7,}\d|https?:|www\.|@/i
 
 const now = () => new Date().toISOString()
@@ -231,14 +233,13 @@ async function postReport(req, env, cors) {
   const deviceId = text(b.deviceId, 64)
   const who = await sha(`${deviceId ? `device:${deviceId}` : `ip:${ip}`}|${env.REPORT_SALT}`)
   const ipHash = await sha(`ip:${ip}|${env.REPORT_SALT}`)
-  const hourAgo = new Date(Date.now() - 3600_000).toISOString()
   const dayAgo = new Date(Date.now() - 86400_000).toISOString()
   const c = await env.DB.prepare(
     'SELECT (SELECT count(*) FROM reports WHERE who = ?1 AND created_at > ?2) AS w, (SELECT count(*) FROM reports WHERE ip_hash = ?3 AND created_at > ?4) AS i',
   )
-    .bind(who, hourAgo, ipHash, dayAgo)
+    .bind(who, dayAgo, ipHash, dayAgo)
     .first()
-  if (c.w >= LIMIT_WHO_HOUR || c.i >= LIMIT_IP_DAY) return json({ ok: false, error: 'limit' }, 429, cors)
+  if (c.w >= LIMIT_WHO_DAY || c.i >= LIMIT_IP_DAY) return json({ ok: false, error: 'limit' }, 429, cors)
 
   await env.DB.prepare(
     'INSERT INTO reports (created_at, place_id, place_name, adult, towel, scrub, source, memo, towel_info, hairdryer, seshin_pay, flags, who, ip_hash) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)',

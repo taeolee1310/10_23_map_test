@@ -37,7 +37,7 @@ const NO_VALS = { adult: '', towel: '', scrub: '', memo: '', hp: '' }
 const ERRORS: Record<string, string> = {
   'not-ready': '제보 창구를 준비 중이에요',
   rate: '잠시 뒤에 다시 보내 주세요',
-  limit: '제보는 한 사람당 3번까지 보낼 수 있어요. 이미 보내 주셔서 고마워요',
+  limit: '오늘은 제보를 충분히 보내 주셨어요. 내일 다시 알려 주세요. 고마워요', // 한도 숫자는 Worker에만 있다(바뀌어도 문구는 그대로)
   price: '요금은 0~200,000 사이 숫자로 적어 주세요',
 }
 

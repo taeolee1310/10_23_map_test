@@ -224,7 +224,7 @@ ok('값이 없으면 거절', (await call('POST', '/api/report', { body: { place
 ok('허용 안 한 출처 값은 거절', (await call('POST', '/api/report', { body: { ...good, source: '아무거나' } })).res.status === 400)
 for (let i = 0; i < 3; i++) await call('POST', '/api/report', { body: good, headers: { 'CF-Connecting-IP': '1.2.3.4' } })
 r = await call('POST', '/api/report', { body: good, headers: { 'CF-Connecting-IP': '1.2.3.4' } })
-ok('같은 기기에서 한 시간에 5건 넘으면 429', r.res.status === 429)
+ok('같은 기기에서 하루에 5건 넘으면 429', r.res.status === 429)
 r = await call('GET', '/api/places')
 ok('제보는 사용자 화면에 바로 반영되지 않음', r.j.places.find((x) => x.id === p0.id).price.adult === p0.price.adult)
 r = await call('GET', '/admin/reports?status=new', { admin: true })
@@ -249,6 +249,13 @@ ok('제보 상태 바꾸기', r.j.ok)
     const row = sqlite.prepare('SELECT flags FROM reports ORDER BY id DESC LIMIT 1').get()
     if (!res.j.ok || row.flags.includes('이상값') !== want) wrong.push(`${k} ${v}`)
   }
+  // 같은 주소에서 기기 번호를 바꿔 가며 보내도 하루 15건까지만 받는다
+  const codes = []
+  for (let i = 0; i < 16; i++) {
+    const body = { placeId: p0.id, placeName: p0.name, adult: 9000, source: '현장 가격표', deviceId: `dev-ip-${i}` }
+    codes.push((await call('POST', '/api/report', { body, headers: { 'CF-Connecting-IP': '9.9.9.9' } })).res.status)
+  }
+  ok('같은 주소에서 하루에 15건 넘으면 429(기기 번호를 바꿔도)', codes.slice(0, 15).every((c) => c === 200) && codes[15] === 429, `16번째 ${codes[15]}`)
   sqlite.prepare('DELETE FROM reports WHERE id > ?').run(lastId) // 시험용 메모리 DB. 뒤 시험의 제보 수를 건드리지 않게 치운다
   ok('이상값 표시가 제보함 기준 파일의 경계값과 같음', wrong.length === 0, wrong.join(', ') || `${edge.length}개 경계값`)
 }
