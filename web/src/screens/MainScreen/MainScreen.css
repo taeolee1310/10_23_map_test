@@ -463,13 +463,31 @@
 .onsen-main .infotip:focus::after { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .onsen-main .infotip::after { transition: none; transform: none; } }
 .onsen-main .worry li b { display: inline-flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
-/* 탕별 값이 있는 곳의 TOP 3: 표 모양. 맨 윗줄에 여탕·남탕 배지, 아래로 수건·드라이기·세신(Figma 567:173).
-   첫 칸(아이콘+이름)은 고정 폭, 값 두 칸은 같은 폭으로 나눈다. 탕 구분이 없는 줄은 두 칸을 합친다 */
-.onsen-main .worry li.trow { display: grid; grid-template-columns: 104px minmax(0, 1fr) minmax(0, 1fr); gap: 0; align-items: center; }
-.onsen-main .worry li.trow > .wl { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.onsen-main .worry li.thead { min-height: 40px; }
-.onsen-main .worry .tc { min-width: 0; padding: 8px 6px; text-align: center; } /* 칸 안은 모두 가운데: 배지·값·공통 값이 같은 축에 선다 */
-.onsen-main .worry .tc + .tc { border-left: 1px solid var(--line); }
-.onsen-main .worry .tc.span { grid-column: 2 / -1; } /* 공통 값은 두 칸을 합쳐, 여탕·남탕 배지 사이 한가운데 */
-.onsen-main .worry li .tc b { justify-content: center; text-align: center; font-size: 14px; overflow-wrap: anywhere; }
-.onsen-main .worry .side-ask { display: inline-flex; align-items: center; min-height: 44px; margin: -8px 0; } /* 누르는 높이 44px, 줄 높이는 값 있는 칸과 같게 */
+/* TOP 3: 위에 [여탕 / 남탕] 탭, 아래에 그 탕의 수건·드라이기·세신 타일 세 개(한 줄). 탭을 누르면 세 칸이 함께 바뀐다 */
+.onsen-main .worry-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 10px; }
+.onsen-main .worry .worry-top h3 { margin: 0; }
+.onsen-main .bath-tabs { display: inline-flex; gap: 4px; padding: 3px; border-radius: var(--radius-md); background: var(--color-bg-surface-muted); }
+.onsen-main .bath-tabs button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 14px; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; font: inherit; cursor: pointer; opacity: 0.6; transition: opacity var(--dur-base) var(--ease-out), background-color var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out), transform var(--dur-press) var(--ease-out); }
+.onsen-main .bath-tabs button.on { opacity: 1; background: var(--color-bg-surface); border-color: var(--color-border-focus); }
+.onsen-main .bath-tabs button:active { transform: scale(0.97); }
+.onsen-main .bath-tabs button:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+.onsen-main .worry ul.worry-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.onsen-main .worry .worry-tiles li { min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px; padding: 10px 4px; border: 0; border-radius: var(--radius-sm); background: var(--color-bg-surface); text-align: center; }
+.onsen-main .worry .worry-tiles li > span:not(.price-icon) { flex: none; }
+.onsen-main .worry .worry-tiles li { gap: 4px; }
+.onsen-main .worry .vals { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin-top: 2px; min-width: 0; }
+/* 값의 성격을 모양으로 구분한다: 걱정 없는 것은 초록 칩(✓), 돈·준비가 필요한 것은 동전 칩, 그 밖은 굵은 글자 */
+.onsen-main .worry .worry-tiles li b.v { display: inline-flex; align-items: center; justify-content: center; gap: 4px; max-width: 100%; font-size: 14px; line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
+.onsen-main .worry .worry-tiles li b.v--good,
+.onsen-main .worry .worry-tiles li b.v--cost { padding: 3px 9px; border-radius: var(--radius-pill); font-size: 13px; font-weight: 700; }
+.onsen-main .worry .worry-tiles li b.v--good { background: var(--color-state-success-bg); color: var(--color-text-primary); }
+.onsen-main .worry .worry-tiles li b.v--good::before { content: '✓'; color: var(--color-state-success); font-weight: 800; }
+.onsen-main .worry .worry-tiles li b.v--cost { background: var(--color-state-warning-bg); color: var(--color-state-warning-text); }
+.onsen-main .worry .coin { flex: none; display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--color-state-warning-text); }
+.onsen-main .worry .coin img { display: block; width: 10px; height: 10px; }
+/* 모르는 칸: 누르는 버튼(점선 알약). 흐린 글자로 두지 않는다 */
+.onsen-main .worry .tile-ask { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 44px; margin: -6px 0; padding: 0 8px; white-space: nowrap; border: 1px dashed var(--color-border-focus); border-radius: var(--radius-pill); background: transparent; color: var(--secondary); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: background-color var(--dur-base) var(--ease-out), transform var(--dur-press) var(--ease-out); }
+.onsen-main .worry .tile-ask:hover { background: var(--color-bg-surface-muted); }
+.onsen-main .worry .tile-ask:active { transform: scale(0.97); }
+.onsen-main .worry .tile-ask:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .onsen-main .bath-tabs button, .onsen-main .worry .tile-ask { transition: none; } }

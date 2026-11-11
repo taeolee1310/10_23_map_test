@@ -22,7 +22,7 @@ import PriceReport from '../../components/PriceReport'
 import Onboarding, { type TourStep } from '../../components/Onboarding'
 import { IconBanana, IconDrop, IconHelp, IconLocate, IconPin, IconSearch } from './Icons'
 import PlaceDetail from './PlaceDetail'
-import { worries, reportKnown } from './PlaceFacts'
+import { CHECK_TITLE, worries, reportKnown } from './PlaceFacts'
 import PlaceList from './PlaceList'
 import PlacePreview from './PlacePreview'
 import './MainScreen.css'
@@ -41,8 +41,8 @@ const SORTS = [
   { value: 'name', label: '이름순' },
 ]
 const PAGE = 60
-const TOUR_KEY = 'tangbang:onboarding:v3' // 안내를 한 번 봤는지(이 브라우저에만 저장). v2: 미리보기 칩·핀 두 번 누르기(2026-11-02), v3: 상세 TOP 3 단계 추가(2026-11-02)
-const TOUR_KEY_MAG = 'tangbang:onboarding:v5' // v4: 매거진 단계 추가(2026-11-08), v5: 모바일은 매거진이 하단 네비게이션 바의 탭으로 옮겨 감(2026-11-10). 공개된 매거진 글이 있을 때만 이 키와 단계를 쓴다(글이 없으면 매거진 버튼도 안 보임)
+const TOUR_KEY = 'tangbang:onboarding:v6' // v6: 상세 맨 위 카드가 [여탕 / 남탕] 탭과 '가기 전 1초 체크'로 바뀜(2026-11-11). 이전: 안내를 한 번 봤는지(이 브라우저에만 저장). v2: 미리보기 칩·핀 두 번 누르기(2026-11-02), v3: 상세 TOP 3 단계 추가(2026-11-02)
+const TOUR_KEY_MAG = 'tangbang:onboarding:v7' // v7: v6과 같은 이유(2026-11-11). 이전: v4: 매거진 단계 추가(2026-11-08), v5: 모바일은 매거진이 하단 네비게이션 바의 탭으로 옮겨 감(2026-11-10). 공개된 매거진 글이 있을 때만 이 키와 단계를 쓴다(글이 없으면 매거진 버튼도 안 보임)
 const NARROW = '(max-width: 820px)' // MainScreen.css 모바일 기준과 같다
 // 온보딩 4단계 문구
 const TOUR_TEXT = [
@@ -50,7 +50,7 @@ const TOUR_TEXT = [
   { title: '목욕탕 고르기', body: '목록에서 목욕탕을 누르면 지도에 위치가 나와요. 바나나우유를 누르면 담아 둘 수 있어요.' },
   { title: '가기 전에 한눈에', body: "대인·소인 요금과 수건·드라이기·세신 정보를 카드에서 바로 볼 수 있어요." },
   { title: '자세히 보는 두 가지 방법', body: "카드의 '자세히 보기'를 누르거나, 지도에서 고른 핀을 한 번 더 누르면 자세한 정보로 넘어가요." },
-  { title: '가기 전 걱정 TOP 3', body: '자세한 정보 맨 위에서 수건·드라이기·세신 정보를 먼저 확인하세요. 모르는 항목은 알려 주시면 확인한 뒤 반영해요.' },
+  { title: CHECK_TITLE, body: '자세한 정보 맨 위에서 여탕·남탕을 고르면 그 탕의 수건·드라이기·세신을 바로 볼 수 있어요. 모르는 칸은 알려 주시면 확인한 뒤 반영해요.' },
 ]
 // 매거진으로 가는 곳: 넓은 화면은 제목 옆 버튼, 모바일은 하단 네비게이션 바의 탭
 const TOUR_TEXT_MAG = { title: '목욕 이야기 매거진', body: '탕 속 비밀, 목욕 꿀팁, 별난 목욕탕, 동네 수다를 모았어요.', wide: '위쪽 매거진 버튼으로 언제든 읽을 수 있어요.', narrow: '아래 매거진 탭으로 언제든 읽을 수 있어요.' }

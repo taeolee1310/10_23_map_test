@@ -3,7 +3,7 @@ import { PRICE_NOTE, fmtDist, mapLinks, priceClass, priceLabel, priceState, won,
 import Badge from '../../components/Badge/Badge'
 import PriceIcon, { type PriceIconName } from '../../components/PriceIcon/PriceIcon'
 import { HintPin, IconBanana } from './Icons'
-import { InfoTip, towelText, worries } from './PlaceFacts'
+import { CHECK_TITLE, InfoTip, towelText, worries } from './PlaceFacts'
 
 type Props = {
   place: PlaceWithDist | null
@@ -97,7 +97,7 @@ export default function PlacePreview({ place: d, total, pricedCount, unconfirmed
         )}
       </ul>
       {/* 가기 전 걱정 TOP 3: 확인한 항목만 칩으로. 하나도 없으면 알려 주기 칩 */}
-      <ul className="chips" aria-label="가기 전 걱정 TOP 3">
+      <ul className="chips" aria-label={CHECK_TITLE}>
         {top3.length ? (
           top3.map((w) => (
             <li key={w.label} className="icon-chip worry">
