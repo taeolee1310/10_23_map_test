@@ -209,7 +209,8 @@ export function Notices({ facts }: { facts?: Facts }) {
 }
 
 /** 가기 전 걱정 TOP 3. 상세에서 항상 요금 위 같은 자리에 둔다. 값이 하나도 없으면 아직 모른다는 안내와 알려 주기 버튼을, 일부만 있으면 모르는 줄은 '정보 없음'과 알려 주기 링크를 보여 준다. */
-export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: () => void }) {
+/** onAsk(side, focus): 보던 탕과 누른 칸을 넘겨, 제보 창이 그 탕·그 칸으로 열리게 한다 */
+export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: (side?: BathSide, focus?: 'towel' | 'dryer' | 'seshin') => void }) {
   const [side, setSide] = useState<BathSide>(savedSide)
   const list = worryRows(facts)
   if (!list.some((r) => r.text)) {
@@ -218,7 +219,7 @@ export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: () => void
         <h3 id="worry-h">{CHECK_TITLE}</h3>
         <p className="small">수건, 드라이기, 세신 정보는 아직 확인하지 못했어요. 다녀오셨다면 알려 주세요.</p>
         {onAsk && (
-          <button type="button" className="btn ghost sm" onClick={onAsk}>
+          <button type="button" className="btn ghost sm" onClick={() => onAsk()}>
             알고 있는 정보 알려 주기
           </button>
         )}
@@ -269,7 +270,7 @@ export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: () => void
               </span>
             ) : onAsk ? (
               // 모르는 칸은 흐린 글자 대신 누르는 버튼으로: 아는 사람이 바로 채울 수 있게
-              <button type="button" className="tile-ask" onClick={onAsk} aria-label={`${BATH_LABEL[side]} ${w.label} 정보 알려 주기`}>
+              <button type="button" className="tile-ask" onClick={() => onAsk(side, w.icon === 'towel' ? 'towel' : w.icon === 'hairdryer' ? 'dryer' : 'seshin')} aria-label={`${BATH_LABEL[side]} ${w.label} 정보 알려 주기`}>
                 <span aria-hidden="true">+</span> 알려 주기
               </button>
             ) : (

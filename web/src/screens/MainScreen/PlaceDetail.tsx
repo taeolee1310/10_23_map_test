@@ -1,3 +1,5 @@
+import type { SlotKey } from '../../components/PriceReport/PriceReport'
+import type { BathSide } from '../../components/BathBadge/BathBadge'
 import { useEffect, useRef, useState } from 'react'
 import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
 import { FactsDetails, FeeDetails, Notices, TopWorries, hoursText, towelText, unknownList } from './PlaceFacts'
@@ -9,17 +11,20 @@ const MOBILE = typeof window !== 'undefined' && window.matchMedia?.('(max-width:
 // 전체 지도로 볼 때 아래 바텀시트가 보이는 높이(이름·주소·길찾기까지). MainScreen.css의 --sheet-peek와 같은 값
 const SHEET_PEEK = 300
 
+/** 제보 창을 어느 탕·어느 칸으로 열지 */
+export type ReportAt = { side?: BathSide; focus?: SlotKey }
+
 type Props = {
   place: PlaceWithDist | null
   open: boolean
   me: LatLng | null
   onClose: () => void
   onLocate: () => void
-  onReport: (id: string) => void
+  onReport: (id: string, at?: ReportAt) => void
   stories?: Story[] // 이 목욕탕이 나온 매거진 글(공개된 것만)
 }
 
-function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string) => void }) {
+function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string, at?: ReportAt) => void }) {
   const p = d.price
   const ex = d.price_example // 가상 값. 항상 '예시'로 표시한다
   if (!p && (ex || d.price_estimate)) {
@@ -35,7 +40,7 @@ function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string) 
           <b className="price-hero unknown">요금 미확인</b>
         )}
         <div className="price-note">
-          <button className="linkbtn" onClick={() => onReport(d.id)}>요금 제보</button>
+          <button className="linkbtn" onClick={() => onReport(d.id, { focus: 'adult' })}>요금 제보</button>
         </div>
         <p className="small">가기 전에 카카오맵 장소 페이지나 공식 채널에서 요금을 확인해 주세요.</p>
       </section>
@@ -268,7 +273,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
           </div>
 
           {/* 1. 이용 결정에 필요한 핵심: 가기 전 걱정, 요금 */}
-          <TopWorries facts={d.facts} onAsk={() => onReport(d.id)} /> {/* 정보가 없어도 같은 자리에서 알려 주기를 보여 준다 */}
+          <TopWorries facts={d.facts} onAsk={(side, focus) => onReport(d.id, { side, focus })} /> {/* 정보가 없어도 같은 자리에서 알려 주기를 보여 준다 */}
           <Notices facts={d.facts} /> {/* 등록 정보와 실제가 다른 점(최근 후기 기준). 있을 때만 */}
           <PriceBlock d={d} onReport={onReport} />
 

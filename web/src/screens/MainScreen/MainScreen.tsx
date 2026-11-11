@@ -21,7 +21,7 @@ import GlideSelect from '../../components/GlideSelect'
 import PriceReport from '../../components/PriceReport'
 import Onboarding, { type TourStep } from '../../components/Onboarding'
 import { IconBanana, IconDrop, IconHelp, IconLocate, IconPin, IconSearch } from './Icons'
-import PlaceDetail from './PlaceDetail'
+import PlaceDetail, { type ReportAt } from './PlaceDetail'
 import { CHECK_TITLE, worries, reportKnown } from './PlaceFacts'
 import PlaceList from './PlaceList'
 import PlacePreview from './PlacePreview'
@@ -507,11 +507,11 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
       : []),
   ]
   // 요금 제보: 제보 창을 열고, 보낸 결과는 알림으로 알려 준다
-  const [reportFor, setReportFor] = useState<{ id: string; name: string; known?: ReturnType<typeof reportKnown> } | null>(null)
-  const reportPrice = (id: string) => {
+  const [reportFor, setReportFor] = useState<{ id: string; name: string; known?: ReturnType<typeof reportKnown>; side?: ReportAt['side']; focus?: ReportAt['focus'] } | null>(null)
+  const reportPrice = (id: string, at?: ReportAt) => {
     const p = places.find((d) => d.id === id)
     track('report_open')
-    setReportFor({ id, name: p?.name ?? id, known: p ? reportKnown(p) : undefined }) // 이미 확인된 칸은 채워서, 모르는 칸만 빈칸으로 보여 준다
+    setReportFor({ id, name: p?.name ?? id, known: p ? reportKnown(p) : undefined, ...at }) // 이미 확인된 칸은 채워서, 모르는 칸만 빈칸으로 보여 준다
   }
   const guText = filters.gu.length > 1 ? `${filters.gu[0]} 외 ${filters.gu.length - 1}개 구` : filters.gu[0] ?? ''
   const count = (nearOnly ? `내 위치 ${NEAR_KM}km 안 ` : '') + (guText ? guText + ' ' : '') + (inView && bounds ? `지도 안 ${view.length}곳` : `${view.length}곳`)
