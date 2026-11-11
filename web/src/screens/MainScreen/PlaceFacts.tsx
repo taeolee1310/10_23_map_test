@@ -1,4 +1,5 @@
 import { won, type DayKo, type DryerInfo, type Facts, type Price, type TowelMode } from '../../lib/onsen'
+import BathBadge, { BATH_LABEL, type BathSide } from '../../components/BathBadge/BathBadge'
 import PriceIcon, { type PriceIconName } from '../../components/PriceIcon/PriceIcon'
 import { IconInfo } from './Icons'
 
@@ -17,7 +18,7 @@ const dryerOne = (d: DryerInfo): string | null =>
   d.none ? '없음' : d.paid === true ? (d.price != null ? `유료 ${won(d.price)}` : '유료') : d.paid === false ? '무료' : d.has ? '있음' : null
 
 /** 제보 창에 넘기는 '이미 확인된 값'(칸 이름 → 문구). 확인된 칸은 채워진 칸으로, 없는 칸은 빈칸으로 보인다. 문구는 상세 화면과 같은 함수에서 만든다 */
-export function reportKnown(p: { price: Price | null; facts?: Facts }): Partial<Record<'adult' | 'towel' | 'scrub' | 'towelInfo' | 'hairdryerW' | 'hairdryerM' | 'seshinPay', string>> {
+export function reportKnown(p: { price: Price | null; facts?: Facts }): Partial<Record<'adult' | 'towel' | 'scrub' | 'towelInfo' | 'towelW' | 'towelM' | 'hairdryerW' | 'hairdryerM' | 'seshinPay', string>> {
   const f = p.facts
   const h = f?.hairdryer
   const both = h && !h.women && !h.men ? dryerOne(h) : null // 어느 탕인지 모르는 공통 값은 두 칸에 같이 보여 준다
@@ -26,6 +27,8 @@ export function reportKnown(p: { price: Price | null; facts?: Facts }): Partial<
     towel: p.price?.towel != null ? won(p.price.towel) : null,
     scrub: seshinPriceText(f?.seshin),
     towelInfo: towelText(f?.towel)?.replace(/수건 /g, '') ?? null,
+    towelW: f?.towel?.women ? towelOne(f.towel.women) : null,
+    towelM: f?.towel?.men ? towelOne(f.towel.men) : null,
     hairdryerW: (h?.women && dryerOne(h.women)) || both,
     hairdryerM: (h?.men && dryerOne(h.men)) || both,
     seshinPay: f?.seshin?.payment ? (f.seshin.payment === 'cash_only' ? '현금 결제만 가능' : '카드 결제 가능') : null,
@@ -72,17 +75,30 @@ export function seshinPriceText(s: Facts['seshin']): string | null {
   return parts.length ? parts.join(' · ') : null
 }
 
-type WorryRow = { icon: PriceIconName; label: string; text: string | null; note?: string } // text가 null이면 아직 확인하지 못한 항목, note는 (i) 툴팁 안내
+/** 탕별 값(여탕·남탕). 한쪽만 알면 다른 쪽은 null */
+type Sides = Record<BathSide, string | null>
+// text가 null이면 아직 확인하지 못한 항목, note는 (i) 툴팁 안내. sides가 있으면 상세에서 탕별 칸으로 나눠 보여 준다(수건·드라이기)
+type WorryRow = { icon: PriceIconName; label: string; text: string | null; note?: string; sides?: Sides }
+
+const seshinSide = (price: number | null | undefined, pay: string | null) => (price != null ? [won(price), pay].filter(Boolean).join(' · ') : null)
+
+/** 탕별 값이 하나라도 있으면 돌려준다. 둘 다 없으면 undefined(공통 값이나 '정보 없음'으로 보여 준다) */
+const sidesOf = (women: string | null | undefined, men: string | null | undefined): Sides | undefined =>
+  women || men ? { women: women || null, men: men || null } : undefined
 
 /** 가기 전 걱정 TOP 3 세 줄(수건·드라이기·세신, Figma 순서). 확인 못 한 줄은 text가 null이다. */
 function worryRows(f: Facts | undefined): WorryRow[] {
   const price = seshinPriceText(f?.seshin)
   const pay = f?.seshin?.payment ? (f.seshin.payment === 'cash_only' ? '현금 결제만 가능' : '카드 결제 가능') : null
   const hd = f?.hairdryer
+  const tw = f?.towel
+  const se = f?.seshin
+  const payShort = se?.payment ? (se.payment === 'cash_only' ? '현금만' : '카드 가능') : null
   return [
-    { icon: 'towel', label: '수건', text: towelText(f?.towel)?.replace(/수건 /g, '') ?? null }, // 줄 이름이 '수건'이라 값에서는 뺀다
-    { icon: 'hairdryer', label: '드라이기', text: hairdryerText(hd), note: hairdryerLow(hd) ? LOW_NOTE : undefined },
-    { icon: 'scrub', label: '세신', text: price || pay ? [price, pay].filter(Boolean).join(' · ') : null }, // 요금·결제를 한 줄로
+    { icon: 'towel', label: '수건', text: towelText(tw)?.replace(/수건 /g, '') ?? null, sides: sidesOf(tw?.women && towelOne(tw.women), tw?.men && towelOne(tw.men)) }, // 줄 이름이 '수건'이라 값에서는 뺀다
+    { icon: 'hairdryer', label: '드라이기', text: hairdryerText(hd), note: hairdryerLow(hd) ? LOW_NOTE : undefined, sides: sidesOf(hd?.women && dryerOne(hd.women), hd?.men && dryerOne(hd.men)) },
+    // 세신 요금이 탕별로 있으면(전신 공통 요금이 없을 때) 탕별 칸으로 나눈다. 결제 방식은 두 탕 공통이라 칸마다 짧게 붙인다
+    { icon: 'scrub', label: '세신', text: price || pay ? [price, pay].filter(Boolean).join(' · ') : null, sides: se?.price_full == null ? sidesOf(seshinSide(se?.price_women, payShort), seshinSide(se?.price_men, payShort)) : undefined },
   ]
 }
 
@@ -165,6 +181,34 @@ export function Notices({ facts }: { facts?: Facts }) {
   )
 }
 
+/** 탕별 값 두 칸(여탕 · 남탕 순서). 칸 머리의 배지는 표 맨 윗줄에 한 번만 있고, 화면 읽기 프로그램에는 칸마다 탕 이름을 읽어 준다.
+ *  한쪽만 알면 모르는 쪽은 '알려 주기'로 채운다 */
+function SideCells({ sides, note, onAsk }: { sides: Sides; note?: string; onAsk?: () => void }) {
+  const last: BathSide = sides.men ? 'men' : 'women' // 안내 (i)는 값이 있는 마지막 칸에 한 번만
+  return (
+    <>
+      {(['women', 'men'] as const).map((k) => (
+        <div className="tc" key={k}>
+          {sides[k] ? (
+            <b aria-label={`${BATH_LABEL[k]} ${sides[k]}`}>
+              {sides[k]}
+              {note && k === last && <InfoTip text={note} />}
+            </b>
+          ) : onAsk ? (
+            <button type="button" className="linkbtn side-ask" onClick={onAsk} aria-label={`${BATH_LABEL[k]} 정보 알려 주기`}>
+              알려 주기
+            </button>
+          ) : (
+            <b className="none" aria-label={`${BATH_LABEL[k]} 정보 없음`}>
+              정보 없음
+            </b>
+          )}
+        </div>
+      ))}
+    </>
+  )
+}
+
 /** 가기 전 걱정 TOP 3. 상세에서 항상 요금 위 같은 자리에 둔다. 값이 하나도 없으면 아직 모른다는 안내와 알려 주기 버튼을, 일부만 있으면 모르는 줄은 '정보 없음'과 알려 주기 링크를 보여 준다. */
 export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: () => void }) {
   const list = worryRows(facts)
@@ -181,24 +225,63 @@ export function TopWorries({ facts, onAsk }: { facts?: Facts; onAsk?: () => void
       </section>
     )
   }
+  // 정보가 있는 곳은 모두 같은 표 모양으로 보여 준다(곳마다 모양이 달라 보이지 않게, 2026-11-11). 탕 구분이 없는 값은 두 칸을 합쳐 가운데에 둔다
+  const bySide = true
   return (
     <section className="sec worry" aria-labelledby="worry-h">
       <h3 id="worry-h">가기 전 걱정 TOP 3</h3>
-      <ul>
-        {list.map((w) => (
-          <li key={w.label}>
-            <PriceIcon name={w.icon} />
-            <span>{w.label}</span>
-            {w.text ? (
-              <b>
-                {w.text}
-                {w.note && <InfoTip text={w.note} />}
-              </b>
-            ) : (
-              <b className="none">정보 없음</b>
-            )}
+      {/* 탕별 값이 한 줄이라도 있으면 표 모양: 맨 윗줄에 여탕·남탕 배지를 한 번 두고 아래로 TOP 3를 잇는다(Figma 567:173).
+          탕 구분이 없는 줄(세신 등)은 두 칸을 합쳐 보여 준다. 탕별 값이 없는 곳은 예전처럼 한 줄씩 보여 준다 */}
+      <ul className={bySide ? 'by-side' : undefined}>
+        {bySide && (
+          <li className="trow thead">
+            <span className="wl" />
+            <div className="tc">
+              <BathBadge side="women" />
+            </div>
+            <div className="tc">
+              <BathBadge side="men" />
+            </div>
           </li>
-        ))}
+        )}
+        {list.map((w) =>
+          bySide ? (
+            <li key={w.label} className="trow">
+              <span className="wl">
+                <PriceIcon name={w.icon} />
+                <span>{w.label}</span>
+              </span>
+              {w.sides && !(w.sides.women && w.sides.women === w.sides.men) ? (
+                <SideCells sides={w.sides} note={w.note} onAsk={onAsk} />
+              ) : (
+                // 두 탕이 같은 값이거나 탕 구분이 없는 값: 두 칸을 합쳐 가운데에 둔다(어느 탕에서 읽어도 같은 자리)
+                <div className="tc span">
+                  {w.sides?.women || w.text ? (
+                    <b>
+                      {w.sides?.women ?? w.text}
+                      {w.note && <InfoTip text={w.note} />}
+                    </b>
+                  ) : (
+                    <b className="none">정보 없음</b>
+                  )}
+                </div>
+              )}
+            </li>
+          ) : (
+            <li key={w.label}>
+              <PriceIcon name={w.icon} />
+              <span>{w.label}</span>
+              {w.text ? (
+                <b>
+                  {w.text}
+                  {w.note && <InfoTip text={w.note} />}
+                </b>
+              ) : (
+                <b className="none">정보 없음</b>
+              )}
+            </li>
+          ),
+        )}
       </ul>
       {onAsk && list.some((r) => !r.text) && (
         <button type="button" className="linkbtn worry-ask" onClick={onAsk}>

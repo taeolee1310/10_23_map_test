@@ -1,0 +1,5 @@
+/* 여탕·남탕 배지: 그림(높이 20px) + 글자. 색은 --badge-bath-* 토큰만 쓴다 */
+.bath-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; line-height: 1; color: var(--badge-bath-label); white-space: nowrap; }
+.bath-badge svg { flex: none; display: block; height: 20px; width: auto; }
+.bath-badge--women svg { fill: var(--badge-bath-women); }
+.bath-badge--men svg { fill: var(--badge-bath-men); }

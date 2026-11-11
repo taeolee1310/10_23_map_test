@@ -140,3 +140,18 @@
 .pr-modal__chips button.on { background: var(--chip-bg-selected); border-color: var(--chip-border-selected); color: var(--chip-text-selected); font-weight: 600; }
 @media (hover: hover) and (pointer: fine) { .pr-modal__chips button:not(.on):hover { background: var(--chip-bg-hover); } }
 @media (prefers-reduced-motion: reduce) { .pr-modal__chips button { transition: none; } }
+
+/* 다녀온 탕 고르기: 고르면 그 탕의 수건·드라이기 칸이 열린다. 배지 색이 묻히지 않게 선택은 채우지 않고 테두리로 표시한다 */
+.pr-side { margin: 0 0 var(--space-3); padding: 0; border: 0; min-width: 0; }
+.pr-side legend { margin-bottom: var(--space-2); }
+.pr-side div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); }
+.pr-side button { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 var(--space-3); border: 1px solid var(--chip-border); border-radius: var(--radius-md); background: var(--color-bg-surface); font: inherit; cursor: pointer; transition: border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), transform var(--dur-press) var(--ease-out); }
+.pr-side button.on { border-color: var(--color-border-focus); box-shadow: inset 0 0 0 1px var(--color-border-focus); }
+.pr-side button:active { transform: scale(0.98); }
+.pr-side button:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; }
+.pr-side .bath-badge { font-size: 14px; }
+/* 수건: 받는 방법을 고르면 필요한 것만 한 번 더 묻는다(카운터 → 장 수, 빌림 → 값) */
+.pr-towel { flex-direction: column; align-items: stretch; }
+.pr-towel__more { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); animation: pr-rise var(--dur-base) var(--ease-out) both; }
+.pr-towel__more > .pr-modal__sub { flex: 1 0 100%; }
+@media (prefers-reduced-motion: reduce) { .pr-side button, .pr-towel__more { transition: none; animation: none; } }

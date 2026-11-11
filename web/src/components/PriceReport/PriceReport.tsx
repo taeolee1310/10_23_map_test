@@ -3,14 +3,17 @@ import { createPortal } from 'react-dom'
 import './PriceReport.css'
 import { REPORT_URL } from '../../lib/api'
 import { track } from '../../lib/track'
+import BathBadge, { BATH_LABEL, type BathSide } from '../BathBadge/BathBadge'
 
 export const REPORT_SOURCES = ['현장 가격표', '직접 냈어요', '공식 홈페이지·네이버', '기타'] as const
 
 type Field = 'adult' | 'towel' | 'scrub'
-type InfoState = { towelInfo: string; hairdryerW: string; hairdryerM: string; seshinPay: string }
-type SlotKey = Field | keyof InfoState
-/** 이미 확인된 값(칸 이름 → 화면 문구). 있는 칸은 채워진 칸으로, 없는 칸은 점선 빈칸으로 보인다 */
-export type ReportKnown = Partial<Record<SlotKey, string>>
+type InfoState = { hairdryerW: string; hairdryerM: string; seshinPay: string }
+/** 수건: 어떻게 받는지 하나를 고르고, 카운터에서 받으면 장 수를, 빌리면 값을 덧붙인다 */
+type TowelState = { how: '' | 'free' | 'counter' | 'paid'; count: string }
+type SlotKey = 'adult' | 'scrub' | 'towel' | 'dryer' | 'seshinPay'
+/** 이미 확인된 값(칸 이름 → 화면 문구). 있는 칸은 채워진 칸으로, 없는 칸은 점선 빈칸으로 보인다. 수건·드라이기는 탕별(W 여탕, M 남탕) */
+export type ReportKnown = Partial<Record<'adult' | 'towel' | 'scrub' | 'towelInfo' | 'towelW' | 'towelM' | 'hairdryerW' | 'hairdryerM' | 'seshinPay', string>>
 
 type Props = {
   place: { id: string; name: string; known?: ReportKnown } | null
@@ -19,19 +22,32 @@ type Props = {
   onMessage: (msg: string) => void
 }
 
-// 칸 목록: 그 목욕탕의 정보 카드 모양으로 늘어놓는다. won = 금액을 적는 칸, pick = 고르는 칸.
-// 드라이기는 여탕·남탕이 다른 곳이 많아(여탕만 동전) 나눠서 받는다. 남탕·여탕이 다른 다른 정보는 덧붙일 말에 적는다
-const SLOTS: ({ key: Field; label: string; kind: 'won'; hint: string } | { key: keyof InfoState; label: string; kind: 'pick'; options: string[] })[] = [
+// 칸 목록: 그 목욕탕의 정보 카드 모양으로 늘어놓는다. won = 금액을 적는 칸, pick = 고르는 칸, towel = 수건(받는 방법 → 장 수·값).
+// 수건·드라이기는 여탕과 남탕이 다른 곳이 많아, 다녀온 탕을 먼저 고르면 그 탕의 칸만 연다(모르는 탕을 짐작해서 채우지 않게).
+type Slot =
+  | { key: 'adult' | 'scrub'; label: string; kind: 'won'; hint: string }
+  | { key: 'dryer' | 'seshinPay'; label: string; kind: 'pick'; options: string[] }
+  | { key: 'towel'; label: string; kind: 'towel' }
+const slotsFor = (side: BathSide | ''): Slot[] => [
   { key: 'adult', label: '성인 입장료', kind: 'won', hint: '9,000' },
-  { key: 'towelInfo', label: '수건', kind: 'pick', options: ['무제한', '1장', '2장', '3장 이상'] },
-  { key: 'hairdryerW', label: '여탕 드라이기', kind: 'pick', options: ['무료', '유료', '없음'] },
-  { key: 'hairdryerM', label: '남탕 드라이기', kind: 'pick', options: ['무료', '유료', '없음'] },
+  ...(side
+    ? ([
+        { key: 'towel', label: `${BATH_LABEL[side]} 수건`, kind: 'towel' },
+        { key: 'dryer', label: `${BATH_LABEL[side]} 드라이기`, kind: 'pick', options: ['무료', '유료', '없음'] },
+      ] as Slot[])
+    : []),
   { key: 'seshinPay', label: '세신 결제', kind: 'pick', options: ['현금만', '카드 가능'] },
   { key: 'scrub', label: '세신(때밀이) 요금', kind: 'won', hint: '20,000' },
-  { key: 'towel', label: '수건 요금', kind: 'won', hint: '1,000' },
 ]
+const TOWEL_HOW: { key: Exclude<TowelState['how'], ''>; label: string }[] = [
+  { key: 'free', label: '자유롭게 씀' },
+  { key: 'counter', label: '카운터에서 받음' },
+  { key: 'paid', label: '돈 내고 빌림' },
+]
+const TOWEL_COUNTS = ['1장', '2장', '3장 이상']
 const MEMO_MAX = 100
-const NO_INFO: InfoState = { towelInfo: '', hairdryerW: '', hairdryerM: '', seshinPay: '' }
+const NO_INFO: InfoState = { hairdryerW: '', hairdryerM: '', seshinPay: '' }
+const NO_TOWEL: TowelState = { how: '', count: '' }
 const NO_VALS = { adult: '', towel: '', scrub: '', memo: '', hp: '' }
 
 const ERRORS: Record<string, string> = {
@@ -96,6 +112,8 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
   const [vals, setVals] = useState(NO_VALS)
   const [source, setSource] = useState('')
   const [info, setInfo] = useState<InfoState>(NO_INFO)
+  const [side, setSide] = useState<BathSide | ''>('') // 다녀온 탕. 고르면 그 탕의 수건·드라이기 칸이 열린다
+  const [towel, setTowel] = useState<TowelState>(NO_TOWEL)
   const [err, setErr] = useState<{ msg: string; field?: 'price' | 'source' | 'any' } | null>(null)
   const [busy, setBusy] = useState(false)
   const [active, setActive] = useState<SlotKey | null>(null) // 지금 열어서 채우는 칸
@@ -112,6 +130,8 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
     setVals(NO_VALS)
     setSource('')
     setInfo(NO_INFO)
+    setSide('')
+    setTowel(NO_TOWEL)
     setErr(null)
     setActive(null)
     setMemoOpen(false)
@@ -197,8 +217,13 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
     }
   }, [open])
 
+  const SLOTS = slotsFor(side)
+  const dryerKey = side === 'men' ? 'hairdryerM' : 'hairdryerW'
+  // 서버로 보내는 수건 값: 자유롭게 → 무제한, 카운터 → 장 수(모르면 '카운터'), 빌림 → 유료(값은 수건 요금 칸으로)
+  const towelValue = towel.how === 'free' ? '무제한' : towel.how === 'counter' ? towel.count || '카운터' : towel.how === 'paid' ? '유료' : ''
+  const towelMine = towel.how === 'free' ? '자유롭게 씀' : towel.how === 'counter' ? (towel.count ? `카운터에서 ${towel.count}` : '카운터에서 받음') : towel.how === 'paid' ? (vals.towel ? `빌림 ${comma(vals.towel)}원` : '돈 내고 빌림') : ''
   // 내가 채운 값(화면 문구). 금액 칸은 '9,000원', 고르는 칸은 고른 말 그대로
-  const mine = (k: SlotKey) => (k === 'adult' || k === 'towel' || k === 'scrub' ? (vals[k] ? comma(vals[k]) + '원' : '') : info[k])
+  const mine = (k: SlotKey) => (k === 'adult' || k === 'scrub' ? (vals[k] ? comma(vals[k]) + '원' : '') : k === 'towel' ? towelMine : k === 'dryer' ? info[dryerKey] : info[k])
   const filled = SLOTS.filter((s) => mine(s.key))
   const count = filled.length
   // 채운 칸이 늘 때마다 물결이 한 번 퍼진다
@@ -208,7 +233,15 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
   }, [count])
 
   if (!place) return null
-  const known = place.known ?? {}
+  const k0 = place.known ?? {}
+  // 지금 보이는 칸 기준의 확인된 값: 수건·드라이기는 고른 탕의 값만
+  const known: Partial<Record<SlotKey, string>> = {
+    adult: k0.adult,
+    scrub: k0.scrub,
+    seshinPay: k0.seshinPay,
+    towel: side ? k0[side === 'men' ? 'towelM' : 'towelW'] || (k0.towel ? `빌림 ${k0.towel}` : undefined) : undefined,
+    dryer: side ? k0[dryerKey] : undefined,
+  }
   const blanks = SLOTS.filter((s) => !known[s.key])
   const left = blanks.filter((s) => !mine(s.key)).length
   // 물 높이: 비어 있어도 바닥에 조금 깔려 있고, 빈칸을 다 채우면 거의 가득, 보내면 가득
@@ -223,11 +256,32 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
         ? `${count}칸 채웠어요 · 빈칸 ${left}곳 남았어요`
         : `${count}칸 채웠어요. 탕이 가득 찼어요`
 
+  // 탕을 바꾸면 그 탕 칸에 적어 둔 값은 지운다(다른 탕 값으로 잘못 가지 않게)
+  const pickSide = (v: BathSide) => {
+    if (v === side) return
+    setSide(v)
+    setTowel(NO_TOWEL)
+    setInfo((s) => ({ ...s, hairdryerW: '', hairdryerM: '' }))
+    setVals((s) => ({ ...s, towel: '' }))
+    setActive(null)
+  }
+  const pickTowel = (how: TowelState['how']) => {
+    const off = towel.how === how
+    setTowel({ how: off ? '' : how, count: '' })
+    if (how !== 'paid' || off) setVals((s) => ({ ...s, towel: '' }))
+    if (err?.field === 'any') setErr(null)
+    if (off || how === 'free') setActive(null) // 더 물을 것이 없으면 칸이 닫힌다
+  }
+  const pickCount = (c: string) => {
+    setTowel((t) => ({ ...t, count: t.count === c ? '' : c }))
+    setActive(null)
+  }
   const setPrice = (k: Field) => (e: { target: { value: string } }) => {
     setVals((s) => ({ ...s, [k]: e.target.value.replace(/[^0-9]/g, '').slice(0, 6) }))
     if (err?.field === 'price' || err?.field === 'any') setErr(null)
   }
-  const pickInfo = (k: keyof InfoState, v: string) => {
+  const pickInfo = (slot: 'dryer' | 'seshinPay', v: string) => {
+    const k = slot === 'dryer' ? dryerKey : slot
     setInfo((s) => ({ ...s, [k]: s[k] === v ? '' : v })) // 같은 칩을 다시 누르면 선택을 푼다
     if (err?.field === 'any') setErr(null)
     setActive(null) // 고르면 칸이 닫힌다: 누르고 → 고르면 끝
@@ -253,7 +307,17 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
       const r = await fetch(REPORT_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ placeId: place.id, placeName: place.name, ...vals, ...info, source, deviceId: deviceId() }),
+        body: JSON.stringify({
+          placeId: place.id,
+          placeName: place.name,
+          ...vals,
+          ...info,
+          // 수건은 탕 이름을 붙여 보낸다. towelInfo는 예전 서버도 읽을 수 있는 값일 때만 같이 보낸다
+          ...(side && towelValue ? { [side === 'men' ? 'towelInfoM' : 'towelInfoW']: towelValue } : {}),
+          towelInfo: ['무제한', '1장', '2장', '3장 이상'].includes(towelValue) ? towelValue : '',
+          source,
+          deviceId: deviceId(),
+        }),
       })
       const j = await r.json().catch(() => ({}))
       if (r.ok && j.ok) {
@@ -306,6 +370,16 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
         ) : (
           <form onSubmit={submit} noValidate>
             <p className="pr-slots__hint">{blanks.length ? '점선 칸이 아직 모르는 정보예요. ' : ''}확인된 칸도 다르게 알고 있으면 눌러서 고칠 수 있어요.</p>
+            <fieldset className="pr-side">
+              <legend className="pr-modal__sub">어느 탕에 다녀오셨어요? <span>고르면 수건·드라이기 칸이 열려요</span></legend>
+              <div>
+                {(['women', 'men'] as const).map((k) => (
+                  <button key={k} type="button" className={side === k ? 'on' : ''} aria-pressed={side === k} onClick={() => pickSide(k)}>
+                    <BathBadge side={k} />
+                  </button>
+                ))}
+              </div>
+            </fieldset>
             <div className={`pr-slots${err?.field === 'any' ? ' bad' : ''}`}>
               {SLOTS.map((s) => {
                 const my = mine(s.key)
@@ -324,10 +398,42 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
                       (s.kind === 'pick' ? (
                         <div className="pr-slot__edit pr-modal__chips" role="group" aria-label={s.label}>
                           {s.options.map((o) => (
-                            <button key={o} type="button" className={info[s.key] === o ? 'on' : ''} aria-pressed={info[s.key] === o} onClick={() => pickInfo(s.key, o)}>
+                            <button key={o} type="button" className={mine(s.key) === o ? 'on' : ''} aria-pressed={mine(s.key) === o} onClick={() => pickInfo(s.key, o)}>
                               {o}
                             </button>
                           ))}
+                        </div>
+                      ) : s.kind === 'towel' ? (
+                        <div className="pr-slot__edit pr-towel">
+                          <div className="pr-modal__chips" role="group" aria-label={`${s.label}: 어떻게 받나요`}>
+                            {TOWEL_HOW.map((o) => (
+                              <button key={o.key} type="button" className={towel.how === o.key ? 'on' : ''} aria-pressed={towel.how === o.key} onClick={() => pickTowel(o.key)}>
+                                {o.label}
+                              </button>
+                            ))}
+                          </div>
+                          {towel.how === 'counter' && (
+                            <div className="pr-towel__more">
+                              <span className="pr-modal__sub">몇 장 받나요? <span>몰라도 돼요</span></span>
+                              <div className="pr-modal__chips" role="group" aria-label="받는 수건 장 수">
+                                {TOWEL_COUNTS.map((c) => (
+                                  <button key={c} type="button" className={towel.count === c ? 'on' : ''} aria-pressed={towel.count === c} onClick={() => pickCount(c)}>
+                                    {c}
+                                  </button>
+                                ))}
+                              </div>
+                              <button type="button" className="pr-slot__ok" onClick={() => setActive(null)}>넣기</button>
+                            </div>
+                          )}
+                          {towel.how === 'paid' && (
+                            <div className="pr-towel__more pr-towel__pay">
+                              <span className="pr-modal__won">
+                                <input ref={(el) => el?.focus({ preventScroll: true })} inputMode="numeric" autoComplete="off" aria-label="수건 빌리는 값" value={comma(vals.towel)} onChange={setPrice('towel')} onKeyDown={wonKey} placeholder="1,000" aria-invalid={err?.field === 'price'} />
+                                <em aria-hidden="true">원</em>
+                              </span>
+                              <button type="button" className="pr-slot__ok" onClick={() => setActive(null)}>넣기</button>
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="pr-slot__edit">

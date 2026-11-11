@@ -247,6 +247,11 @@
   --badge-unknown-bg: var(--tb-sand-75);
   --badge-unknown-text: var(--color-text-secondary);
   --badge-unknown-border: var(--color-border-default);
+  /* 여탕·남탕 배지(사용자 시안 2026-11-11). 값이 어느 탕 것인지 알려 주는 표시에만 쓴다.
+     Terracotta·Bath Teal을 버튼·선택이 아닌 곳에 쓰는 유일한 예외다 */
+  --badge-bath-women: var(--tb-terracotta-500);
+  --badge-bath-men: var(--tb-teal-500);
+  --badge-bath-label: var(--color-text-primary);
 
   /* Modal */
   --modal-bg: var(--color-bg-surface);

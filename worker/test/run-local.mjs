@@ -256,6 +256,12 @@ ok('제보 상태 바꾸기', r.j.ok)
     codes.push((await call('POST', '/api/report', { body, headers: { 'CF-Connecting-IP': '9.9.9.9' } })).res.status)
   }
   ok('같은 주소에서 하루에 15건 넘으면 429(기기 번호를 바꿔도)', codes.slice(0, 15).every((c) => c === 200) && codes[15] === 429, `16번째 ${codes[15]}`)
+  // 탕을 고른 제보: 수건·드라이기에 탕 이름이 붙어 저장된다. 예전 값(towelInfo)은 탕별 값이 없을 때만 쓴다
+  await call('POST', '/api/report', { body: { placeId: p0.id, placeName: p0.name, towelInfoM: '카운터', towelInfo: '2장', hairdryerM: '무료', source: '직접 냈어요', deviceId: 'dev-side-1' }, headers: { 'CF-Connecting-IP': '7.7.7.1' } })
+  const sideRow = sqlite.prepare('SELECT towel_info, hairdryer FROM reports ORDER BY id DESC LIMIT 1').get()
+  ok('탕을 고른 제보는 수건·드라이기에 탕 이름을 붙여 저장', sideRow.towel_info === '남탕 카운터' && sideRow.hairdryer === '남탕 무료', `${sideRow.towel_info} / ${sideRow.hairdryer}`)
+  await call('POST', '/api/report', { body: { placeId: p0.id, placeName: p0.name, towelInfo: '2장', towelInfoW: '아무거나', source: '직접 냈어요', deviceId: 'dev-side-2' }, headers: { 'CF-Connecting-IP': '7.7.7.2' } })
+  ok('탕별 값이 허용 목록에 없으면 예전 값만 저장', sqlite.prepare('SELECT towel_info FROM reports ORDER BY id DESC LIMIT 1').get().towel_info === '2장')
   sqlite.prepare('DELETE FROM reports WHERE id > ?').run(lastId) // 시험용 메모리 DB. 뒤 시험의 제보 수를 건드리지 않게 치운다
   ok('이상값 표시가 제보함 기준 파일의 경계값과 같음', wrong.length === 0, wrong.join(', ') || `${edge.length}개 경계값`)
 }

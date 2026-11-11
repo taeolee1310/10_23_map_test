@@ -18,6 +18,7 @@ const ADULT = ['휴게텔', '안마', '건마', '스웨디시', '키스방', '�
 // 제보 규칙: web/api/report.js와 같게
 const SOURCES = ['현장 가격표', '직접 냈어요', '공식 홈페이지·네이버', '기타']
 const TOWEL = ['무제한', '1장', '2장', '3장 이상']
+const TOWEL_SIDE = [...TOWEL, '카운터', '유료'] // 탕을 고른 제보: 카운터에서 받음(장 수 모름) · 돈 내고 빌림(값은 수건 요금 칸)
 const DRYER = ['무료', '유료', '없음']
 const PAY = ['현금만', '카드 가능']
 const MAX_WON = 200000
@@ -203,7 +204,10 @@ async function postReport(req, env, cors) {
   const towel = won(b.towel)
   const scrub = won(b.scrub)
   const source = SOURCES.includes(b.source) ? b.source : ''
-  const towelInfo = pick(TOWEL, b.towelInfo)
+  // 수건도 드라이기처럼 탕별로 받는다('여탕 2장 · 남탕 무제한'). 탕을 모르는 예전 제보는 값만 온다
+  const towW = pick(TOWEL_SIDE, b.towelInfoW)
+  const towM = pick(TOWEL_SIDE, b.towelInfoM)
+  const towelInfo = [towW && `여탕 ${towW}`, towM && `남탕 ${towM}`].filter(Boolean).join(' · ') || pick(TOWEL, b.towelInfo)
   const dryW = pick(DRYER, b.hairdryerW)
   const dryM = pick(DRYER, b.hairdryerM)
   const hairdryer = [dryW && `여탕 ${dryW}`, dryM && `남탕 ${dryM}`].filter(Boolean).join(' · ') || pick(DRYER, b.hairdryer)
