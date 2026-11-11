@@ -329,6 +329,9 @@
     "women": {
      "mode": "limited",
      "count": 2
+    },
+    "men": {
+     "mode": "unlimited"
     }
    },
    "fees": {
@@ -337,8 +340,13 @@
      "extra": 1000
     }
    },
-   "checked": "2026-10-31",
-   "source": "직접 방문 확인(여탕 수건 1인 2장, 야간 21~05시 대인 11,000원)"
+   "checked": "2026-11-11",
+   "source": "직접 방문 확인(여탕 수건 1인 2장, 야간 21~05시 대인 11,000원)",
+   "hairdryer": {
+    "men": {
+     "paid": false
+    }
+   }
   },
   "8860049": {
    "seshin": {
@@ -352,6 +360,18 @@
    },
    "checked": "2026-11-10",
    "source": "네이버 플레이스 가격표(업체 등록)"
+  },
+  "10029647": {
+   "hairdryer": {
+    "men": {
+     "paid": false
+    }
+   },
+   "seshin": {
+    "payment": "cash_only"
+   },
+   "checked": "2026-11-11",
+   "source": "직접 방문 확인"
   }
  }
 }
