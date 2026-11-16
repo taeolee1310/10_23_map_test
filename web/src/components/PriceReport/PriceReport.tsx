@@ -117,7 +117,7 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
   const [info, setInfo] = useState<InfoState>(NO_INFO)
   const [side, setSide] = useState<BathSide | ''>('') // 다녀온 탕. 고르면 그 탕의 수건·드라이기 칸이 열린다
   const [towel, setTowel] = useState<TowelState>(NO_TOWEL)
-  const [err, setErr] = useState<{ msg: string; field?: 'price' | 'source' | 'any' } | null>(null)
+  const [err, setErr] = useState<{ msg: string; field?: 'price' | 'source' | 'any' | 'memo' } | null>(null)
   const [busy, setBusy] = useState(false)
   const [active, setActive] = useState<SlotKey | null>(null) // 지금 열어서 채우는 칸
   const [memoOpen, setMemoOpen] = useState(false)
@@ -237,6 +237,7 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
   }, [count])
 
   if (!place) return null
+  const memoOver = vals.memo.length - MEMO_MAX // 0보다 크면 덧붙일 말이 그만큼 길다
   const k0 = place.known ?? {}
   // 지금 보이는 칸 기준의 확인된 값: 수건·드라이기는 고른 탕의 값만
   const known: Partial<Record<SlotKey, string>> = {
@@ -305,6 +306,11 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
     if (busy) return
     if (!count) return setErr({ msg: '아는 칸을 하나 이상 채워 주세요', field: 'any' })
     if (!source) return setErr({ msg: '어떻게 알게 됐는지 골라 주세요', field: 'source' })
+    // 덧붙일 말이 길면 보내지 않고 그 칸으로 데려간다(서버는 넘는 글자를 말없이 자르기 때문에 여기서 먼저 알린다)
+    if (vals.memo.length > MEMO_MAX) {
+      boxRef.current?.querySelector<HTMLElement>('.pr-modal__memo textarea')?.focus()
+      return setErr({ msg: `덧붙일 말을 ${MEMO_MAX}자 안으로 줄여 주세요`, field: 'memo' })
+    }
     setBusy(true)
     setErr(null)
     try {
@@ -501,10 +507,27 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
 
             {count > 0 &&
               (memoOpen ? (
-                <label className="pr-modal__memo">
+                // 글자 수를 넘겨도 입력은 막지 않는다(붙여 넣은 글이 말없이 잘리지 않게). 넘으면 칸 테두리·글자 수가 빨갛게 바뀌고
+                // 몇 자 넘었는지 알려 주며, 줄이기 전에는 보내지지 않는다
+                <label className={`pr-modal__memo${memoOver > 0 ? ' bad' : ''}`}>
                   <span className="pr-modal__sub">덧붙일 말 <span>선택</span></span>
-                  <textarea ref={(el) => el && !vals.memo && el.focus({ preventScroll: true })} rows={2} maxLength={MEMO_MAX} value={vals.memo} onChange={(e) => setVals((v) => ({ ...v, memo: e.target.value }))} placeholder="예) 주말은 1,000원 더 받아요" />
-                  <small aria-hidden="true">{vals.memo.length}/{MEMO_MAX}</small>
+                  <textarea
+                    ref={(el) => el && !vals.memo && el.focus({ preventScroll: true })}
+                    rows={3}
+                    value={vals.memo}
+                    onChange={(e) => {
+                      const memo = e.target.value.slice(0, MEMO_MAX * 3) // 아주 긴 글을 붙여 넣는 경우만 막는다
+                      setVals((v) => ({ ...v, memo }))
+                      if (err?.field === 'memo' && memo.length <= MEMO_MAX) setErr(null)
+                    }}
+                    placeholder="예) 주말은 1,000원 더 받아요"
+                    aria-invalid={memoOver > 0}
+                    aria-describedby="pr-memo-foot"
+                  />
+                  <span className="pr-modal__memo-foot" id="pr-memo-foot">
+                    <span className="pr-modal__memo-msg" role="status">{memoOver > 0 ? `${memoOver}자 넘었어요. ${MEMO_MAX}자까지 보낼 수 있어요` : ''}</span>
+                    <small>{vals.memo.length}/{MEMO_MAX}</small>
+                  </span>
                 </label>
               ) : (
                 <button type="button" className="pr-modal__more" onClick={() => setMemoOpen(true)}>+ 덧붙일 말 쓰기</button>

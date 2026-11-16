@@ -84,7 +84,14 @@
 
 .pr-modal__memo { position: relative; display: grid; gap: var(--space-2); margin-bottom: var(--space-3); }
 .pr-modal textarea { box-sizing: border-box; width: 100%; padding: var(--space-3); line-height: 22px; resize: none; }
-.pr-modal__memo small { position: absolute; right: var(--space-3); bottom: var(--space-2); font-size: 12px; line-height: 16px; color: var(--color-text-muted); pointer-events: none; }
+/* 칸 아래 한 줄: 왼쪽은 넘쳤을 때의 안내, 오른쪽은 글자 수. 글이 길어지면 칸이 내용만큼 자란다(지원하지 않는 브라우저는 3줄 높이에서 안쪽 스크롤) */
+.pr-modal__memo textarea { field-sizing: content; min-height: 90px; max-height: 200px; }
+.pr-modal__memo-foot { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); min-height: 16px; font-size: 12px; line-height: 16px; }
+.pr-modal__memo-msg { color: var(--input-text-error); font-weight: 600; word-break: keep-all; }
+.pr-modal__memo small { flex: none; margin-left: auto; font-size: 12px; line-height: 16px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
+/* 글자 수를 넘겼을 때: 테두리와 글자 수가 빨갛게 */
+.pr-modal__memo.bad textarea, .pr-modal__memo.bad textarea:focus { border-color: var(--input-border-error); box-shadow: 0 0 0 3px color-mix(in srgb, var(--input-border-error) 22%, transparent); }
+.pr-modal__memo.bad small { color: var(--input-text-error); font-weight: 600; }
 
 /* 안내 한 줄: 메인 화면 알림과 같은 Info 면 + 'i' 아이콘 */
 .pr-modal__note { display: flex; align-items: flex-start; gap: var(--space-2); margin: 0 0 var(--space-3); padding: var(--space-3); background: var(--toast-info-bg); border-radius: var(--radius-md); font-size: 13px; line-height: 19px; color: var(--toast-text); word-break: keep-all; }
