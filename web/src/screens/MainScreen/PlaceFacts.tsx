@@ -23,12 +23,23 @@ const dryerOne = (d: DryerInfo): string | null =>
   d.none ? '없음' : d.paid === true ? (d.price != null ? `유료 ${won(d.price)}` : '유료') : d.paid === false ? '무료' : d.has ? '있음' : null
 
 /** 제보 창에 넘기는 '이미 확인된 값'(칸 이름 → 문구). 확인된 칸은 채워진 칸으로, 없는 칸은 빈칸으로 보인다. 문구는 상세 화면과 같은 함수에서 만든다 */
-export function reportKnown(p: { price: Price | null; facts?: Facts }): Partial<Record<'adult' | 'towel' | 'scrub' | 'towelInfo' | 'towelW' | 'towelM' | 'hairdryerW' | 'hairdryerM' | 'seshinPay', string>> {
+/** 목욕탕 자체 주차 문구(상세·제보 창 공통): '주차 가능 · 목욕 3시간, 찜질 6시간 무료' / '주차 불가' / 한 줄만 있으면 그 줄 */
+export function parkingText(f: Facts | undefined): string | null {
+  const p = f?.convenience?.parking
+  if (!p) return null
+  const head = p.available === true ? '주차 가능' : p.available === false ? '주차 불가' : ''
+  return [head, p.note].filter(Boolean).join(' · ') || null
+}
+
+export function reportKnown(p: { price: Price | null; facts?: Facts }): Partial<Record<'adult' | 'child' | 'towel' | 'scrub' | 'towelInfo' | 'towelW' | 'towelM' | 'hairdryerW' | 'hairdryerM' | 'seshinPay' | 'parking' | 'tips', string>> {
   const f = p.facts
   const h = f?.hairdryer
   const both = h && !h.women && !h.men ? dryerOne(h) : null // 어느 탕인지 모르는 공통 값은 두 칸에 같이 보여 준다
   const out = {
     adult: p.price?.adult != null ? won(p.price.adult) : null,
+    child: p.price?.child != null ? won(p.price.child) : null,
+    parking: parkingText(f),
+    tips: f?.tips?.length ? `${f.tips.length}가지 있어요 · 더 알려 주기` : null,
     towel: p.price?.towel != null ? won(p.price.towel) : null,
     scrub: seshinPriceText(f?.seshin),
     towelInfo: towelText(f?.towel)?.replace(/수건 /g, '') ?? null,
@@ -187,14 +198,35 @@ function groups(f: Facts): { title: string; rows: Row[] }[] {
 }
 
 /** 가기 전 알아 둘 것: 등록 정보와 실제가 다른 점(시설 운영 중단, 이른 마감). 후기에서 나온 것이라 날짜·출처·건수를 같이 보여 준다. 없으면 그리지 않는다 */
-export function Notices({ facts }: { facts?: Facts }) {
+/** onAsk가 있으면: 아직 아무것도 없을 때는 알려 달라는 한 줄을, 있을 때는 아래에 '더 알려 주기'를 둔다(빈 자리를 숨기지 않는다) */
+export function Notices({ facts, onAsk }: { facts?: Facts; onAsk?: () => void }) {
   const list = facts?.notices ?? []
-  if (!list.length) return null
+  const tips = facts?.tips ?? [] // 방문자가 알려 준 것(사람이 확인해 넣은 것)
   const ym = (d: string) => `${d.slice(0, 4)}년 ${Number(d.slice(5, 7))}월`
+  if (!list.length && !tips.length) {
+    if (!onAsk) return null
+    return (
+      <section className="sec notice-ask" aria-labelledby="notice-h">
+        <h3 id="notice-h">가기 전 알아 둘 것</h3>
+        <p className="small">
+          신발 벗는 곳, 붐비는 때처럼 가 보면 알게 되는 점이 아직 없어요.{' '}
+          <button type="button" className="linkbtn" onClick={onAsk}>알려 주기</button>
+        </p>
+      </section>
+    )
+  }
   return (
     <section className="sec notice" aria-labelledby="notice-h">
       <h3 id="notice-h">가기 전 알아 둘 것</h3>
       <ul>
+        {tips.map((t) => (
+          <li key={'tip' + t.text}>
+            <b>{t.text}</b>
+            <span>
+              {t.kind} · 방문자 제보{t.date ? ` ${ym(t.date)}` : ''}
+            </span>
+          </li>
+        ))}
         {list.map((n) => (
           <li key={n.text}>
             <b>{n.text}</b>
@@ -204,6 +236,9 @@ export function Notices({ facts }: { facts?: Facts }) {
           </li>
         ))}
       </ul>
+      {onAsk && (
+        <button type="button" className="linkbtn notice-more" onClick={onAsk}>알아 둘 점 더 알려 주기</button>
+      )}
     </section>
   )
 }

@@ -232,6 +232,10 @@
 .onsen-main .notice li { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 12px; padding: 6px 0; }
 .onsen-main .notice li b { font-size: 14px; font-weight: 700; }
 .onsen-main .notice li span { font-size: 12px; }
+.onsen-main .notice .notice-more { display: inline-block; min-height: 32px; margin-top: 4px; font-size: 13px; color: var(--color-state-warning-text); }
+/* 알아 둘 것이 아직 없을 때: 경고색 상자 대신 보통 칸에 알려 달라는 한 줄 */
+.onsen-main .sec.notice-ask { margin-top: 10px; }
+.onsen-main .sec.notice-ask .small { margin: 0; }
 /* 세부 정보 접이식 */
 .onsen-main .facts details { border-top: 1px solid var(--line); }
 .onsen-main .facts details:first-of-type { border-top: 0; }

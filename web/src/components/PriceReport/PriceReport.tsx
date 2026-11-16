@@ -7,13 +7,17 @@ import BathBadge, { BATH_LABEL, type BathSide } from '../BathBadge/BathBadge'
 
 export const REPORT_SOURCES = ['현장 가격표', '직접 냈어요', '공식 홈페이지·네이버', '기타'] as const
 
-type Field = 'adult' | 'towel' | 'scrub'
+type Field = 'adult' | 'child' | 'towel' | 'scrub'
 type InfoState = { hairdryerW: string; hairdryerM: string; seshinPay: string }
 /** 수건: 어떻게 받는지 하나를 고르고, 카운터에서 받으면 장 수를, 빌리면 값을 덧붙인다 */
 type TowelState = { how: '' | 'free' | 'counter' | 'paid'; count: string }
-export type SlotKey = 'adult' | 'towel' | 'dryer' | 'seshin'
+export type SlotKey = 'adult' | 'child' | 'towel' | 'dryer' | 'seshin' | 'parking' | 'tips'
+/** 주차: 할 수 있는지 고르고, 무료 시간 같은 한 줄을 덧붙인다 */
+type ParkingState = { can: '' | '가능' | '불가'; note: string }
+/** 가기 전 알아둘 것 하나: 종류를 고르고 한 줄을 적는다 */
+type Tip = { kind: string; text: string }
 /** 이미 확인된 값(칸 이름 → 화면 문구). 있는 칸은 채워진 칸으로, 없는 칸은 점선 빈칸으로 보인다. 수건·드라이기는 탕별(W 여탕, M 남탕) */
-export type ReportKnown = Partial<Record<'adult' | 'towel' | 'scrub' | 'towelInfo' | 'towelW' | 'towelM' | 'hairdryerW' | 'hairdryerM' | 'seshinPay', string>>
+export type ReportKnown = Partial<Record<'adult' | 'child' | 'towel' | 'scrub' | 'towelInfo' | 'towelW' | 'towelM' | 'hairdryerW' | 'hairdryerM' | 'seshinPay' | 'parking' | 'tips', string>>
 
 type Props = {
   /** side = 상세에서 보던 탕(미리 골라 둔다), focus = 누른 칸(바로 열어 둔다) */
@@ -26,13 +30,17 @@ type Props = {
 // 칸 목록: 그 목욕탕의 정보 카드 모양으로 늘어놓는다. won = 금액을 적는 칸, pick = 고르는 칸, towel = 수건(받는 방법 → 장 수·값), seshin = 세신(요금 + 결제 방법).
 // 세신 요금과 결제는 같은 주제라 한 칸에서 받는다(따로 두면 무엇을 채우는 중인지 헷갈린다, 2026-11-11).
 // 수건·드라이기는 여탕과 남탕이 다른 곳이 많아, 다녀온 탕을 먼저 고르면 그 탕의 칸만 연다(모르는 탕을 짐작해서 채우지 않게).
+// 소인 요금·주차·가기 전 알아둘 것은 탕과 상관없어 항상 보인다(2026-11-16). 사우나·탕 온도는 받지 않는다(정보가 너무 많아져서)
 type Slot =
-  | { key: 'adult'; label: string; kind: 'won'; hint: string }
+  | { key: 'adult' | 'child'; label: string; kind: 'won'; hint: string }
+  | { key: 'parking'; label: string; kind: 'parking' }
+  | { key: 'tips'; label: string; kind: 'tips' }
   | { key: 'dryer'; label: string; kind: 'pick'; options: string[] }
   | { key: 'towel'; label: string; kind: 'towel' }
   | { key: 'seshin'; label: string; kind: 'seshin' }
 const slotsFor = (side: BathSide | ''): Slot[] => [
   { key: 'adult', label: '성인 입장료', kind: 'won', hint: '9,000' },
+  { key: 'child', label: '소인 입장료', kind: 'won', hint: '5,000' },
   ...(side
     ? ([
         { key: 'towel', label: `${BATH_LABEL[side]} 수건`, kind: 'towel' },
@@ -40,7 +48,23 @@ const slotsFor = (side: BathSide | ''): Slot[] => [
       ] as Slot[])
     : []),
   { key: 'seshin', label: '세신(때밀이)', kind: 'seshin' },
+  { key: 'parking', label: '주차', kind: 'parking' },
+  { key: 'tips', label: '가기 전 알아둘 것', kind: 'tips' },
 ]
+const PARKING_OPTIONS = ['가능', '불가'] as const
+const PARKING_NOTE_MAX = 40 // 서버(worker PARKING_NOTE_LEN)와 같은 길이
+// 가기 전 알아둘 것의 종류와 적는 예(서버 worker TIP_KINDS·제보함과 같은 목록)
+const TIP_KINDS: { kind: string; hint: string }[] = [
+  { kind: '입구·신발', hint: '예) 1층에서부터 신발을 벗어요' },
+  { kind: '층·동선', hint: '예) 남탕·여탕이 2층에 있어요' },
+  { kind: '붐비는 때', hint: '예) 주말 오후에 붐벼요' },
+  { kind: '휴업·재오픈', hint: '예) 문을 닫았다가 다시 열었어요' },
+  { kind: '기타', hint: '예) 입구가 건물 뒤쪽이에요' },
+]
+const TIP_MAX = 3
+const TIP_LEN = 60
+const NO_PARKING: ParkingState = { can: '', note: '' }
+const NO_TIP: Tip = { kind: '', text: '' }
 const TOWEL_HOW: { key: Exclude<TowelState['how'], ''>; label: string }[] = [
   { key: 'free', label: '자유롭게 씀' },
   { key: 'counter', label: '카운터에서 받음' },
@@ -51,7 +75,7 @@ const PAY_OPTIONS = ['현금만', '카드 가능']
 const MEMO_MAX = 200 // 서버(worker postReport)도 같은 길이에서 자른다. 2026-11-16 100 → 200자
 const NO_INFO: InfoState = { hairdryerW: '', hairdryerM: '', seshinPay: '' }
 const NO_TOWEL: TowelState = { how: '', count: '' }
-const NO_VALS = { adult: '', towel: '', scrub: '', memo: '', hp: '' }
+const NO_VALS = { adult: '', child: '', towel: '', scrub: '', memo: '', hp: '' }
 
 const ERRORS: Record<string, string> = {
   'not-ready': '제보 창구를 준비 중이에요',
@@ -117,6 +141,9 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
   const [info, setInfo] = useState<InfoState>(NO_INFO)
   const [side, setSide] = useState<BathSide | ''>('') // 다녀온 탕. 고르면 그 탕의 수건·드라이기 칸이 열린다
   const [towel, setTowel] = useState<TowelState>(NO_TOWEL)
+  const [parking, setParking] = useState<ParkingState>(NO_PARKING)
+  const [tips, setTips] = useState<Tip[]>([]) // 넣어 둔 알아둘 것
+  const [draft, setDraft] = useState<Tip>(NO_TIP) // 지금 적고 있는 알아둘 것(적어 둔 채로 보내도 같이 간다)
   const [err, setErr] = useState<{ msg: string; field?: 'price' | 'source' | 'any' | 'memo' } | null>(null)
   const [busy, setBusy] = useState(false)
   const [active, setActive] = useState<SlotKey | null>(null) // 지금 열어서 채우는 칸
@@ -135,6 +162,9 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
     setInfo(NO_INFO)
     setSide(place?.side ?? '') // 상세에서 여탕·남탕 탭을 보다가 열었으면 그 탕이 골라진 채로 열린다
     setTowel(NO_TOWEL)
+    setParking(NO_PARKING)
+    setTips([])
+    setDraft(NO_TIP)
     setErr(null)
     setActive(place?.focus && (place.side || (place.focus !== 'towel' && place.focus !== 'dryer')) ? place.focus : null)
     setMemoOpen(false)
@@ -227,7 +257,13 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
   const towelMine = towel.how === 'free' ? '자유롭게 씀' : towel.how === 'counter' ? (towel.count ? `카운터에서 ${towel.count}` : '카운터에서 받음') : towel.how === 'paid' ? (vals.towel ? `빌림 ${comma(vals.towel)}원` : '돈 내고 빌림') : ''
   // 내가 채운 값(화면 문구). 금액 칸은 '9,000원', 고르는 칸은 고른 말 그대로
   const seshinMine = [vals.scrub ? comma(vals.scrub) + '원' : '', info.seshinPay].filter(Boolean).join(' · ')
-  const mine = (k: SlotKey) => (k === 'adult' ? (vals.adult ? comma(vals.adult) + '원' : '') : k === 'towel' ? towelMine : k === 'dryer' ? info[dryerKey] : seshinMine)
+  const parkingMine = [parking.can && `주차 ${parking.can}`, parking.can !== '불가' && parking.note.trim()].filter(Boolean).join(' · ')
+  // 보낼 알아둘 것: 넣어 둔 것 + 지금 적고 있는 것(종류와 글이 다 있을 때)
+  const tipsAll = [...tips, ...(draft.kind && draft.text.trim() ? [{ kind: draft.kind, text: draft.text.trim() }] : [])].slice(0, TIP_MAX)
+  const mine = (k: SlotKey) =>
+    k === 'adult' || k === 'child'
+      ? vals[k] ? comma(vals[k]) + '원' : ''
+      : k === 'towel' ? towelMine : k === 'dryer' ? info[dryerKey] : k === 'parking' ? parkingMine : k === 'tips' ? tipsAll.map((t) => t.text).join(' / ') : seshinMine
   const filled = SLOTS.filter((s) => mine(s.key))
   const count = filled.length
   // 채운 칸이 늘 때마다 물결이 한 번 퍼진다
@@ -242,6 +278,9 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
   // 지금 보이는 칸 기준의 확인된 값: 수건·드라이기는 고른 탕의 값만
   const known: Partial<Record<SlotKey, string>> = {
     adult: k0.adult,
+    child: k0.child,
+    parking: k0.parking,
+    tips: k0.tips,
     seshin: [k0.scrub, k0.seshinPay].filter(Boolean).join(' · ') || undefined,
     towel: side ? k0[side === 'men' ? 'towelM' : 'towelW'] || (k0.towel ? `빌림 ${k0.towel}` : undefined) : undefined,
     dryer: side ? k0[dryerKey] : undefined,
@@ -291,6 +330,18 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
     if (err?.field === 'any') setErr(null)
     if (!stay) setActive(null) // 고르면 칸이 닫힌다: 누르고 → 고르면 끝
   }
+  const pickParking = (v: ParkingState['can']) => {
+    const off = parking.can === v
+    setParking((p) => ({ can: off ? '' : v, note: v === '불가' && !off ? '' : p.note }))
+    if (err?.field === 'any') setErr(null)
+    if (off || v === '불가') setActive(null) // 안 되면 더 물을 것이 없다
+  }
+  // 적고 있던 알아둘 것을 넣어 두고 하나 더 적는다
+  const addTip = () => {
+    if (!draft.kind || !draft.text.trim() || tips.length >= TIP_MAX) return
+    setTips((v) => [...v, { kind: draft.kind, text: draft.text.trim() }])
+    setDraft(NO_TIP)
+  }
   const pickSource = (s: string) => {
     setSource(s)
     if (err?.field === 'source') setErr(null)
@@ -322,6 +373,9 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
           placeName: place.name,
           ...vals,
           ...info,
+          parking: parking.can,
+          parkingNote: parking.can === '불가' ? '' : parking.note.trim(),
+          tips: tipsAll,
           // 수건은 탕 이름을 붙여 보낸다. towelInfo는 예전 서버도 읽을 수 있는 값일 때만 같이 보낸다
           ...(side && towelValue ? { [side === 'men' ? 'towelInfoM' : 'towelInfoW']: towelValue } : {}),
           towelInfo: ['무제한', '1장', '2장', '3장 이상'].includes(towelValue) ? towelValue : '',
@@ -443,6 +497,60 @@ export default function PriceReport({ place, onClose, onMessage }: Props) {
                               </span>
                               <button type="button" className="pr-slot__ok" onClick={() => setActive(null)}>넣기</button>
                             </div>
+                          )}
+                        </div>
+                      ) : s.kind === 'parking' ? (
+                        <div className="pr-slot__edit pr-towel">
+                          <div className="pr-modal__chips" role="group" aria-label="주차할 수 있나요">
+                            {PARKING_OPTIONS.map((o) => (
+                              <button key={o} type="button" className={parking.can === o ? 'on' : ''} aria-pressed={parking.can === o} onClick={() => pickParking(o)}>
+                                {o}
+                              </button>
+                            ))}
+                          </div>
+                          {parking.can !== '불가' && (
+                            <div className="pr-towel__more">
+                              <span className="pr-modal__sub">무료 시간이나 요금 <span>몰라도 돼요</span></span>
+                              <input className="pr-line" type="text" autoComplete="off" maxLength={PARKING_NOTE_MAX} aria-label="주차 무료 시간이나 요금" value={parking.note} onChange={(e) => setParking((p) => ({ ...p, note: e.target.value }))} onKeyDown={wonKey} placeholder="예) 목욕 3시간, 찜질 6시간 무료" />
+                              <button type="button" className="pr-slot__ok" onClick={() => setActive(null)}>넣기</button>
+                            </div>
+                          )}
+                        </div>
+                      ) : s.kind === 'tips' ? (
+                        <div className="pr-slot__edit pr-towel">
+                          {tips.length > 0 && (
+                            <ul className="pr-tips">
+                              {tips.map((t, i) => (
+                                <li key={i}>
+                                  <em>{t.kind}</em>
+                                  <span>{t.text}</span>
+                                  <button type="button" aria-label={`'${t.text}' 빼기`} onClick={() => setTips((v) => v.filter((_, j) => j !== i))}>×</button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                          {tips.length < TIP_MAX ? (
+                            <>
+                              <div className="pr-modal__chips" role="group" aria-label="어떤 내용인가요">
+                                {TIP_KINDS.map((k) => (
+                                  <button key={k.kind} type="button" className={draft.kind === k.kind ? 'on' : ''} aria-pressed={draft.kind === k.kind} onClick={() => setDraft((d) => ({ ...d, kind: d.kind === k.kind ? '' : k.kind }))}>
+                                    {k.kind}
+                                  </button>
+                                ))}
+                              </div>
+                              {draft.kind && (
+                                <div className="pr-towel__more">
+                                  <input ref={(el) => el && !draft.text && el.focus({ preventScroll: true })} className="pr-line" type="text" autoComplete="off" maxLength={TIP_LEN} aria-label="알아둘 내용" value={draft.text} onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))} onKeyDown={wonKey} placeholder={TIP_KINDS.find((k) => k.kind === draft.kind)?.hint} />
+                                  <div className="pr-tips__foot">
+                                    <small>{draft.text.length}/{TIP_LEN}</small>
+                                    {tips.length < TIP_MAX - 1 && <button type="button" className="pr-slot__ok" disabled={!draft.text.trim()} onClick={addTip}>하나 더 적기</button>}
+                                    <button type="button" className="pr-slot__ok" onClick={() => setActive(null)}>넣기</button>
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <p className="pr-slots__hint">한 번에 {TIP_MAX}가지까지 보낼 수 있어요.</p>
                           )}
                         </div>
                       ) : s.kind === 'seshin' ? (

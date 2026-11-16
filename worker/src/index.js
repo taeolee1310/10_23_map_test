@@ -21,10 +21,16 @@ const TOWEL = ['무제한', '1장', '2장', '3장 이상']
 const TOWEL_SIDE = [...TOWEL, '카운터', '유료'] // 탕을 고른 제보: 카운터에서 받음(장 수 모름) · 돈 내고 빌림(값은 수건 요금 칸)
 const DRYER = ['무료', '유료', '없음']
 const PAY = ['현금만', '카드 가능']
+const PARKING = ['가능', '불가']
+// 가기 전 알아둘 것의 종류(화면 PriceReport TIP_KINDS·제보함과 같은 목록)
+const TIP_KINDS = ['입구·신발', '층·동선', '붐비는 때', '휴업·재오픈', '기타']
+const TIP_MAX = 3
+const TIP_LEN = 60
+const PARKING_NOTE_LEN = 40
 const MAX_WON = 200000
 // 표시 기준은 data/report_rules.json과 같게(run-local.mjs가 그 파일의 경계값으로 시험한다).
 // 입장료는 위쪽 끝 '이상'(제보함의 의심 시작값)부터, 수건·세신은 위쪽 끝 '초과'부터 표시한다.
-const RANGE = { adult: [3000, 30000], towel: [0, 5000], scrub: [5000, 60000] }
+const RANGE = { adult: [3000, 30000], child: [0, 20000], towel: [0, 5000], scrub: [5000, 60000] }
 const odd = (k, v) => v < RANGE[k][0] || (k === 'adult' ? v >= RANGE[k][1] : v > RANGE[k][1])
 // 둘 다 최근 24시간 기준. 기기 한도가 한 사람 몫(직접 다녀온 두세 곳 + 고쳐 보내기)이고,
 // 주소 한도는 기기 번호를 지워 가며 보내는 경우를 막는다(같은 와이파이·통신사 주소를 여럿이 쓰므로 기기보다 넉넉하게).
@@ -203,6 +209,14 @@ async function postReport(req, env, cors) {
   const adult = won(b.adult)
   const towel = won(b.towel)
   const scrub = won(b.scrub)
+  const child = won(b.child)
+  const parking = pick(PARKING, b.parking)
+  let parkingNote = text(b.parkingNote, PARKING_NOTE_LEN)
+  // 가기 전 알아둘 것: 종류가 목록에 있고 글이 있는 것만, 3개까지
+  let tips = (Array.isArray(b.tips) ? b.tips : [])
+    .map((t) => ({ kind: pick(TIP_KINDS, t?.kind), text: text(t?.text, TIP_LEN) }))
+    .filter((t) => t.kind && t.text)
+    .slice(0, TIP_MAX)
   const source = SOURCES.includes(b.source) ? b.source : ''
   // 수건도 드라이기처럼 탕별로 받는다('여탕 2장 · 남탕 무제한'). 탕을 모르는 예전 제보는 값만 온다
   const towW = pick(TOWEL_SIDE, b.towelInfoW)
@@ -214,8 +228,8 @@ async function postReport(req, env, cors) {
   const seshinPay = pick(PAY, b.seshinPay)
   let memo = text(b.memo, 200) // 화면(PriceReport MEMO_MAX)과 같은 길이. 2026-11-16 100 → 200자
   if (!placeId || !placeName) return json({ ok: false, error: 'place' }, 400, cors)
-  if ([adult, towel, scrub].some(Number.isNaN)) return json({ ok: false, error: 'price' }, 400, cors)
-  if (adult == null && towel == null && scrub == null && !towelInfo && !hairdryer && !seshinPay) return json({ ok: false, error: 'empty' }, 400, cors)
+  if ([adult, towel, scrub, child].some(Number.isNaN)) return json({ ok: false, error: 'price' }, 400, cors)
+  if (adult == null && towel == null && scrub == null && child == null && !towelInfo && !hairdryer && !seshinPay && !parking && !parkingNote && !tips.length) return json({ ok: false, error: 'empty' }, 400, cors)
   if (!source) return json({ ok: false, error: 'source' }, 400, cors)
 
   const place = await env.DB.prepare("SELECT json_extract(body, '$.name') AS name FROM places WHERE id = ?").bind(placeId).first()
@@ -223,13 +237,19 @@ async function postReport(req, env, cors) {
   const flags = []
   if (place.name !== placeName) flags.push('이름 불일치')
   placeName = place.name // 이름은 서버 목록 기준으로 기록한다
-  for (const [k, label] of [['adult', '입장료'], ['towel', '수건'], ['scrub', '세신']]) {
-    const v = { adult, towel, scrub }[k]
+  for (const [k, label] of [['adult', '입장료'], ['child', '소인'], ['towel', '수건'], ['scrub', '세신']]) {
+    const v = { adult, child, towel, scrub }[k]
     if (v != null && odd(k, v)) flags.push(`${label} 이상값`)
   }
   if (contact.test(memo)) {
     flags.push('연락처 의심')
     memo = '[연락처 의심, 가림]' // 개인 연락처는 저장하지 않는다
+  }
+  // 새로 받는 글 칸(주차 한 줄·알아둘 것)도 연락처·주소가 보이면 저장하지 않는다
+  if (contact.test(parkingNote) || tips.some((t) => contact.test(t.text))) {
+    if (!flags.includes('연락처 의심')) flags.push('연락처 의심')
+    if (contact.test(parkingNote)) parkingNote = '[연락처 의심, 가림]'
+    tips = tips.map((t) => (contact.test(t.text) ? { ...t, text: '[연락처 의심, 가림]' } : t))
   }
 
   // 기기 ID와 접속 주소는 해시로만 남긴다(원래 값은 저장하지 않는다)
@@ -246,9 +266,9 @@ async function postReport(req, env, cors) {
   if (c.w >= LIMIT_WHO_DAY || c.i >= LIMIT_IP_DAY) return json({ ok: false, error: 'limit' }, 429, cors)
 
   await env.DB.prepare(
-    'INSERT INTO reports (created_at, place_id, place_name, adult, towel, scrub, source, memo, towel_info, hairdryer, seshin_pay, flags, who, ip_hash) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)',
+    'INSERT INTO reports (created_at, place_id, place_name, adult, towel, scrub, source, memo, towel_info, hairdryer, seshin_pay, flags, who, ip_hash, child, parking, parking_note, tips) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18)',
   )
-    .bind(now(), placeId, placeName, adult, towel, scrub, source, memo, towelInfo, hairdryer, seshinPay, flags.join(', '), who, ipHash)
+    .bind(now(), placeId, placeName, adult, towel, scrub, source, memo, towelInfo, hairdryer, seshinPay, flags.join(', '), who, ipHash, child, parking, parkingNote, tips.length ? JSON.stringify(tips) : '')
     .run()
   return json({ ok: true }, 200, cors)
 }
@@ -617,7 +637,7 @@ async function rollback(req, env) {
 async function listReports(url, env) {
   const st = url.searchParams.get('status') || 'new'
   const r = await env.DB.prepare(
-    'SELECT id, created_at, place_id, place_name, adult, towel, scrub, source, memo, towel_info, hairdryer, seshin_pay, flags, status, note FROM reports WHERE status = ? ORDER BY id DESC LIMIT 200',
+    'SELECT id, created_at, place_id, place_name, adult, towel, scrub, source, memo, towel_info, hairdryer, seshin_pay, child, parking, parking_note, tips, flags, status, note FROM reports WHERE status = ? ORDER BY id DESC LIMIT 200',
   )
     .bind(st)
     .all()

@@ -39,6 +39,10 @@ CREATE TABLE IF NOT EXISTS reports (
   towel_info TEXT,
   hairdryer TEXT,
   seshin_pay TEXT,
+  child INTEGER,                -- 소인 입장료(2026-11-16)
+  parking TEXT,                 -- 주차: '가능' / '불가'
+  parking_note TEXT,            -- 주차 무료 시간 같은 한 줄(40자)
+  tips TEXT,                    -- 가기 전 알아둘 것: [{"kind","text"}] JSON 글자(최대 3개)
   flags TEXT,
   who TEXT NOT NULL,            -- 기기 ID(없으면 접속 주소)를 해시한 값. 원래 값은 저장하지 않는다
   ip_hash TEXT NOT NULL,

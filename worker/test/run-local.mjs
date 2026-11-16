@@ -243,6 +243,7 @@ ok('제보 상태 바꾸기', r.j.ok)
     ['towel', rules.towel.max, false], ['towel', rules.towel.max + 1, true],
     ['scrub', rules.scrub.min - 1, true], ['scrub', rules.scrub.min, false],
     ['scrub', rules.scrub.max, false], ['scrub', rules.scrub.max + 1, true],
+    ['child', rules.child.max, false], ['child', rules.child.max + 1, true],
   ]
   const wrong = []
   const lastId = sqlite.prepare('SELECT MAX(id) AS id FROM reports').get().id
@@ -251,6 +252,24 @@ ok('제보 상태 바꾸기', r.j.ok)
     const res = await call('POST', '/api/report', { body, headers: { 'CF-Connecting-IP': `5.6.7.${i}` } })
     const row = sqlite.prepare('SELECT flags FROM reports ORDER BY id DESC LIMIT 1').get()
     if (!res.j.ok || row.flags.includes('이상값') !== want) wrong.push(`${k} ${v}`)
+  }
+  // 새 칸(소인 요금·주차·가기 전 알아둘 것): 이것만 보내도 받고, 목록에 없는 종류·빈 글은 버리고, 3개까지만 저장한다
+  {
+    const body = { placeId: p0.id, placeName: p0.name, child: 6000, parking: '가능', parkingNote: '목욕 3시간, 찜질 6시간 무료', source: '직접 냈어요', deviceId: 'dev-extra-1',
+      tips: [{ kind: '입구·신발', text: '1층에서부터 신발을 벗어요' }, { kind: '없는 종류', text: '버려져야 함' }, { kind: '붐비는 때', text: '' }, { kind: '붐비는 때', text: '주말에 붐벼요' }, { kind: '층·동선', text: '남탕·여탕이 2층' }, { kind: '기타', text: '넷째는 버림' }] }
+    const res = await call('POST', '/api/report', { body, headers: { 'CF-Connecting-IP': '6.6.6.1' } })
+    const row = sqlite.prepare('SELECT child, parking, parking_note, tips, adult FROM reports ORDER BY id DESC LIMIT 1').get()
+    const tips = JSON.parse(row.tips || '[]')
+    ok('소인 요금·주차·알아둘 것만으로도 제보 저장', res.j.ok && row.child === 6000 && row.parking === '가능' && row.parking_note === '목욕 3시간, 찜질 6시간 무료' && row.adult == null)
+    ok('알아둘 것은 목록에 있는 종류·글 있는 것만 3개까지', tips.length === 3 && tips.map((t) => t.kind).join() === '입구·신발,붐비는 때,층·동선', row.tips)
+    const res2 = await call('POST', '/api/report', { body: { placeId: p0.id, placeName: p0.name, parking: '아마도', parkingNote: '문의 010-1234-5678', tips: [{ kind: '기타', text: 'https://example.com 참고' }], source: '기타', deviceId: 'dev-extra-2' }, headers: { 'CF-Connecting-IP': '6.6.6.2' } })
+    const row2 = sqlite.prepare('SELECT parking, parking_note, tips, flags FROM reports ORDER BY id DESC LIMIT 1').get()
+    ok('주차 글·알아둘 것의 연락처·주소는 가리고, 목록에 없는 주차 값은 버림', res2.j.ok && row2.parking === '' && row2.parking_note === '[연락처 의심, 가림]' && JSON.parse(row2.tips)[0].text === '[연락처 의심, 가림]' && row2.flags.includes('연락처'), JSON.stringify(row2))
+    const res3 = await call('POST', '/api/report', { body: { placeId: p0.id, placeName: p0.name, tips: [{ kind: '없는 종류', text: 'x' }], source: '기타', deviceId: 'dev-extra-3' }, headers: { 'CF-Connecting-IP': '6.6.6.3' } })
+    ok('쓸 수 있는 값이 하나도 없으면 거절', res3.res.status === 400)
+    const list = await call('GET', '/admin/reports?status=new', { admin: true })
+    ok('관리용 목록에 새 칸이 같이 온다', list.j.reports.some((x) => x.child === 6000 && x.parking === '가능' && x.tips.includes('입구·신발')))
+    sqlite.exec("DELETE FROM reports WHERE who IN (SELECT who FROM reports ORDER BY id DESC LIMIT 2)") // 아래 건수 시험에 섞이지 않게 지운다
   }
   // 같은 주소에서 기기 번호를 바꿔 가며 보내도 하루 15건까지만 받는다
   const codes = []

@@ -55,9 +55,12 @@ export type Facts = {
   facility?: { baths?: { name: string; temp_c?: number }[]; sauna?: string[]; open_air?: boolean; water?: string }
   supplies?: { shampoo?: boolean; bodywash?: boolean }
   // closed_days: 가게가 등록한 휴무 문구 그대로('연중무휴' 등). hours: 요일별 영업시간(가게가 등록한 문구 그대로, 휴무일은 '정기휴무 …')
-  convenience?: { parking_height_m?: number; open_24h?: boolean; sleeping_room?: boolean; closed_days?: string; hours?: Partial<Record<DayKo, string>> }
+  // parking: 목욕탕 자체 주차(제보를 사람이 확인해 넣는다). available = 할 수 있는지, note = 무료 시간 같은 한 줄('목욕 3시간, 찜질 6시간 무료')
+  convenience?: { parking_height_m?: number; open_24h?: boolean; sleeping_room?: boolean; closed_days?: string; hours?: Partial<Record<DayKo, string>>; parking?: { available?: boolean; note?: string } }
   // 가기 전 알아 둘 것: 최근 1년 네이버 후기·블로그에서 자동으로 뽑은 '등록 정보와 실제가 다른 점'(judge_facts judge_notices). 후기 문장을 그대로 옮기지 않고 정해진 문장으로 만든다
   notices?: { text: string; date: string; count?: number; source?: string }[]
+  // 방문자가 알려 준 '가기 전 알아둘 것'(제보를 사람이 확인해 넣는다). kind: 입구·신발 / 층·동선 / 붐비는 때 / 휴업·재오픈 / 기타, date: 확인한 날
+  tips?: { kind: string; text: string; date?: string }[]
   source?: string
   checked?: string
 }

@@ -55,6 +55,17 @@
 .pr-slot__edit { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); padding: 0 var(--space-3) var(--space-3); animation: pr-rise var(--dur-base) var(--ease-out) both; }
 .pr-slot__ok { min-height: 44px; padding: 0 var(--space-4); border: 1px solid var(--button-outline-border); border-radius: var(--radius-md); background: var(--button-outline-bg); color: var(--button-outline-text); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 @media (hover: hover) and (pointer: fine) { .pr-slot:not(.is-open):hover { background: var(--chip-bg-hover); } .pr-slot__ok:hover { background: var(--button-outline-bg-hover); } }
+/* 한 줄 글 칸(주차 무료 시간·가기 전 알아둘 것) */
+.pr-modal .pr-line { width: 100%; height: 44px; box-sizing: border-box; padding: 0 var(--space-3); }
+.pr-slot__ok:disabled { opacity: .5; cursor: default; }
+/* 넣어 둔 알아둘 것: 종류 표시 + 글 + 빼기 */
+.pr-tips { display: grid; gap: var(--space-2); width: 100%; margin: 0; padding: 0; list-style: none; }
+.pr-tips li { display: flex; align-items: center; gap: var(--space-2); min-width: 0; padding: 6px 6px 6px var(--space-3); border: 1px solid var(--chip-border-selected); border-radius: var(--radius-md); background: var(--badge-facility-bg); font-size: 14px; line-height: 20px; color: var(--modal-title); }
+.pr-tips em { flex: none; font-style: normal; font-size: 12px; color: var(--color-text-link); }
+.pr-tips span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.pr-tips button { flex: none; width: 44px; height: 36px; border: 0; border-radius: var(--radius-pill); background: none; font: inherit; font-size: 18px; line-height: 1; color: var(--modal-text); cursor: pointer; }
+.pr-tips__foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.pr-tips__foot small { margin-right: auto; font-size: 12px; color: var(--color-text-muted); font-variant-numeric: tabular-nums; }
 /* 덧붙일 말은 접어 둔다 */
 .pr-modal__more { display: block; min-height: 44px; margin: 0 0 var(--space-3); padding: 0; border: 0; background: none; font: inherit; font-size: 14px; font-weight: 600; color: var(--color-text-link); cursor: pointer; }
 /* 보낸 뒤: 알려 준 내용을 다시 보여 준다 */

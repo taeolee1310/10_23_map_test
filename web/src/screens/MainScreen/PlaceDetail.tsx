@@ -2,7 +2,7 @@ import type { SlotKey } from '../../components/PriceReport/PriceReport'
 import type { BathSide } from '../../components/BathBadge/BathBadge'
 import { useEffect, useRef, useState } from 'react'
 import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, safeTel, safeUrl, won, type LatLng, type PlaceWithDist } from '../../lib/onsen'
-import { FactsDetails, FeeDetails, Notices, TopWorries, hoursText, towelText, unknownList } from './PlaceFacts'
+import { FactsDetails, FeeDetails, Notices, TopWorries, hoursText, parkingText, towelText, unknownList } from './PlaceFacts'
 import { MiniMap } from '../../components/KakaoMap/KakaoMap'
 import { catLabel, go, storyPath, type Story } from '../../lib/stories'
 
@@ -79,6 +79,12 @@ function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string, 
         <div className="total">예상 지출 (평일 성인 1인, 수건 포함) {won(p.adult + p.towel)}</div>
       )}
       <FeeDetails price={p} fees={d.facts?.fees} />
+      {/* 소인 요금을 모를 때: 줄을 숨기지 않고 알려 줄 길을 둔다 */}
+      {p.child == null && (
+        <p className="small">
+          소인 요금은 아직 몰라요. <button type="button" className="linkbtn" onClick={() => onReport(d.id, { focus: 'child' })}>알려 주기</button>
+        </p>
+      )}
       {/* 수건 요금을 모를 때: TOP 3에 수건 제공 정보가 있으면 그쪽을 가리키고, 없으면 수건까지 모른다고 쓴다(두 문장이 어긋나 보이지 않게) */}
       {p.adult != null && p.towel == null && (
         <p className="small">
@@ -99,10 +105,22 @@ function PriceBlock({ d, onReport }: { d: PlaceWithDist; onReport: (id: string, 
   )
 }
 
-function ParkingBlock({ d }: { d: PlaceWithDist }) {
+function ParkingBlock({ d, onAsk }: { d: PlaceWithDist; onAsk: () => void }) {
   const r = d.parking_radius
+  const own = parkingText(d.facts) // 목욕탕 자체 주차(방문자 제보를 확인해 넣은 값)
   return (
     <section className="sec">
+      <h3>이 목욕탕 주차</h3>
+      {own ? (
+        <div className="pr">
+          <span>{own}</span>
+          <button type="button" className="linkbtn" onClick={onAsk}>다르면 알려 주기</button>
+        </div>
+      ) : (
+        <p className="small" style={{ margin: 0 }}>
+          주차할 수 있는지, 몇 시간 무료인지 아직 몰라요. <button type="button" className="linkbtn" onClick={onAsk}>알려 주기</button>
+        </p>
+      )}
       <h3>근처 주차장{r ? ` (반경 ${r}m)` : ''}</h3>
       {d.parking == null ? (
         <p className="small" style={{ margin: 0 }}>주차장은 아직 찾아보지 않았어요.</p>
@@ -274,14 +292,14 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
 
           {/* 1. 이용 결정에 필요한 핵심: 가기 전 걱정, 요금 */}
           <TopWorries facts={d.facts} onAsk={(side, focus) => onReport(d.id, { side, focus })} /> {/* 정보가 없어도 같은 자리에서 알려 주기를 보여 준다 */}
-          <Notices facts={d.facts} /> {/* 등록 정보와 실제가 다른 점(최근 후기 기준). 있을 때만 */}
+          <Notices facts={d.facts} onAsk={() => onReport(d.id, { focus: 'tips' })} /> {/* 후기에서 뽑은 '등록 정보와 다른 점' + 방문자가 알려 준 것. 없으면 알려 달라는 한 줄 */}
           <PriceBlock d={d} onReport={onReport} />
 
           {/* 2. 이용 전에 확인할 정보 */}
           <div className="grp">
             <p className="grp-label">가기 전에 확인해요</p>
             <FactsDetails facts={d.facts} />
-            <ParkingBlock d={d} />
+            <ParkingBlock d={d} onAsk={() => onReport(d.id, { focus: 'parking' })} />
             <section className="sec">
               <h3>내 위치에서</h3>
               {d.dist != null ? (
