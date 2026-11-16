@@ -18,8 +18,17 @@ use tangbang_data::reportdesk::{self as desk, Action};
 use tangbang_data::{csvio, pyjson, util};
 
 const PAGE: &str = include_str!("../report_desk.html");
+/// 앱 창·작업 표시줄 아이콘(사용자가 준 그림을 256px로 줄인 것. 바로 가기용은 scripts/report_desk.ico)
+const ICON: &[u8] = include_bytes!("../report_desk_icon.png");
+/// 움직임 곡선·길이 토큰(서비스 화면과 같은 파일)
+const MOTION: &str = include_str!("../../web/src/styles/motion.css");
 const COLORS: &str = include_str!("../../web/src/styles/tangbang-colors.css");
+/// 새로 고침 로더 그림(서비스 화면의 바나나우유 아이콘 그대로. 찬 병·빈 병)
+const BANANA_ON: &str = include_str!("../../web/src/assets/banana-milk/banana-milk-YELLOW-on.svg");
+const BANANA_OFF: &str = include_str!("../../web/src/assets/banana-milk/banana-milk-YELLOW-off.svg");
 const READ_COND: &str = "상태 new, 최근 200건까지";
+/// Worker가 한 번에 주는 제보 수(worker/src/index.js listReports의 LIMIT). 이만큼 왔으면 더 있을 수 있다.
+const READ_MAX: usize = 200;
 const MAX_BODY: usize = 256 * 1024;
 
 struct App {
@@ -163,10 +172,11 @@ impl App {
             counts.insert(c.to_string(), json!(counts[c].as_u64().unwrap_or(0) + n as u64));
         }
         Ok(json!({
-            "ok": true, "demo": self.demo, "total": reports.len(), "groups": groups, "counts": counts,
+            "ok": true, "demo": self.demo, "total": reports.len(), "capped": reports.len() >= READ_MAX, "groups": groups, "counts": counts,
             "cond": READ_COND, "today": util::today_kst(), "stale": !self.demo && curated_newer(),
             "sweep": sweep.len(), "undo": self.last.as_ref().map(|u| u.label.clone()),
-            "options": { "towel": desk::TOWEL_OPTIONS, "dryer": desk::DRYER_OPTIONS, "pay": desk::PAY_OPTIONS },
+            "options": { "towel": desk::TOWEL_OPTIONS, "dryer": desk::DRYER_OPTIONS, "pay": desk::PAY_OPTIONS, "parking": desk::PARKING_OPTIONS, "tip_kinds": desk::TIP_KINDS,
+                "parking_note_max": desk::PARKING_NOTE_MAX, "tip_max": desk::TIP_MAX },
         }))
     }
 
@@ -308,24 +318,28 @@ impl App {
     }
 }
 
-/// 확인한 값을 data/curated/에 적는다. 요금은 onsen_prices.csv, 나머지는 place_facts.json. 둘 다 준비된 뒤에 쓴다.
+/// 확인한 값을 data/curated/에 적는다. 요금(입장료·소인·수건)은 onsen_prices.csv, 나머지(주차·알아둘 것 포함)는 place_facts.json. 둘 다 준비된 뒤에 쓴다.
 fn write_curated(place_id: &str, ev: &Map<String, Value>, source: &str, today: &str) -> Result<(Vec<String>, Vec<FileChange>)> {
     let mut wrote = Vec::new();
     let mut files = Vec::new();
-    let (adult, towel) = (ev.get("adult").and_then(|v| v.as_i64()), ev.get("towel").and_then(|v| v.as_i64()));
+    let won = |k: &str| ev.get(k).and_then(|v| v.as_i64());
+    let (adult, towel, child) = (won("adult"), won("towel"), won("child"));
     let mut price_out = None;
-    if adult.is_some() || towel.is_some() {
+    if adult.is_some() || towel.is_some() || child.is_some() {
         let bytes = std::fs::read(desk::PRICE_FILE).map_err(|_| anyhow!("⛔ {} 파일을 찾지 못했어요", desk::PRICE_FILE))?;
         let text = String::from_utf8(bytes).map_err(|_| anyhow!("⛔ {}이(가) utf-8이 아니에요. 자동으로 쓰지 않았어요", desk::PRICE_FILE))?;
-        let (out, what) = desk::update_prices_text(&text, place_id, adult, towel, source, today)?;
+        let (out, what) = desk::update_prices_text(&text, place_id, adult, towel, child, source, today)?;
         price_out = Some((out, what, text));
     }
     let mut facts_out = None;
-    if ev.keys().any(|k| !["adult", "towel"].contains(&k.as_str())) {
+    if ev.keys().any(|k| !["adult", "towel", "child"].contains(&k.as_str())) {
         let text = std::fs::read_to_string(desk::FACTS_FILE).map_err(|_| anyhow!("⛔ {} 파일을 찾지 못했어요", desk::FACTS_FILE))?;
         let (mut root, nl) = desk::load_facts_text(&text)?;
         let done = desk::update_facts(&mut root, place_id, ev, source, today)?;
-        facts_out = Some((desk::facts_text(&root, nl), done, text));
+        // 바뀐 것이 없으면(알아둘 것을 전부 버렸거나 이미 있는 글뿐) 파일을 건드리지 않는다
+        if !done.is_empty() {
+            facts_out = Some((desk::facts_text(&root, nl), done, text));
+        }
     }
     // 줄 끝을 바꾸지 않도록 글자 그대로 쓴다(util::write_text는 윈도우에서 \n을 \r\n으로 바꾼다)
     if let Some((out, what, before)) = price_out {
@@ -367,6 +381,10 @@ fn handle(app: &mut App, stream: &TcpStream) {
             let page = PAGE.replace("__TOKEN__", &app.token);
             respond(stream, "200 OK", "text/html; charset=utf-8", page.as_bytes())
         }
+        ("GET", "/icon.png") => respond(stream, "200 OK", "image/png", ICON),
+        ("GET", "/motion.css") => respond(stream, "200 OK", "text/css; charset=utf-8", MOTION.as_bytes()),
+        ("GET", "/banana-on.svg") => respond(stream, "200 OK", "image/svg+xml", BANANA_ON.as_bytes()),
+        ("GET", "/banana-off.svg") => respond(stream, "200 OK", "image/svg+xml", BANANA_OFF.as_bytes()),
         ("GET", "/colors.css") => respond(stream, "200 OK", "text/css; charset=utf-8", COLORS.as_bytes()),
         ("GET", "/api/reports") => api(app.list()),
         ("POST", p) => {
@@ -408,12 +426,65 @@ fn open_browser(url: &str) {
     };
 }
 
+/// 앱 창(주소창·탭 없는 창)을 띄울 브라우저. 윈도우에 기본으로 있는 Edge 먼저, 없으면 Chrome.
+fn app_browser() -> Option<std::path::PathBuf> {
+    for rel in ["Microsoft/Edge/Application/msedge.exe", "Google/Chrome/Application/chrome.exe"] {
+        for root in ["ProgramFiles(x86)", "ProgramFiles", "LOCALAPPDATA"] {
+            if let Ok(r) = std::env::var(root) {
+                let p = std::path::Path::new(&r).join(rel);
+                if p.is_file() {
+                    return Some(p);
+                }
+            }
+        }
+    }
+    None
+}
+
+/// 제보함만 쓰는 브라우저 프로필로 앱 창을 연다. 프로필을 따로 써야 창을 닫을 때 이 프로세스가 끝나고,
+/// 평소 쓰는 브라우저의 탭·로그인과 섞이지 않는다. 브라우저를 못 찾으면 None.
+fn open_app_window(url: &str) -> Option<std::process::Child> {
+    let exe = app_browser()?;
+    let profile = std::path::PathBuf::from(std::env::var("LOCALAPPDATA").ok()?).join("tangbang-report-desk");
+    Command::new(exe)
+        .arg(format!("--app={url}"))
+        .arg(format!("--user-data-dir={}", profile.display()))
+        .args(["--no-first-run", "--no-default-browser-check", "--disable-background-mode", "--window-size=1320,900"])
+        .spawn()
+        .ok()
+}
+
+/// `--app`: 콘솔 창 없이 자기 자신을 `--app-window`로 다시 띄우고 바로 끝난다(바로 가기용).
+/// 숨은 콘솔을 하나 물려줘서, 제보함이 부르는 node·cargo도 검은 창을 띄우지 않는다.
+#[cfg(windows)]
+fn spawn_hidden(args: &[String]) -> Result<()> {
+    use std::os::windows::process::CommandExt;
+    use std::process::Stdio;
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+    let mut pass: Vec<String> = args.iter().filter(|a| *a != "--app").cloned().collect();
+    pass.push("--app-window".into());
+    Command::new(std::env::current_exe()?)
+        .args(pass)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn()?;
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let demo = args.iter().any(|a| a == "--demo");
+    let app_launch = args.iter().any(|a| a == "--app");
+    let app_window = args.iter().any(|a| a == "--app-window") || (app_launch && !cfg!(windows));
     let port: u16 = args.iter().position(|a| a == "--port").and_then(|i| args.get(i + 1)).and_then(|p| p.parse().ok()).unwrap_or(8765);
     if !util::exists("Cargo.toml") || !util::exists(desk::ONSEN_FILE) {
         bail!("⛔ 프로젝트 폴더(Cargo.toml이 있는 곳)에서 실행해 주세요. {}도 있어야 해요", desk::ONSEN_FILE);
+    }
+    #[cfg(windows)]
+    if app_launch && !app_window {
+        return spawn_hidden(&args);
     }
     let demo_reports = if demo {
         let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
@@ -422,11 +493,37 @@ fn main() -> Result<()> {
         vec![]
     };
     let mut app = App { demo, token: random_token(), port, demo_reports, last: None };
-    let listener = TcpListener::bind(("127.0.0.1", port)).map_err(|e| anyhow!("⛔ 127.0.0.1:{port}를 열지 못했어요({e}). 이미 떠 있으면 그 창을 쓰거나 --port로 다른 번호를 주세요"))?;
     let url = format!("http://127.0.0.1:{port}/");
+    let no_open = args.iter().any(|a| a == "--no-open");
+    let listener = match TcpListener::bind(("127.0.0.1", port)) {
+        Ok(l) => l,
+        // 바로 가기를 두 번 눌러도 오류 대신 떠 있는 제보함을 연다
+        Err(e) if e.kind() == std::io::ErrorKind::AddrInUse && !no_open => {
+            println!("제보함이 이미 떠 있어요. 그 화면을 열게요: {url}");
+            if !(app_window && open_app_window(&url).is_some()) {
+                open_browser(&url);
+            }
+            return Ok(());
+        }
+        Err(e) => bail!("⛔ 127.0.0.1:{port}를 열지 못했어요({e}). 이미 떠 있으면 그 창을 쓰거나 --port로 다른 번호를 주세요"),
+    };
     println!("탕방 제보함: {url} (끄려면 Ctrl+C){}", if demo { " · 예시 모드: 파일·DB를 바꾸지 않아요" } else { "" });
     println!("읽는 조건: {READ_COND}");
-    if !args.iter().any(|a| a == "--no-open") {
+    if app_window {
+        match open_app_window(&url) {
+            // 앱 창을 닫으면 제보함도 끝난다. 5초 안에 끝났다면 창이 안 뜬 것이라 그대로 켜 둔다.
+            Some(mut win) => {
+                std::thread::spawn(move || {
+                    let began = std::time::Instant::now();
+                    let _ = win.wait();
+                    if began.elapsed().as_secs() >= 5 {
+                        std::process::exit(0);
+                    }
+                });
+            }
+            None => open_browser(&url), // Edge·Chrome이 없으면 기본 브라우저 탭으로
+        }
+    } else if !no_open {
         open_browser(&url);
     }
     for stream in listener.incoming().flatten() {

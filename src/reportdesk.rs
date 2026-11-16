@@ -15,17 +15,27 @@ pub const FACTS_FILE: &str = "data/curated/place_facts.json";
 pub const ONSEN_FILE: &str = "web/public/data/onsen.json";
 
 /// (제보 칸, 화면 이름, 입력 종류, Worker 이상값 표시)
-pub const FIELDS: [(&str, &str, &str, &str); 6] = [
+pub const FIELDS: [(&str, &str, &str, &str); 9] = [
     ("adult", "입장료", "price", "입장료 이상값"),
+    ("child", "소인 요금", "price", "소인 이상값"),
     ("towel", "수건 요금", "price", "수건 이상값"),
     ("scrub", "세신 요금", "price", "세신 이상값"),
     ("towel_info", "수건 안내", "towel", ""),
     ("hairdryer", "드라이기", "dryer", ""),
     ("seshin_pay", "세신 결제", "pay", ""),
+    ("parking", "주차", "parking", ""),
+    ("tips", "알아둘 것", "tips", ""),
 ];
-pub const TOWEL_OPTIONS: [&str; 4] = ["무제한", "1장", "2장", "3장 이상"];
+/// "카운터" = 카운터에서 받는데 장 수는 모름(탕을 고른 제보에서만 온다)
+pub const TOWEL_OPTIONS: [&str; 5] = ["무제한", "1장", "2장", "3장 이상", "카운터"];
 pub const DRYER_OPTIONS: [&str; 3] = ["무료", "유료", "없음"];
 pub const PAY_OPTIONS: [&str; 2] = ["현금만", "카드 가능"];
+pub const PARKING_OPTIONS: [&str; 2] = ["가능", "불가"];
+/// 가기 전 알아둘 것의 종류(제보 창·Worker와 같은 낱말)
+pub const TIP_KINDS: [&str; 5] = ["입구·신발", "층·동선", "붐비는 때", "휴업·재오픈", "기타"];
+pub const PARKING_NOTE_MAX: usize = 40;
+pub const TIP_MAX: usize = 60;
+const TIPS_PER_REPORT: usize = 3;
 const MAX_WON: i64 = 200_000;
 const NOTE_MAX: usize = 200; // Worker가 검토 메모를 200자까지 받는다
 
@@ -67,20 +77,84 @@ fn kind_of(key: &str) -> &'static str {
     FIELDS.iter().find(|f| f.0 == key).map(|f| f.2).unwrap_or("")
 }
 
-/// 제보에 적힌 값. 요금은 숫자, 나머지는 글자. 비어 있으면 None.
+fn cut(t: &str, max: usize) -> String {
+    t.trim().chars().take(max).collect()
+}
+
+/// 제보의 '가기 전 알아둘 것'. D1에는 JSON 배열이 글자로 들어 있다. 깨졌거나 없으면(예전 제보) 빈 목록.
+/// 종류가 정해진 낱말이 아니면 '기타'로 보고, 글이 빈 것은 버린다. 제보 하나에 3개까지.
+pub fn report_tips(r: &Value) -> Vec<Value> {
+    let parsed: Option<Value> = match r.get("tips") {
+        Some(Value::String(t)) => serde_json::from_str(t).ok(),
+        Some(v @ Value::Array(_)) => Some(v.clone()),
+        _ => None,
+    };
+    let mut out: Vec<Value> = Vec::new();
+    for item in parsed.as_ref().and_then(|v| v.as_array()).into_iter().flatten() {
+        let text = cut(s(item, "text"), TIP_MAX);
+        if text.is_empty() || out.iter().any(|o| s(o, "text") == text) {
+            continue;
+        }
+        let kind = TIP_KINDS.iter().find(|k| **k == s(item, "kind")).copied().unwrap_or("기타");
+        out.push(json!({ "kind": kind, "text": text }));
+        if out.len() == TIPS_PER_REPORT {
+            break;
+        }
+    }
+    out
+}
+
+/// 제보에 적힌 값. 요금은 숫자, 주차는 { available, note }, 알아둘 것은 [{ kind, text }], 나머지는 글자.
+/// 비어 있으면(예전 제보처럼 칸이 아예 없어도) None.
 pub fn report_value(r: &Value, key: &str) -> Option<Value> {
-    if kind_of(key) == "price" {
-        num(r.get(key)).map(Value::from)
-    } else {
-        let t = s(r, key);
-        (!t.is_empty()).then(|| Value::from(t))
+    match kind_of(key) {
+        "price" => num(r.get(key)).map(Value::from),
+        "parking" => {
+            let a = PARKING_OPTIONS.iter().find(|o| **o == s(r, "parking")).copied().unwrap_or("");
+            let note = cut(s(r, "parking_note"), PARKING_NOTE_MAX);
+            (!a.is_empty() || !note.is_empty()).then(|| json!({ "available": a, "note": note }))
+        }
+        "tips" => {
+            let tips = report_tips(r);
+            (!tips.is_empty()).then(|| Value::Array(tips))
+        }
+        _ => {
+            let t = s(r, key);
+            (!t.is_empty()).then(|| Value::from(t))
+        }
     }
 }
+fn join_dot(parts: &[&str]) -> String {
+    parts.iter().filter(|p| !p.is_empty()).copied().collect::<Vec<_>>().join(" · ")
+}
 fn show(v: &Value) -> String {
-    match num(Some(v)) {
-        Some(n) if v.is_number() => won(n),
-        _ => v.as_str().unwrap_or("").to_string(),
+    match v {
+        Value::Array(a) => a.iter().map(show).collect::<Vec<_>>().join(" / "),
+        Value::Object(o) if o.contains_key("text") => format!("[{}] {}", s(v, "kind"), s(v, "text")),
+        Value::Object(_) => join_dot(&[s(v, "available"), s(v, "note")]),
+        _ => match num(Some(v)) {
+            Some(n) if v.is_number() => won(n),
+            _ => v.as_str().unwrap_or("").to_string(),
+        },
     }
+}
+
+/// 지금 화면의 주차 값(facts.convenience.parking) → (가능·불가, 안내 글)
+fn parking_now(facts: Option<&Value>) -> (&'static str, String) {
+    let p = at(facts, &["convenience", "parking"]);
+    let a = match at(p, &["available"]).and_then(|x| x.as_bool()) {
+        Some(true) => "가능",
+        Some(false) => "불가",
+        None => "",
+    };
+    (a, p.map(|p| s(p, "note").to_string()).unwrap_or_default())
+}
+/// 지금 화면의 알아둘 것(facts.tips)
+fn tips_now(facts: Option<&Value>) -> Vec<Value> {
+    at(facts, &["tips"]).and_then(|t| t.as_array()).cloned().unwrap_or_default()
+}
+fn tip_known(now: &[Value], text: &str) -> bool {
+    now.iter().any(|t| s(t, "text").trim() == text.trim())
 }
 
 fn towel_one(t: &Value) -> String {
@@ -88,7 +162,7 @@ fn towel_one(t: &Value) -> String {
         ("unlimited", _) => "무제한".into(),
         ("limited", Some(n)) if n >= 3 => "3장 이상".into(),
         ("limited", Some(n)) => format!("{n}장"),
-        ("limited", None) => "제한(장수 모름)".into(),
+        ("limited", None) => "카운터".into(), // 카운터에서 받는데 장 수는 모름(제보 값과 같은 말로)
         _ => String::new(),
     }
 }
@@ -134,7 +208,12 @@ pub fn current(place: Option<&Value>, key: &str) -> Current {
     let price = at(place, &["price"]);
     let facts = at(place, &["facts"]);
     let (text, from) = match key {
-        "adult" | "towel" => (num(at(price, &[key])).map(won).unwrap_or_default(), price),
+        "adult" | "towel" | "child" => (num(at(price, &[key])).map(won).unwrap_or_default(), price),
+        "parking" => {
+            let (a, note) = parking_now(facts);
+            (join_dot(&[a, &note]), facts)
+        }
+        "tips" => (show(&Value::Array(tips_now(facts))), facts),
         "scrub" => {
             let se = at(facts, &["seshin"]);
             let t = match num(at(se, &["price_full"])) {
@@ -219,11 +298,34 @@ pub fn compare(place: Option<&Value>, key: &str, rv: &Value) -> State {
     let facts = at(place, &["facts"]);
     let rs = rv.as_str().unwrap_or("").to_string();
     match key {
-        "adult" | "towel" => match num(at(place, &["price", key])) {
+        "adult" | "towel" | "child" => match num(at(place, &["price", key])) {
             None => State::New,
             Some(c) if Some(c) == num(Some(rv)) => State::Same,
             Some(_) => State::Differ,
         },
+        "parking" => {
+            // 제보가 말한 부분(가능 여부·안내 글)만 지금 값과 견준다
+            let (a, note) = parking_now(facts);
+            let mut pairs = Vec::new();
+            if !s(rv, "available").is_empty() {
+                pairs.push((a.to_string(), s(rv, "available").to_string()));
+            }
+            if !s(rv, "note").is_empty() {
+                pairs.push((note, s(rv, "note").to_string()));
+            }
+            fold(pairs)
+        }
+        "tips" => {
+            // 알아둘 것은 쌓이는 정보라 '다름'이 없다. 이미 같은 글이 있으면 같음, 아니면 새 정보
+            let now = tips_now(facts);
+            let one = [rv.clone()];
+            let list = rv.as_array().map(|a| a.as_slice()).unwrap_or(&one);
+            if list.iter().all(|t| tip_known(&now, s(t, "text"))) {
+                State::Same
+            } else {
+                State::New
+            }
+        }
         "scrub" => {
             let se = at(facts, &["seshin"]);
             let vals: Vec<i64> = ["price_full", "price_women", "price_men"]
@@ -239,14 +341,19 @@ pub fn compare(place: Option<&Value>, key: &str, rv: &Value) -> State {
             }
         }
         "towel_info" => {
+            // 제보가 '남탕 2장'처럼 탕을 말하면 그 탕하고만, 탕이 없으면(예전 제보) 값이 있는 두 탕 모두와 견준다
             let t = at(facts, &["towel"]);
-            fold(
-                ["women", "men"]
-                    .iter()
-                    .map(|k| (at(t, &[k]).map(towel_one).unwrap_or_default(), rs.clone()))
-                    .filter(|(c, _)| !c.is_empty())
-                    .collect(),
-            )
+            let mut pairs = Vec::new();
+            for (k, v) in dryer_parts(&rs) {
+                let ks: &[&str] = if k.is_empty() { &["women", "men"] } else if k == "women" { &["women"] } else { &["men"] };
+                for side in ks {
+                    let c = at(t, &[side]).map(towel_one).unwrap_or_default();
+                    if !c.is_empty() || !k.is_empty() {
+                        pairs.push((c, v.clone()));
+                    }
+                }
+            }
+            fold(pairs)
         }
         "hairdryer" => {
             let h = at(facts, &["hairdryer"]);
@@ -303,6 +410,7 @@ pub enum Judged {
 }
 
 /// 요금 제보 하나를 기준에 댄다. now_adult는 지금 확인된 대인 요금(있을 때만 절반·두 배를 본다).
+/// 소인 요금은 범위 밖이면 이상값(허위 기준), 범위 안이어도 대인 요금보다 비싸면 의심.
 pub fn judge(key: &str, v: i64, now_adult: Option<i64>) -> Judged {
     match key {
         "adult" => {
@@ -333,6 +441,18 @@ pub fn judge(key: &str, v: i64, now_adult: Option<i64>) -> Judged {
                 Judged::Fake(format!("{} {} 미만", label_of(key), won(min)))
             } else if v > max {
                 Judged::Fake(format!("{} {} 초과", label_of(key), won(max)))
+            } else {
+                Judged::Ok
+            }
+        }
+        "child" => {
+            let (min, max) = (rule(&["child", "min"]), rule(&["child", "max"]));
+            if v < min {
+                Judged::Fake(format!("소인 요금 {} 미만", won(min)))
+            } else if v > max {
+                Judged::Fake(format!("소인 요금 {} 초과", won(max)))
+            } else if now_adult.is_some_and(|a| a > 0 && v > a) {
+                Judged::Suspect("소인 요금이 대인 요금보다 비쌈".into())
             } else {
                 Judged::Ok
             }
@@ -405,19 +525,28 @@ fn group(test: bool, place_id: &str, rs: &[&Value], place: Option<&Value>) -> Va
     let mut fields = Vec::new();
     let (mut any_new, mut any_differ, mut conflict, mut raise) = (false, false, false, false);
     let (mut fake_why, mut warn) = (String::new(), String::new());
+    let now_tips = tips_now(at(place, &["facts"]));
+    // 소인 요금과 견줄 대인 요금: 지금 확인값이 먼저, 없으면 같은 묶음 제보의 (허위가 아닌) 입장료
+    let rep_adult = rs.iter().filter(|r| !is_outlier(r, "adult")).filter_map(|r| num(r.get("adult"))).max();
     for (key, label, kind, _) in FIELDS {
-        // 같은 값끼리 묶는다(값 → 제보 번호들)
+        // 같은 값끼리 묶는다(값 → 제보 번호들). 알아둘 것은 한 제보에 여러 개라 하나씩 따로 묶는다
         let mut vals: Vec<(Value, Vec<i64>, bool, String)> = Vec::new();
         for r in rs {
             let Some(v) = report_value(r, key) else { continue };
             let out = is_outlier(r, key);
             let id = num(r.get("id")).unwrap_or(0);
-            match vals.iter_mut().find(|x| x.0 == v) {
-                Some(x) => {
-                    x.1.push(id);
-                    x.3 = x.3.clone().max(kst(s(r, "created_at")));
+            let each = match v {
+                Value::Array(a) if kind == "tips" => a,
+                v => vec![v],
+            };
+            for v in each {
+                match vals.iter_mut().find(|x| x.0 == v) {
+                    Some(x) => {
+                        x.1.push(id);
+                        x.3 = x.3.clone().max(kst(s(r, "created_at")));
+                    }
+                    None => vals.push((v, vec![id], out, kst(s(r, "created_at")))),
                 }
-                None => vals.push((v, vec![id], out, kst(s(r, "created_at")))),
             }
         }
         if vals.is_empty() {
@@ -425,7 +554,8 @@ fn group(test: bool, place_id: &str, rs: &[&Value], place: Option<&Value>) -> Va
         }
         let cur = current(place, key);
         let now_adult = num(at(place, &["price", "adult"]));
-        let mark = |v: &Value| match (kind == "price").then(|| judge(key, num(Some(v)).unwrap_or(0), now_adult)) {
+        let ref_adult = if key == "child" { now_adult.or(rep_adult) } else { now_adult };
+        let mark = |v: &Value| match (kind == "price").then(|| judge(key, num(Some(v)).unwrap_or(0), ref_adult)) {
             Some(Judged::Fake(w)) => ("fake", w),
             Some(Judged::Suspect(w)) => ("suspect", w),
             _ => ("", String::new()),
@@ -440,6 +570,14 @@ fn group(test: bool, place_id: &str, rs: &[&Value], place: Option<&Value>) -> Va
         let good: Vec<&(Value, Vec<i64>, bool, String)> = vals.iter().filter(|v| !v.2).collect();
         let state = if good.is_empty() {
             "outlier"
+        } else if kind == "tips" {
+            // 서로 다른 알아둘 것은 충돌이 아니다. 아직 화면에 없는 글이 하나라도 있으면 새 정보
+            if good.iter().all(|v| tip_known(&now_tips, s(&v.0, "text"))) {
+                "same"
+            } else {
+                any_new = true;
+                "new"
+            }
         } else if good.len() > 1 {
             conflict = true;
             "conflict"
@@ -465,8 +603,9 @@ fn group(test: bool, place_id: &str, rs: &[&Value], place: Option<&Value>) -> Va
         };
         fields.push(json!({
             "key": key, "label": label, "kind": kind, "state": state,
-            "current": { "text": cur.text, "checked": cur.checked, "source": cur.source },
-            "reported": vals.iter().map(|v| { let m = mark(&v.0); json!({ "value": v.0, "text": show(&v.0), "ids": v.1, "outlier": v.2, "mark": m.0, "why": m.1 }) }).collect::<Vec<_>>(),
+            "current": { "text": cur.text, "checked": cur.checked, "source": cur.source, "tips": if kind == "tips" { json!(now_tips) } else { Value::Null } },
+            "reported": vals.iter().map(|v| { let m = mark(&v.0); json!({ "value": v.0, "text": show(&v.0), "ids": v.1, "outlier": v.2, "mark": m.0, "why": m.1,
+                "known": kind == "tips" && tip_known(&now_tips, s(&v.0, "text")) }) }).collect::<Vec<_>>(),
         }));
     }
     let fake_text = format!("허위 기준: {fake_why}");
@@ -529,6 +668,34 @@ pub fn check_evidence(ev: &Map<String, Value>) -> Result<()> {
                     bail!("{label}: 현금만·카드 가능 중에서 골라 주세요")
                 }
             }
+            "parking" => {
+                let (a, note) = (s(v, "available"), s(v, "note").trim());
+                if !v.is_object() || !pick(&PARKING_OPTIONS, a) || (a.is_empty() && note.is_empty()) {
+                    bail!("{label}: 가능·불가를 고르거나 안내 글을 적어 주세요")
+                }
+                if note.chars().count() > PARKING_NOTE_MAX {
+                    bail!("{label}: 안내 글은 {PARKING_NOTE_MAX}자까지 적을 수 있어요")
+                }
+            }
+            "tips" => {
+                let list = v.as_array().filter(|a| !a.is_empty()).ok_or_else(|| anyhow!("{label}: 넣을 글 또는 버릴 글을 골라 주세요"))?;
+                for t in list {
+                    let Some(ok) = t.get("ok").and_then(|x| x.as_bool()) else { bail!("{label}: 글마다 맞음·버림을 골라 주세요") };
+                    if s(t, "of").is_empty() {
+                        bail!("{label}: 어느 제보 글인지 알 수 없어요. 새로고침한 뒤 다시 해 주세요")
+                    }
+                    if !ok {
+                        continue;
+                    }
+                    let n = s(t, "text").trim().chars().count();
+                    if n == 0 || n > TIP_MAX {
+                        bail!("{label}: 글은 1~{TIP_MAX}자로 적어 주세요")
+                    }
+                    if !TIP_KINDS.contains(&s(t, "kind")) {
+                        bail!("{label}: 종류를 골라 주세요")
+                    }
+                }
+            }
             kind @ ("towel" | "dryer") => {
                 let (w, m) = (s(v, "women"), s(v, "men"));
                 let list: &[&str] = if kind == "towel" { &TOWEL_OPTIONS } else { &DRYER_OPTIONS };
@@ -546,6 +713,8 @@ fn ev_text(key: &str, v: &Value) -> String {
     match kind_of(key) {
         "price" => won(v.as_i64().unwrap_or(0)),
         "pay" => v.as_str().unwrap_or("").to_string(),
+        "parking" => join_dot(&[s(v, "available"), s(v, "note").trim()]),
+        "tips" => format!("{}개", v.as_array().map(|a| a.iter().filter(|t| t["ok"].as_bool() == Some(true)).count()).unwrap_or(0)),
         _ => sides(s(v, "women").to_string(), s(v, "men").to_string()),
     }
 }
@@ -555,9 +724,34 @@ fn matches(key: &str, rv: &Value, ev: &Value) -> Option<bool> {
     match kind_of(key) {
         "price" => Some(num(Some(rv)) == ev.as_i64()),
         "pay" => Some(rv.as_str() == ev.as_str()),
+        "parking" => {
+            // 가능 여부는 둘 다 적혔을 때만 견준다. 안내 글은 운영자가 다듬어 적을 수 있어 글자까지 같지 않아도 된다
+            let mut seen = Vec::new();
+            let (ra, ea) = (s(rv, "available"), s(ev, "available"));
+            if !ra.is_empty() && !ea.is_empty() {
+                seen.push(ra == ea);
+            }
+            if !s(rv, "note").is_empty() && !s(ev, "note").trim().is_empty() {
+                seen.push(true);
+            }
+            if seen.is_empty() {
+                None
+            } else {
+                Some(seen.iter().all(|x| *x))
+            }
+        }
         "towel" => {
-            let r = rv.as_str().unwrap_or("");
-            Some(["women", "men"].iter().map(|k| s(ev, k)).filter(|x| !x.is_empty()).all(|x| x == r))
+            let mut seen = Vec::new();
+            for (k, v) in dryer_parts(rv.as_str().unwrap_or("")) {
+                let ks: &[&str] = if k.is_empty() { &["women", "men"] } else if k == "women" { &["women"] } else { &["men"] };
+                for side in ks {
+                    let e = s(ev, side);
+                    if !e.is_empty() {
+                        seen.push(e == v);
+                    }
+                }
+            }
+            Some(seen.iter().all(|x| *x))
         }
         "dryer" => {
             let mut seen = Vec::new();
@@ -580,6 +774,20 @@ fn matches(key: &str, rv: &Value, ev: &Value) -> Option<bool> {
     }
 }
 
+/// 제보 하나의 알아둘 것 가운데 운영자가 (넣기로 한 수, 버린 수). 근거의 `of`는 제보에 적힌 원래 글.
+fn tip_counts(rv: &Value, ev: Option<&Value>) -> (usize, usize) {
+    let (mut ok, mut drop) = (0, 0);
+    for t in rv.as_array().into_iter().flatten() {
+        let hit = ev.and_then(|e| e.as_array()).and_then(|a| a.iter().find(|e| s(e, "of") == s(t, "text")));
+        match hit.and_then(|e| e.get("ok")).and_then(|x| x.as_bool()) {
+            Some(true) => ok += 1,
+            Some(false) => drop += 1,
+            None => {}
+        }
+    }
+    (ok, drop)
+}
+
 fn clip(note: String) -> String {
     note.chars().take(NOTE_MAX).collect()
 }
@@ -600,6 +808,15 @@ pub fn plan_apply(reports: &[Value], ev: &Map<String, Value>, source: &str, toda
             let (mut ok, mut bad, mut unknown) = (Vec::new(), Vec::new(), Vec::new());
             for f in FIELDS {
                 let Some(rv) = report_value(r, f.0) else { continue };
+                if f.0 == "tips" {
+                    // 알아둘 것은 하나씩 고른다: 하나라도 넣으면 반영, 전부 버렸으면 다름, 안 고른 글뿐이면 못 봄
+                    match tip_counts(&rv, ev.get("tips")) {
+                        (0, 0) => unknown.push(f.1),
+                        (0, _) => bad.push(format!("{} 버림", f.1)),
+                        (n, _) => ok.push(format!("{} {n}개", f.1)),
+                    }
+                    continue;
+                }
                 match ev.get(f.0).and_then(|e| matches(f.0, &rv, e).map(|m| (m, e))) {
                     Some((true, e)) => ok.push(format!("{} {}", f.1, ev_text(f.0, e))),
                     Some((false, e)) => bad.push(format!("{} 근거 {}", f.1, ev_text(f.0, e))),
@@ -648,10 +865,11 @@ pub fn update_prices_text(
     key: &str,
     adult: Option<i64>,
     towel: Option<i64>,
+    child: Option<i64>,
     source: &str,
     today: &str,
 ) -> Result<(String, String)> {
-    if adult.is_none() && towel.is_none() {
+    if adult.is_none() && towel.is_none() && child.is_none() {
         bail!("바꿀 요금이 없어요");
     }
     let (bom, body) = match text.strip_prefix('\u{feff}') {
@@ -685,6 +903,7 @@ pub fn update_prices_text(
     let ci = |c: &str| cols.iter().position(|x| x == c).ok_or_else(|| anyhow!("⛔ 칸 '{c}'이(가) 없어요 (있는 칸: {})", cols.join(", ")));
     let (c_id, c_adult, c_towel, c_memo, c_src, c_day) =
         (ci("카카오ID")?, ci("성인_평일")?, ci("수건")?, ci("메모")?, ci("출처")?, ci("확인일")?);
+    let c_child = if child.is_some() { ci("어린이")? } else { 0 };
     let hit = recs.iter().enumerate().skip(1).find(|(_, r)| r.2.get(c_id).map(|x| x.as_str()) == Some(key)).map(|(i, _)| i);
     let mut row = match hit {
         Some(i) => recs[i].2.clone(),
@@ -697,6 +916,10 @@ pub fn update_prices_text(
     if let Some(a) = adult {
         parts.push(if row[c_adult].is_empty() || !adult_changed { format!("대인 {}", won(a)) } else { format!("대인 {}원→{}", row[c_adult], won(a)) });
         row[c_adult] = a.to_string();
+    }
+    if let Some(c) = child {
+        parts.push(if row[c_child].is_empty() || row[c_child] == c.to_string() { format!("소인 {}", won(c)) } else { format!("소인 {}원→{}", row[c_child], won(c)) });
+        row[c_child] = c.to_string();
     }
     if let Some(t) = towel {
         parts.push(format!("수건 {}", won(t)));
@@ -762,6 +985,7 @@ pub fn update_facts(root: &mut Value, key: &str, ev: &Map<String, Value>, source
                     let val = match (name, s(v, side)) {
                         (_, "") => continue,
                         ("towel", "무제한") => json!({ "mode": "unlimited" }),
+                        ("towel", "카운터") => json!({ "mode": "limited" }), // 장 수를 모르면 count를 적지 않는다
                         ("towel", n) => json!({ "mode": "limited", "count": n.chars().next().and_then(|c| c.to_digit(10)).unwrap_or(1) }),
                         (_, "없음") => json!({ "none": true }),
                         (_, p) => json!({ "paid": p == "유료" }),
@@ -769,7 +993,46 @@ pub fn update_facts(root: &mut Value, key: &str, ev: &Map<String, Value>, source
                     obj_mut(&mut entry, name)?.insert(side.into(), val);
                 }
             }
-            _ => continue, // 입장료·수건 요금은 onsen_prices.csv
+            "parking" => {
+                // convenience의 다른 키(영업시간 등)는 그대로 둔다
+                let conv = obj_mut(&mut entry, "convenience")?;
+                let (a, note) = (s(v, "available"), s(v, "note").trim());
+                let mut p = Map::new();
+                if a.is_empty() {
+                    // 안내 글만 확인했으면 이미 적힌 가능 여부는 건드리지 않는다
+                    if let Some(old) = conv.get("parking").and_then(|x| x.get("available")).filter(|x| x.is_boolean()) {
+                        p.insert("available".into(), old.clone());
+                    }
+                } else {
+                    p.insert("available".into(), Value::from(a == "가능"));
+                }
+                if !note.is_empty() {
+                    p.insert("note".into(), Value::from(note));
+                }
+                conv.insert("parking".into(), Value::Object(p));
+            }
+            "tips" => {
+                // 기존 글은 지우지 않고, 같은 글은 다시 넣지 않는다
+                let old: Vec<Value> = match entry.get("tips") {
+                    None => Vec::new(),
+                    Some(Value::Array(a)) => a.clone(),
+                    Some(_) => bail!("⛔ {FACTS_FILE}의 '{key}' tips 모양이 예상과 달라요"),
+                };
+                let mut list = old.clone();
+                for t in v.as_array().into_iter().flatten().filter(|t| t["ok"].as_bool() == Some(true)) {
+                    let text = s(t, "text").trim();
+                    if !text.is_empty() && !tip_known(&list, text) {
+                        list.push(json!({ "kind": s(t, "kind"), "text": text, "date": today }));
+                    }
+                }
+                let added = list.len() - old.len();
+                if added > 0 {
+                    entry.as_object_mut().unwrap().insert("tips".into(), Value::Array(list));
+                    done.push(format!("{} {added}개", label_of(k)));
+                }
+                continue;
+            }
+            _ => continue, // 입장료·소인·수건 요금은 onsen_prices.csv
         }
         done.push(format!("{} {}", label_of(k), ev_text(k, v)));
     }
@@ -822,16 +1085,17 @@ pub const HOME_FACTS_FILE: &str = "data/collected/naver_home_facts.csv";
 
 /// 이미 수집해 둔 네이버 근거(naver_home_facts.csv 한 줄)를 제보 칸별로 나눈다. 문장은 ‖로 이어져 있다.
 pub fn evidence(row: &HashMap<String, String>) -> Value {
-    let cut = |c: &str, n: usize| -> Vec<String> {
+    let cut = |c: &str, n: usize, max: usize| -> Vec<String> {
         row.get(c)
-            .map(|t| t.split('‖').map(|x| x.trim()).filter(|x| !x.is_empty()).take(n).map(|x| x.chars().take(220).collect()).collect())
+            .map(|t| t.split('‖').map(|x| x.trim()).filter(|x| !x.is_empty()).take(n).map(|x| x.chars().take(max).collect()).collect())
             .unwrap_or_default()
     };
-    let (price, towel, seshin, dryer) = (cut("가격표", 1), cut("수건근거", 3), cut("세신근거", 3), cut("드라이기근거", 3));
+    // 가격표는 자르지 않는다(220자에서 자르면 항목이 많은 곳은 뒤쪽 요금이 안 보인다). 후기 문장만 220자로 줄인다.
+    let (price, towel, seshin, dryer) = (cut("가격표", 1, usize::MAX), cut("수건근거", 3, 220), cut("세신근거", 3, 220), cut("드라이기근거", 3, 220));
     json!({
         "naver_id": row.get("네이버ID").cloned().unwrap_or_default(),
         "collected": row.get("수집일").cloned().unwrap_or_default(),
-        "by": { "adult": price, "towel": towel, "scrub": seshin, "towel_info": towel, "hairdryer": dryer, "seshin_pay": seshin },
+        "by": { "adult": price, "child": price, "towel": towel, "scrub": seshin, "towel_info": towel, "hairdryer": dryer, "seshin_pay": seshin },
     })
 }
 
@@ -847,6 +1111,7 @@ pub fn demo_reports(places: &[Value], now_utc: &str) -> Vec<Value> {
             "place_id": p.map(|p| s(p, "id")).unwrap_or(id), "place_name": p.map(|p| s(p, "name")).unwrap_or(name),
             "adult": null, "towel": null, "scrub": null, "source": source, "memo": memo,
             "towel_info": "", "hairdryer": "", "seshin_pay": "", "flags": flags, "status": "new", "note": null,
+            "child": null, "parking": "", "parking_note": "", "tips": "",
         });
         for (k, v) in vals.as_object().unwrap() {
             r[k] = v.clone();
@@ -876,6 +1141,17 @@ pub fn demo_reports(places: &[Value], now_utc: &str) -> Vec<Value> {
     }
     if let Some(p) = bare.get(3) {
         add(Some(*p), "", "", json!({ "adult": 150000 }), "기타", "", "입장료 이상값");
+    }
+    // 새 칸(소인 요금·주차·가기 전 알아둘 것). 예전 제보처럼 이 칸이 없는 제보도 위에 섞여 있다
+    if let Some(p) = bare.get(4) {
+        let tips = json!([{ "kind": "입구·신발", "text": "1층에서부터 신발을 벗어요" }, { "kind": "붐비는 때", "text": "주말 오후에 붐벼요" }]).to_string();
+        add(Some(*p), "", "", json!({ "adult": 9000, "child": 6000, "parking": "가능", "parking_note": "목욕 3시간, 찜질 6시간 무료", "tips": tips }), "직접 냈어요", "주차권은 카운터에서 받아요", "");
+        let tips = json!([{ "kind": "층·동선", "text": "여탕은 2층, 남탕은 3층이에요" }]).to_string();
+        add(Some(*p), "", "", json!({ "tips": tips }), "기타", "", "");
+    }
+    if let Some(p) = priced.get(3) {
+        let tips = json!([{ "kind": "휴업·재오픈", "text": "매달 둘째 주 화요일에 쉬어요" }]).to_string();
+        add(Some(*p), "", "", json!({ "child": adult(p).unwrap_or(0) + 2000, "parking_note": "건물 뒤 공영주차장 이용", "tips": tips }), "현장 가격표", "", "");
     }
     add(None, "999999999", "예시 폐업탕", json!({ "adult": 8000 }), "직접 냈어요", "", "");
     add(None, "TEST", "[시험] 운영자 점검", json!({ "adult": 1000 }), "기타", "시험", "입장료 이상값");
@@ -962,6 +1238,35 @@ mod tests {
     }
 
     #[test]
+    fn towel_with_side() {
+        let p = json!({ "facts": { "towel": { "women": { "mode": "limited", "count": 2 }, "men": { "mode": "limited" } } } });
+        // 탕을 말한 제보는 그 탕하고만 견준다
+        assert_eq!(compare(Some(&p), "towel_info", &json!("여탕 2장")), State::Same);
+        assert_eq!(compare(Some(&p), "towel_info", &json!("남탕 카운터")), State::Same);
+        assert_eq!(compare(Some(&p), "towel_info", &json!("남탕 무제한")), State::Differ);
+        // 그 탕 값이 아직 없으면 다른 탕 값이 있어도 새 정보
+        let only_w = json!({ "facts": { "towel": { "women": { "mode": "unlimited" } } } });
+        assert_eq!(compare(Some(&only_w), "towel_info", &json!("남탕 2장")), State::New);
+        // 근거와 견주기: 말한 탕만 본다
+        assert_eq!(matches("towel_info", &json!("남탕 2장"), &json!({ "women": "", "men": "2장" })), Some(true));
+        assert_eq!(matches("towel_info", &json!("남탕 2장"), &json!({ "women": "", "men": "무제한" })), Some(false));
+        // 장 수를 모르는 '카운터'는 count 없이 적힌다
+        let mut root = json!({ "places": {} });
+        update_facts(&mut root, "9", json!({ "towel_info": { "women": "", "men": "카운터" } }).as_object().unwrap(), "직접 방문 확인", "2026-11-11").unwrap();
+        assert_eq!(root["places"]["9"]["towel"], json!({ "men": { "mode": "limited" } }));
+    }
+
+    #[test]
+    fn evidence_keeps_whole_price_table() {
+        let table = "대인 | 9,000 | 원 / ".repeat(40) + "세신 | 25,000 | 원";
+        let long = "수건 ".repeat(100);
+        let row: HashMap<String, String> = [("가격표", table.as_str()), ("수건근거", long.as_str())].into_iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+        let ev = evidence(&row);
+        assert_eq!(ev["by"]["adult"][0].as_str().unwrap(), table); // 끝의 세신 요금까지 그대로
+        assert_eq!(ev["by"]["towel"][0].as_str().unwrap().chars().count(), 220); // 후기 문장은 줄인다
+    }
+
+    #[test]
     fn evidence_split() {
         let row: HashMap<String, String> = [("네이버ID", "77"), ("수집일", "2026-10-30"), ("가격표", "대인 | 9,000 | 원"), ("수건근거", "[후기] 수건 2장 ‖ [블로그] 수건 무제한 ‖  "), ("세신근거", "")]
             .into_iter()
@@ -1041,7 +1346,7 @@ mod tests {
 
     #[test]
     fn prices_edit_one_row() {
-        let (out, what) = update_prices_text(CSV, "111", Some(10000), None, "현장 확인", "2026-11-10").unwrap();
+        let (out, what) = update_prices_text(CSV, "111", Some(10000), None, None, "현장 확인", "2026-11-10").unwrap();
         assert!(what.starts_with("줄 고침"));
         let old: Vec<&str> = CSV.split("\r\n").collect();
         let new: Vec<&str> = out.split("\r\n").collect();
@@ -1049,20 +1354,20 @@ mod tests {
         assert_eq!((old[0], old[2], old[3]), (new[0], new[2], new[3])); // 머리말·다른 줄·끝은 그대로
         assert_eq!(new[1], "111,10000,,,,6000,,\"가격표 대인 9,000원 | 2026-11-10 제보함: 대인 9000원→10,000원 (현장 확인)\",현장 확인,2026-11-10");
         // 같은 값을 다시 눌러도 요금은 같다
-        let (again, _) = update_prices_text(&out, "111", Some(10000), None, "현장 확인", "2026-11-10").unwrap();
+        let (again, _) = update_prices_text(&out, "111", Some(10000), None, None, "현장 확인", "2026-11-10").unwrap();
         assert!(again.contains("111,10000,,,,6000,"));
     }
 
     #[test]
     fn prices_new_row_and_towel() {
-        let (out, what) = update_prices_text(CSV, "lic77", Some(9000), Some(1000), "네이버 플레이스 가격표", "2026-11-10").unwrap();
+        let (out, what) = update_prices_text(CSV, "lic77", Some(9000), Some(1000), None, "네이버 플레이스 가격표", "2026-11-10").unwrap();
         assert!(what.starts_with("새 줄"));
         assert!(out.starts_with(CSV));
         assert_eq!(&out[CSV.len()..], "lic77,9000,,1000,,,,\"2026-11-10 제보함: 대인 9,000원, 수건 1,000원 (네이버 플레이스 가격표)\",네이버 플레이스 가격표,2026-11-10\r\n");
         // 수건 요금만 더하면 예전 출처 뒤에 덧붙는다
-        let (out, _) = update_prices_text(CSV, "222", None, Some(500), "현장 확인", "2026-11-10").unwrap();
+        let (out, _) = update_prices_text(CSV, "222", None, Some(500), None, "현장 확인", "2026-11-10").unwrap();
         assert!(out.contains("222,8000,,500,,,,메모 | 2026-11-10 제보함: 수건 500원 (현장 확인),공식 홈페이지 / 현장 확인,2026-11-10\r\n"));
-        assert!(update_prices_text(CSV, "222", None, None, "x", "2026-11-10").is_err());
+        assert!(update_prices_text(CSV, "222", None, None, None, "x", "2026-11-10").is_err());
     }
 
     const FACTS: &str = "{\n \"_설명\": \"글\",\n \"places\": {\n  \"1\": {\n   \"seshin\": {\n    \"price_full\": 12000\n   },\n   \"checked\": \"2026-10-28\",\n   \"source\": \"가격표\"\n  },\n  \"2\": {\n   \"towel\": {\n    \"women\": {\n     \"mode\": \"limited\",\n     \"count\": 2\n    }\n   },\n   \"checked\": \"2026-10-28\",\n   \"source\": \"후기\"\n  }\n }\n}";
@@ -1101,15 +1406,231 @@ mod tests {
             assert_eq!(facts_text(&root, nl), text);
         }
         if let Ok(text) = std::fs::read_to_string(PRICE_FILE) {
-            let (out, _) = update_prices_text(&text, "__없는업체__", Some(9000), None, "시험", "2026-11-10").unwrap();
+            let (out, _) = update_prices_text(&text, "__없는업체__", Some(9000), None, None, "시험", "2026-11-10").unwrap();
             assert!(out.starts_with(&text), "새 줄은 맨 뒤에만 붙어야 한다");
             // 있는 줄을 고치면 그 줄만 달라진다
             let key = text.lines().nth(1).and_then(|l| l.split(',').next()).unwrap_or("").to_string();
-            let (out, what) = update_prices_text(&text, &key, None, Some(0), "시험", "2026-11-10").unwrap();
+            let (out, what) = update_prices_text(&text, &key, None, Some(0), None, "시험", "2026-11-10").unwrap();
             assert!(what.starts_with("줄 고침"));
             let differ = text.split('\n').zip(out.split('\n')).filter(|(a, b)| a != b).count();
             assert_eq!((differ, text.split('\n').count()), (1, out.split('\n').count()));
         }
+    }
+
+    // ───────── 새 칸: 소인 요금·주차·가기 전 알아둘 것 ─────────
+
+    const TIPS2: &str = r#"[{"kind":"입구·신발","text":"1층에서부터 신발을 벗어요"},{"kind":"붐비는 때","text":"주말에 붐벼요"}]"#;
+
+    #[test]
+    fn new_fields_read_from_report() {
+        // 새 칸이 아예 없는 예전 제보(키 없음·null)는 지금처럼 동작한다
+        let old = json!({ "id": 1, "created_at": "2026-11-10T03:00:00.000Z", "place_id": "1", "place_name": "가탕", "adult": 9000, "towel": null, "scrub": null,
+            "source": "현장 가격표", "memo": "", "towel_info": "", "hairdryer": "", "seshin_pay": "", "flags": "" });
+        for k in ["child", "parking", "tips"] {
+            assert_eq!(report_value(&old, k), None);
+        }
+        let mut nulls = old.clone();
+        for k in ["child", "parking", "parking_note", "tips"] {
+            nulls[k] = Value::Null;
+        }
+        let (a, b) = (triage(&[old.clone()], &places()), triage(&[nulls], &places()));
+        assert_eq!(a, b);
+        assert_eq!(a[0]["chip"], "새 정보");
+        assert_eq!(a[0]["fields"].as_array().unwrap().len(), 1);
+        assert_eq!(a[0]["reports"][0]["values"], json!(["입장료 9,000원"]));
+        let plan = plan_apply(&[old], json!({ "adult": 9000 }).as_object().unwrap(), "가격표", "2026-11-16");
+        assert_eq!((plan[0].status, plan[0].note.as_str()), ("applied", "반영: 입장료 9,000원 (가격표, 2026-11-16)"));
+
+        // 새 칸 읽기
+        let r = rep(2, "1", json!({ "child": 6000, "parking": "가능", "parking_note": "목욕 3시간, 찜질 6시간 무료", "tips": TIPS2 }));
+        assert_eq!(report_value(&r, "child"), Some(json!(6000)));
+        assert_eq!(report_value(&r, "parking"), Some(json!({ "available": "가능", "note": "목욕 3시간, 찜질 6시간 무료" })));
+        assert_eq!(report_value(&r, "tips").unwrap().as_array().unwrap().len(), 2);
+        // 가능 여부 없이 안내 글만 와도 값이다
+        assert_eq!(report_value(&rep(3, "1", json!({ "parking_note": "공영주차장" })), "parking"), Some(json!({ "available": "", "note": "공영주차장" })));
+        // 깨진 JSON·빈 글은 없는 것으로, 모르는 종류는 기타로, 3개까지만
+        assert_eq!(report_value(&rep(4, "1", json!({ "tips": r#"[{"kind":"# })), "tips"), None);
+        assert_eq!(report_value(&rep(4, "1", json!({ "tips": r#"[{"kind":"기타","text":"  "}]"# })), "tips"), None);
+        let many = json!([{ "kind": "?", "text": "가" }, { "kind": "기타", "text": "나" }, { "kind": "기타", "text": "다" }, { "kind": "기타", "text": "라" }]).to_string();
+        let got = report_tips(&rep(5, "1", json!({ "tips": many })));
+        assert_eq!((got.len(), got[0]["kind"].as_str()), (3, Some("기타")));
+        // 목록 한 줄 요약에도 나온다
+        let g = triage(&[r], &places());
+        assert_eq!(g[0]["reports"][0]["values"], json!(["소인 요금 6,000원", "주차 가능 · 목욕 3시간, 찜질 6시간 무료", "알아둘 것 [입구·신발] 1층에서부터 신발을 벗어요 / [붐비는 때] 주말에 붐벼요"]));
+    }
+
+    #[test]
+    fn child_rules() {
+        let fake = |v| matches!(judge("child", v, None), Judged::Fake(_));
+        assert!(!fake(0) && !fake(20000) && fake(20001) && fake(-1));
+        assert!(matches!(judge("child", 11000, Some(10000)), Judged::Suspect(_)));
+        assert_eq!(judge("child", 10000, Some(10000)), Judged::Ok);
+        assert_eq!(judge("child", 11000, None), Judged::Ok);
+        // 범위 밖뿐이면 반려 추천, 대인 확인값보다 비싸면 칩은 그대로 두고 의심만
+        let g = triage(&[rep(1, "1", json!({ "child": 30000, "flags": "소인 이상값" }))], &places());
+        assert_eq!((g[0]["chip"].as_str(), g[0]["reason"].as_str()), (Some("반려 추천"), Some("허위 기준: 소인 요금 20,000원 초과")));
+        let g = triage(&[rep(1, "2", json!({ "child": 12000 }))], &places());
+        assert_eq!((g[0]["chip"].as_str(), g[0]["warn"].as_str()), (Some("새 정보"), Some("소인 요금이 대인 요금보다 비쌈")));
+        assert_eq!(g[0]["fields"][0]["reported"][0]["mark"], "suspect");
+        // 대인 확인값이 없으면 같은 묶음 제보의 입장료와 견준다
+        let g = triage(&[rep(1, "1", json!({ "adult": 8000, "child": 9000 }))], &places());
+        assert_eq!(g[0]["warn"].as_str(), Some("소인 요금이 대인 요금보다 비쌈"));
+        // 지금 값과 견주기
+        let p = json!({ "price": { "adult": 10000, "child": 6000 } });
+        assert_eq!(compare(Some(&p), "child", &json!(6000)), State::Same);
+        assert_eq!(compare(Some(&p), "child", &json!(7000)), State::Differ);
+        assert_eq!(current(Some(&p), "child").text, "6,000원");
+    }
+
+    #[test]
+    fn prices_child_column() {
+        // 소인 요금은 '어린이' 칸에 들어가고, 그 줄의 다른 칸·다른 줄은 그대로다
+        let (out, what) = update_prices_text(CSV, "222", None, None, Some(5000), "현장 확인", "2026-11-16").unwrap();
+        assert_eq!(what, "줄 고침 222: 소인 5,000원");
+        let (old, new): (Vec<&str>, Vec<&str>) = (CSV.split("\r\n").collect(), out.split("\r\n").collect());
+        assert_eq!((old[0], old[1], old[3]), (new[0], new[1], new[3]));
+        assert_eq!(new[2], "222,8000,,,,5000,,\"메모 | 2026-11-16 제보함: 소인 5,000원 (현장 확인)\",공식 홈페이지 / 현장 확인,2026-11-16");
+        // 이미 있던 소인 요금을 바꾸면 메모에 전후가 남는다. 입장료가 같이 바뀌지 않으면 출처는 덧붙는다
+        let (out, _) = update_prices_text(CSV, "111", None, None, Some(7000), "현장 확인", "2026-11-16").unwrap();
+        assert!(out.contains("111,9000,,,,7000,,\"가격표 대인 9,000원 | 2026-11-16 제보함: 소인 6000원→7,000원 (현장 확인)\",네이버 플레이스 가격표 / 현장 확인,2026-11-16\r\n"));
+        // 새 업체: 대인·소인을 함께
+        let (out, _) = update_prices_text(CSV, "333", Some(9000), None, Some(6000), "가격표", "2026-11-16").unwrap();
+        assert_eq!(&out[CSV.len()..], "333,9000,,,,6000,,\"2026-11-16 제보함: 대인 9,000원, 소인 6,000원 (가격표)\",가격표,2026-11-16\r\n");
+        // 근거 검사·반영 계획
+        assert!(check_evidence(json!({ "child": 6000 }).as_object().unwrap()).is_ok());
+        let rs = vec![rep(1, "1", json!({ "child": 6000 })), rep(2, "1", json!({ "child": 5000 }))];
+        let st: Vec<&str> = plan_apply(&rs, json!({ "child": 6000 }).as_object().unwrap(), "가격표", "2026-11-16").iter().map(|a| a.status).collect();
+        assert_eq!(st, ["applied", "rejected"]);
+    }
+
+    #[test]
+    fn parking_to_facts() {
+        let (mut root, nl) = load_facts_text(FACTS).unwrap();
+        let before_other = root["places"]["2"].clone();
+        let ev = json!({ "parking": { "available": "가능", "note": "목욕 3시간, 찜질 6시간 무료" } });
+        assert!(check_evidence(ev.as_object().unwrap()).is_ok());
+        let done = update_facts(&mut root, "1", ev.as_object().unwrap(), "현장 확인", "2026-11-16").unwrap();
+        assert_eq!(done, ["주차 가능 · 목욕 3시간, 찜질 6시간 무료"]);
+        let p = &root["places"]["1"];
+        assert_eq!(p["convenience"], json!({ "parking": { "available": true, "note": "목욕 3시간, 찜질 6시간 무료" } }));
+        assert_eq!(p["seshin"], json!({ "price_full": 12000 })); // 그 업체의 다른 정보도 그대로
+        assert_eq!((p["checked"].as_str(), p["source"].as_str()), (Some("2026-11-16"), Some("가격표 / 현장 확인")));
+        assert_eq!(root["places"]["2"], before_other);
+        assert!(facts_text(&root, nl).ends_with(&FACTS[FACTS.find("  \"2\": {").unwrap()..]));
+        // 불가는 false, note는 있을 때만
+        update_facts(&mut root, "1", json!({ "parking": { "available": "불가", "note": "" } }).as_object().unwrap(), "현장 확인", "2026-11-16").unwrap();
+        assert_eq!(root["places"]["1"]["convenience"]["parking"], json!({ "available": false }));
+        // 가능 여부 없이 안내 글만: 새 업체는 note만, convenience의 다른 키는 그대로
+        let mut root = json!({ "places": { "7": { "convenience": { "open_24h": true, "parking": { "available": true } } } } });
+        update_facts(&mut root, "8", json!({ "parking": { "available": "", "note": "공영주차장 이용" } }).as_object().unwrap(), "후기", "2026-11-16").unwrap();
+        assert_eq!(root["places"]["8"]["convenience"], json!({ "parking": { "note": "공영주차장 이용" } }));
+        update_facts(&mut root, "7", json!({ "parking": { "available": "", "note": "2시간 무료" } }).as_object().unwrap(), "후기", "2026-11-16").unwrap();
+        assert_eq!(root["places"]["7"]["convenience"], json!({ "open_24h": true, "parking": { "available": true, "note": "2시간 무료" } }));
+        // 근거 검사
+        let bad = |v: Value| check_evidence(json!({ "parking": v }).as_object().unwrap()).is_err();
+        assert!(bad(json!({ "available": "", "note": " " })) && bad(json!({ "available": "있음", "note": "" })) && bad(json!("가능")));
+        assert!(bad(json!({ "available": "가능", "note": "가".repeat(41) })) && !bad(json!({ "available": "가능", "note": "가".repeat(40) })));
+        // 지금 값과 견주기·반영 계획
+        let place = json!({ "facts": { "convenience": { "parking": { "available": true, "note": "2시간 무료" } }, "checked": "2026-11-01", "source": "후기" } });
+        assert_eq!(current(Some(&place), "parking").text, "가능 · 2시간 무료");
+        assert_eq!(compare(Some(&place), "parking", &json!({ "available": "가능", "note": "" })), State::Same);
+        assert_eq!(compare(Some(&place), "parking", &json!({ "available": "불가", "note": "" })), State::Differ);
+        assert_eq!(compare(None, "parking", &json!({ "available": "가능", "note": "" })), State::New);
+        let rs = vec![
+            rep(1, "1", json!({ "parking": "가능", "parking_note": "3시간 무료" })),
+            rep(2, "1", json!({ "parking": "불가" })),
+            rep(3, "1", json!({ "parking_note": "공영주차장" })),
+        ];
+        let ev = json!({ "parking": { "available": "가능", "note": "" } });
+        let st: Vec<&str> = plan_apply(&rs, ev.as_object().unwrap(), "후기", "2026-11-16").iter().map(|a| a.status).collect();
+        assert_eq!(st, ["applied", "rejected", "reviewed"]);
+    }
+
+    #[test]
+    fn tips_to_facts() {
+        let (mut root, nl) = load_facts_text(FACTS).unwrap();
+        let before_other = root["places"]["2"].clone();
+        // 하나는 다듬어서 넣고, 하나는 버린다
+        let ev = json!({ "tips": [
+            { "of": "1층에서부터 신발을 벗어요", "ok": true, "kind": "입구·신발", "text": " 1층 입구에서 신발을 벗어요 " },
+            { "of": "주말에 붐벼요", "ok": false },
+        ] });
+        assert!(check_evidence(ev.as_object().unwrap()).is_ok());
+        let done = update_facts(&mut root, "1", ev.as_object().unwrap(), "직접 방문 확인", "2026-11-16").unwrap();
+        assert_eq!(done, ["알아둘 것 1개"]);
+        assert_eq!(root["places"]["1"]["tips"], json!([{ "kind": "입구·신발", "text": "1층 입구에서 신발을 벗어요", "date": "2026-11-16" }]));
+        assert_eq!(root["places"]["2"], before_other);
+        assert!(facts_text(&root, nl).ends_with(&FACTS[FACTS.find("  \"2\": {").unwrap()..]));
+        // 같은 글은 두 번 들어가지 않고, 기존 글은 지워지지 않는다
+        let again = json!({ "tips": [
+            { "of": "x", "ok": true, "kind": "입구·신발", "text": "1층 입구에서 신발을 벗어요" },
+            { "of": "y", "ok": true, "kind": "붐비는 때", "text": "주말 오후에 붐벼요" },
+            { "of": "z", "ok": true, "kind": "붐비는 때", "text": "주말 오후에 붐벼요" },
+        ] });
+        let done = update_facts(&mut root, "1", again.as_object().unwrap(), "직접 방문 확인", "2026-11-17").unwrap();
+        assert_eq!(done, ["알아둘 것 1개"]);
+        assert_eq!(root["places"]["1"]["tips"], json!([
+            { "kind": "입구·신발", "text": "1층 입구에서 신발을 벗어요", "date": "2026-11-16" },
+            { "kind": "붐비는 때", "text": "주말 오후에 붐벼요", "date": "2026-11-17" },
+        ]));
+        // 전부 이미 있는 글이면 아무것도 바꾸지 않는다(확인일도 그대로)
+        let snap = root.clone();
+        let done = update_facts(&mut root, "1", again.as_object().unwrap(), "다른 출처", "2026-11-18").unwrap();
+        assert!(done.is_empty());
+        assert_eq!(root, snap);
+        // 전부 버리면 업체를 새로 만들지도 않는다
+        let done = update_facts(&mut root, "9", json!({ "tips": [{ "of": "a", "ok": false }] }).as_object().unwrap(), "x", "2026-11-18").unwrap();
+        assert!(done.is_empty() && root["places"].get("9").is_none());
+        // 근거 검사
+        let bad = |v: Value| check_evidence(json!({ "tips": v }).as_object().unwrap()).is_err();
+        assert!(bad(json!([])) && bad(json!([{ "of": "a", "ok": true, "kind": "기타", "text": "" }])) && bad(json!([{ "of": "a", "ok": true, "kind": "아무거나", "text": "글" }])));
+        assert!(bad(json!([{ "of": "a", "ok": true, "kind": "기타", "text": "가".repeat(61) }])) && !bad(json!([{ "of": "a", "ok": true, "kind": "기타", "text": "가".repeat(60) }])));
+        assert!(bad(json!([{ "of": "a" }])) && !bad(json!([{ "of": "a", "ok": false }])));
+    }
+
+    #[test]
+    fn tips_triage_and_plan() {
+        let rs = vec![
+            rep(1, "1", json!({ "tips": TIPS2 })),
+            rep(2, "1", json!({ "tips": r#"[{"kind":"붐비는 때","text":"주말에 붐벼요"}]"# })),
+            rep(3, "1", json!({ "tips": r#"[{"kind":"기타","text":"수건은 카운터에서"}]"# })),
+        ];
+        let g = triage(&rs, &places());
+        // 서로 다른 알아둘 것은 충돌이 아니고, 글 하나씩 따로 고를 수 있게 나뉜다
+        assert_eq!(g[0]["chip"], "새 정보");
+        let f = &g[0]["fields"][0];
+        assert_eq!((f["key"].as_str(), f["state"].as_str(), f["reported"].as_array().unwrap().len()), (Some("tips"), Some("new"), 3));
+        assert_eq!(f["reported"][1]["value"], json!({ "kind": "붐비는 때", "text": "주말에 붐벼요" }));
+        assert_eq!(f["reported"][1]["ids"], json!([1, 2]));
+        // 이미 화면에 있는 글뿐이면 이미 반영됨
+        let mut ps = places();
+        ps.get_mut("1").unwrap()["facts"] = json!({ "tips": [{ "kind": "붐비는 때", "text": "주말에 붐벼요", "date": "2026-11-12" }] });
+        let g = triage(&rs[1..2], &ps);
+        assert_eq!((g[0]["chip"].as_str(), g[0]["fields"][0]["reported"][0]["known"].as_bool()), (Some("이미 반영됨"), Some(true)));
+        assert_eq!(g[0]["fields"][0]["current"]["tips"][0]["text"], "주말에 붐벼요");
+        // 하나라도 넣으면 반영, 전부 버렸으면 다름, 고르지 않은 글뿐이면 확인 못 함
+        let ev = json!({ "tips": [{ "of": "1층에서부터 신발을 벗어요", "ok": true, "kind": "입구·신발", "text": "1층에서 신발을 벗어요" }, { "of": "주말에 붐벼요", "ok": false }] });
+        let plan = plan_apply(&rs, ev.as_object().unwrap(), "직접 방문 확인", "2026-11-16");
+        let st: Vec<&str> = plan.iter().map(|a| a.status).collect();
+        assert_eq!(st, ["applied", "rejected", "reviewed"]);
+        assert_eq!(plan[0].note, "반영: 알아둘 것 1개 (직접 방문 확인, 2026-11-16)");
+        assert_eq!(plan[1].note, "근거와 다름: 알아둘 것 버림 (직접 방문 확인, 2026-11-16)");
+    }
+
+    #[test]
+    fn demo_has_new_fields() {
+        // 실제 화면 데이터로 만든 예시 제보에 새 칸이 들어 있고 칩 7종이 그대로 다 보인다(파일은 읽기만 한다)
+        let Ok(text) = std::fs::read_to_string(ONSEN_FILE) else { return };
+        let root: Value = serde_json::from_str(text.trim_start_matches('\u{feff}')).unwrap();
+        let ps = root["places"].as_array().cloned().unwrap_or_default();
+        let demo = demo_reports(&ps, "2026-11-16T03:00:00.000Z");
+        for k in ["child", "parking", "tips"] {
+            assert!(demo.iter().any(|r| report_value(r, k).is_some()), "예시 제보에 {k} 칸이 없다");
+        }
+        let map: HashMap<String, Value> = ps.iter().map(|p| (s(p, "id").to_string(), p.clone())).collect();
+        let groups = triage(&demo, &map);
+        let chips: std::collections::HashSet<&str> = groups.iter().filter_map(|g| g["chip"].as_str()).collect();
+        assert_eq!(chips.len(), CHIPS.len(), "칩 7종이 모두 보여야 한다: {chips:?}");
     }
 
     #[test]
