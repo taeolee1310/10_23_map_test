@@ -219,6 +219,9 @@ ok('제보 저장', r.j.ok && r.res.headers.get('Access-Control-Allow-Origin') =
 r = await call('POST', '/api/report', { body: { ...good, memo: '연락 010-1234-5678' }, headers: { 'CF-Connecting-IP': '1.2.3.4' } })
 const masked = sqlite.prepare('SELECT memo, flags, who, ip_hash FROM reports ORDER BY id DESC LIMIT 1').get()
 ok('메모 속 연락처는 가리고 해시만 저장', masked.memo === '[연락처 의심, 가림]' && masked.flags.includes('연락처') && !masked.ip_hash.includes('1.2.3.4'))
+r = await call('POST', '/api/report', { body: { ...good, memo: '가'.repeat(250), deviceId: 'memo-length-test' }, headers: { 'CF-Connecting-IP': '1.2.3.9' } })
+ok('덧붙일 말은 200자까지 저장하고 넘는 글자는 자른다', r.j.ok && [...sqlite.prepare('SELECT memo FROM reports ORDER BY id DESC LIMIT 1').get().memo].length === 200)
+sqlite.exec('DELETE FROM reports WHERE id = (SELECT MAX(id) FROM reports)') // 길이만 본 줄은 지워서 아래 건수 시험에 섞이지 않게 한다
 ok('목록에 없는 곳은 거절', (await call('POST', '/api/report', { body: { ...good, placeId: 'nope' } })).res.status === 400)
 ok('값이 없으면 거절', (await call('POST', '/api/report', { body: { placeId: p0.id, placeName: p0.name, source: '기타' } })).res.status === 400)
 ok('허용 안 한 출처 값은 거절', (await call('POST', '/api/report', { body: { ...good, source: '아무거나' } })).res.status === 400)

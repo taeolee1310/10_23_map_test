@@ -48,7 +48,7 @@ const TOWEL_HOW: { key: Exclude<TowelState['how'], ''>; label: string }[] = [
 ]
 const TOWEL_COUNTS = ['1장', '2장', '3장 이상']
 const PAY_OPTIONS = ['현금만', '카드 가능']
-const MEMO_MAX = 100
+const MEMO_MAX = 200 // 서버(worker postReport)도 같은 길이에서 자른다. 2026-11-16 100 → 200자
 const NO_INFO: InfoState = { hairdryerW: '', hairdryerM: '', seshinPay: '' }
 const NO_TOWEL: TowelState = { how: '', count: '' }
 const NO_VALS = { adult: '', towel: '', scrub: '', memo: '', hp: '' }

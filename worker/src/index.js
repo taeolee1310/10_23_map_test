@@ -212,7 +212,7 @@ async function postReport(req, env, cors) {
   const dryM = pick(DRYER, b.hairdryerM)
   const hairdryer = [dryW && `여탕 ${dryW}`, dryM && `남탕 ${dryM}`].filter(Boolean).join(' · ') || pick(DRYER, b.hairdryer)
   const seshinPay = pick(PAY, b.seshinPay)
-  let memo = text(b.memo, 100)
+  let memo = text(b.memo, 200) // 화면(PriceReport MEMO_MAX)과 같은 길이. 2026-11-16 100 → 200자
   if (!placeId || !placeName) return json({ ok: false, error: 'place' }, 400, cors)
   if ([adult, towel, scrub].some(Number.isNaN)) return json({ ok: false, error: 'price' }, 400, cors)
   if (adult == null && towel == null && scrub == null && !towelInfo && !hairdryer && !seshinPay) return json({ ok: false, error: 'empty' }, 400, cors)
