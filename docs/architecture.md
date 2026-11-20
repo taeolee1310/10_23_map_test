@@ -25,6 +25,7 @@
 | **화면 코드** (`web/src`) | GitHub `main`에 푸시 → Vercel이 자동 빌드·배포(1~2분) | 프런트엔드 |
 | **목욕탕 데이터** (요금·좌표·정보) | 초안 올리기 → 차이 보기 → **공개** 버튼 → 사용자 화면은 1분 안에 새 데이터 | 백엔드(D1) |
 | **Worker 코드** (`worker/src`) | `worker` 폴더에서 `npx wrangler deploy` (푸시로는 안 올라감) | 백엔드 |
+| **도구함**(`downloads/`, 수집 프로그램·제보함 설치 파일과 업데이트) | `downloads` 폴더에서 `node ../worker/node_modules/wrangler/bin/wrangler.js deploy`. 설치 파일은 두 도구 저장소에서 태그를 올리면 GitHub Actions가 올린다 | 운영 도구 |
 
 데이터만 바뀌면 푸시가 필요 없다. 화면 코드만 바뀌면 공개 버튼이 필요 없다.
 
@@ -46,7 +47,7 @@
 | 내 주변 목욕탕 | 브라우저 위치 기능(허락 필요, HTTPS에서만). 위치는 서버로 안 보냄 | `MainScreen.tsx` `locate` `goNear` |
 | **담아둔 곳** | 브라우저 저장(localStorage `onsen_fav`) + 서버 쿠키 백업(`/api/favs`, 400일). 사파리가 7일 뒤 브라우저 저장을 지워도 쿠키에서 되살림. **접속 주소(IP)와 무관.** 다른 기기로는 안 옮겨짐(로그인 없음) | `MainScreen.tsx` `favs`, `web/api/favs.js` |
 | 제보(요금·소인 요금·수건·드라이기·세신·주차·가기 전 알아둘 것) | 제보 창(그 목욕탕의 정보 카드 모양: 확인된 칸은 채워져 있고 모르는 칸은 점선 빈칸, 누르면 그 자리에서 채우고 채울 때마다 탕에 물이 차오름. 확인된 값은 `PlaceFacts` `reportKnown`이 넘김. 수건·드라이기는 '어느 탕에 다녀오셨어요?'에서 여탕·남탕을 고르면 그 탕의 칸만 열리고, 값에 탕 이름을 붙여 보냄(`towel_info`·`hairdryer`가 '남탕 2장'·'남탕 무료' 모양, 2026-11-11). 수건은 자유롭게 씀·카운터에서 받음(장 수)·돈 내고 빌림(값) 가운데 하나) → Worker `/api/report`가 검사(값 범위·연락처 가림·기기당 하루 5건·주소당 하루 15건) → D1 `reports`. **화면에 바로 안 나감** 2026-11-16부터 소인 요금(`child`), 주차(`parking` 가능/불가 + `parking_note` 한 줄), 가기 전 알아둘 것(`tips`: 종류 5가지 중 하나 + 60자, 한 번에 3개까지)도 받는다. 사우나·탕 온도는 받지 않는다. 제보함에서 확인하면 소인 요금은 `curated/onsen_prices.csv`의 `어린이`, 주차는 `place_facts.json`의 `convenience.parking {available, note}`, 알아둘 것은 `tips [{kind, text, date}]`로 들어가고, 상세 화면의 '이 목욕탕 주차'·'가기 전 알아 둘 것'(`PlaceFacts.tsx` `parkingText`·`Notices`)에 나온다. 운영 DB에 이미 있는 표는 `worker/migrate-2026-11-16-report-fields.sql`로 칸을 더한다. | `components/PriceReport`, `worker/src/index.js` `postReport` |
-| **제보함**(운영자용, 내 PC 전용. 서비스에 올리지 않음) | `cargo run --release --bin report_desk` → `http://127.0.0.1:8765`. 새 제보(상태 new)가 들어온 업체만 묶어 칩(새 정보·인상 가능성·확인값과 다름·충돌·이미 반영됨·반려 추천·시험)과 함께 보여 주고, 제보 값과 지금 화면 값을 나란히 놓는다. 칸 옆에 수집해 둔 네이버 근거(`data/collected/naver_home_facts.csv`)를 보여 주고, 사람이 `맞음`·`다름`을 고른 칸만 `data/curated/`(`onsen_prices.csv`·`place_facts.json`)에 적고 제보 상태·검토 메모를 바꾼다. 반려·확인 못 함은 상태만 바꾼다. 판정은 확인 창 없이 처리하고 직전 한 번을 '되돌리기'로 돌린다. 시험·반려 추천·이미 반영됨은 '한 번에 정리'로 처리한다. 허위·의심 기준 숫자는 `data/report_rules.json`(입장료 3천 원 미만·4만 원 이상 허위, 3만 원 이상·확인값의 절반/두 배 의심). '화면에 내보내기'(`export_web_data` → `ingest` → `diff`)로 차이를 본 뒤 '공개'를 눌러야 사용자 화면에 나간다. 제보 읽기·상태·공개는 `d1_publish.mjs --json`을 부르고 토큰은 다루지 않는다. `--demo`는 가짜 제보로 화면만 보는 모드(아무것도 안 바뀜). 요구사항 `docs/prd-report-triage.md` | `src/bin/report_desk.rs`, `src/reportdesk.rs`(규칙·시험), `src/report_desk.html` |
+| **제보함**(운영자용, 내 PC 전용. 서비스에 올리지 않음) | 2026-11-20부터 별도 저장소 `taeolee1310/tangbang-report-desk`. 도구함에서 받아 더블클릭 → 이 프로젝트 폴더를 골라 씀(`http://127.0.0.1:8765`). 여러 사람이 써도 덮이지 않게 '내보내기'는 받기(`git pull --ff-only`) → 데이터 만들기 → `data/curated`·`onsen.json`만 커밋·푸시 → 공개 순서이고, 푸시가 안 되면 공개하지 않는다. 켤 때 새 버전을 확인해 서명 확인 후 업데이트한다. 새 제보(상태 new)가 들어온 업체만 묶어 칩(새 정보·인상 가능성·확인값과 다름·충돌·이미 반영됨·반려 추천·시험)과 함께 보여 주고, 제보 값과 지금 화면 값을 나란히 놓는다. 칸 옆에 수집해 둔 네이버 근거(`data/collected/naver_home_facts.csv`)를 보여 주고, 사람이 `맞음`·`다름`을 고른 칸만 `data/curated/`(`onsen_prices.csv`·`place_facts.json`)에 적고 제보 상태·검토 메모를 바꾼다. 반려·확인 못 함은 상태만 바꾼다. 판정은 확인 창 없이 처리하고 직전 한 번을 '되돌리기'로 돌린다. 시험·반려 추천·이미 반영됨은 '한 번에 정리'로 처리한다. 허위·의심 기준 숫자는 `data/report_rules.json`(입장료 3천 원 미만·4만 원 이상 허위, 3만 원 이상·확인값의 절반/두 배 의심). '화면에 내보내기'(`export_web_data` → `ingest` → `diff`)로 차이를 본 뒤 '공개'를 눌러야 사용자 화면에 나간다. 제보 읽기·상태·공개는 `d1_publish.mjs --json`을 부르고 토큰은 다루지 않는다. `--demo`는 가짜 제보로 화면만 보는 모드(아무것도 안 바뀜). 요구사항 `docs/prd-report-triage.md` | 제보함 저장소 `src/reportdesk.rs`(규칙·시험)·`src/gitflow.rs`·`src/update.rs`. 이 저장소에는 `data/report_rules.json`과 제보함이 기대는 `d1_publish.mjs`·`export_web_data`만 |
 | 데이터 기준일·출처 | 화면 맨 아래. "실시간"이라고 쓰지 않음 | `MainScreen.tsx` 아래쪽 |
 | **매거진** (`/magazine`, `/magazine/<글 번호>`) | 목욕 이야기 읽을거리(지도 없음). 글 주소는 서버가 매기는 글 번호라 제목을 고쳐도 링크가 안 깨진다(첫 글만 예전 영문 주소도 열림). 웹(821px 이상)은 본문을 CSS 다단으로 흘려 두 쪽씩 넘기는 책, 모바일은 세로 스크롤. 공개된 글이 있을 때만 메인 상단 '매거진' 버튼·상세의 '이 목욕탕 이야기'·안내 마지막 단계(키 v4)가 나온다 | `screens/Magazine/Magazine.tsx`, `lib/stories.ts`, `App.tsx`(주소 나누기), `web/vercel.json`(새로고침해도 열리게) |
 | **매거진 작성** (`/magazine/write`) | 운영자 전용. 어디에도 링크하지 않고 편집 토큰을 넣어야 열림(검색 제외). 제목·카테고리·글쓴이·요약·대표 사진 주소·본문·나온 목욕탕을 쓰고 임시 저장 → 공개 → 내리기. 오른쪽에 모바일 미리보기. 대표 사진은 '사진 고르기', 본문 사진은 '본문에 사진 넣기'(커서 자리에 `![](주소)` 한 줄)로 올린다. 브라우저가 가로 1600px JPEG로 줄여(위치 정보 제거) 올린다. 주소를 붙여 넣는 방식도 그대로 된다 | `screens/Magazine/Editor.tsx`, `lib/photos.ts`(줄이기·올리기) → Worker `/api/editor/stories`·`/api/editor/photos` |
@@ -64,7 +65,10 @@ D1 표(`worker/schema.sql`):
 | `visits` | 하루 방문자 수. 사람마다 (접속 주소+브라우저+날짜) 해시 하나, 원래 주소 저장 안 함, 90일 뒤 지움. 서비스 화면에서 온 요청만 셈 | Worker `countVisit` |
 | `events` | 핵심 행동 횟수 10가지(내 주변·정렬 3종·자세히 보기·담아두기·제보 창 열기·제보 완료·매거진 열기·글 끝까지 읽기). 이름만 저장(어떤 목욕탕인지·위치·입력한 글은 저장 안 함), 사람은 visits와 같은 해시, 같은 사람 같은 행동은 하루 200번까지만, 90일 뒤 지움. 브라우저의 '추적 안 함'이 켜져 있으면 안 보냄 | 화면 `lib/track.ts` → Worker `/api/event` |
 | `stories` | 매거진 글(임시 저장·공개·내림). 본문은 글자만(빈 줄=문단, `---`=장 나누기, `## `=소제목·장 제목, `> `=인용, `![설명](https://…)`=사진), HTML·script 거절. 장은 사진과 글을 묶는 단위다. 장 나누기 바로 다음 사진이 '장 여는 사진'이고(`ArticleBody`), 책에서는 왼쪽 쪽 전체가 그 사진·오른쪽 쪽이 글이다. 글이 한 쪽에 다 안 들어가는 장(낮은 화면)은 사진을 줄여 같은 쪽에 글을 잇고, 사진이 오른쪽 쪽에 걸리면 앞에 빈 쪽을 둔다(`Book` `count`). 책장은 세로 띠 4개가 휘며 넘어가고(`Strips`·`flipFrames`), 쪽 어디서나(링크·버튼 위 제외) 끌어도 넘어가며(여백은 누르기만 해도 넘어감, 반 넘게 끌거나 빠르게 밀면 넘어가고 아니면 돌아옴, 마우스를 올리면 장 끝이 살짝 들림, `grabProps`·`scrub`), 책 아래 장 이름을 누르면 그 장으로 간다. 모바일은 사진이 화면 양끝까지, 맨 위에 읽은 만큼 차는 선, 사진·장 번호·장 제목이 들어올 때 한 번 떠오른다(`Scroll`). 목록은 가장 최근 글 한 편을 크게 보여 준다. 모바일(820px 이하)에서 홈(지도 화면) ↔ 매거진 이동은 하단 네비게이션 바(`components/BottomNav`, 탭은 `TABS`에 한 줄씩 더한다)가 맡는다: 지도 화면에서는 공개된 글이 있을 때만 보이고, 매거진의 위쪽 메뉴는 모바일에서 숨긴다. 독자 화면은 글자 선택·복사·오른쪽 버튼 메뉴·그림 끌어 저장을 막는다(`mag--lock`, 작성 화면 제외. 화면 캡처·개발자 도구는 못 막음). 작성 화면 장 목록이 장별 사진·글자·쪽 수를 보여 주고(`lib/stories.ts` `chaptersOf`, `Book` `onLayout`), 웹 미리보기 무대는 독자 화면에서 책이 가장 클 때(1120×800)와 같다. 작성 화면 본문은 독자 화면 모양 그대로 쓰는 편집기(`screens/Magazine/RichBody.tsx`, 도구 막대: 사진·장 나누기·장 제목·인용·본문)이고 저장은 같은 글자 형식이다. '글자로 고치기'로 글자 형식을 직접 고칠 수 있다. 글쓰기 기준은 `/magazine-write` 스킬 | 작성 화면 → `/api/editor/stories`(편집 토큰 `EDITOR_TOKEN`), 공개 글은 `/api/stories` |
-| `publish_log` | 공개·되돌리기 기록 | Worker |
+| `publish_log` | 공개·되돌리기 기록(`by`: 누가) | Worker |
+| `admins` | 사람마다 다른 관리 열쇠(SHA-256만 저장, 만든 날·마지막으로 쓴 날·막은 날). 주인 열쇠(`ADMIN_TOKEN`)만 만들고 막는다. 제보 판정(`reports.reviewed_by`)·공개(`publish_log.by`)에 누가 했는지 남는다 | Worker |
+| `dl_fails`·`dl_log` | 도구함 비밀번호 틀린 횟수, 받은 기록(하루·이름·프로그램·버전·파일마다 횟수) | 도구함 Worker |
+| R2 `tangbang-downloads` (binding `FILES`) | 수집 프로그램·제보함 설치 파일과 버전 정보(`{app}/{ver}/파일`, `{app}/releases/{ver}.json`, `{app}/latest.json`). 받기는 도구함 로그인 또는 앱의 업데이트 열쇠 | 도구함 Worker |
 | R2 `tangbang-photos` (binding `tangbang_photos`) | 매거진 사진. JPEG·PNG·WebP만(앞부분 바이트로 확인), 5MB 이하, 키는 `UUID.확장자`(사용자 파일 이름 안 씀). 읽기 `GET /api/photos/<키>`는 토큰 없이 공개(1년 캐시). 목록 API는 없고, 공개 전 글의 사진도 주소를 알면 열린다(주소가 추측하기 어려운 UUID라서 허용) | 작성 화면 → `POST /api/editor/photos`(편집 토큰, 틀린 횟수 제한은 글 저장과 같음) |
 
 공개 전 자동 검사: 필수 칸, 서울 밖 좌표, 성인업소 이름, 휴대폰 번호 모양, 확인 요금과 예시 요금 동시 존재, 크기 1.5MB, 곳 수 10% 넘게 감소. 공개는 한 묶음이라 중간에 실패하면 전부 취소된다.
@@ -81,9 +85,13 @@ node --env-file=.env scripts/d1_publish.mjs diff        # 무엇이 바뀌나
 node --env-file=.env scripts/d1_publish.mjs publish     # 공개
 node --env-file=.env scripts/d1_publish.mjs rollback    # 직전 공개본으로
 node --env-file=.env scripts/d1_publish.mjs reports     # 새 제보 (확인·반영 절차는 /price-report)
-cargo run --release --bin report_desk                   # 제보함: 새 제보를 화면으로 보고 근거 확인 → 반영·반려 → 공개 (http://127.0.0.1:8765, 내 PC 전용)
+# 제보함은 도구함에서 받은 실행 파일(별도 저장소 tangbang-report-desk): 새 제보를 화면으로 보고 근거 확인 → 반영·반려 → 공개 (http://127.0.0.1:8765, 내 PC 전용)
 ```
 클로드용 수집 프로그램의 '서비스 공개' 카드가 같은 명령을 버튼으로 부른다.
+
+관리 열쇠는 사람마다 따로 준다(주인 PC에서만): `admin-add 이름`(새 열쇠를 한 번만 보여 줌) · `admin-list` · `admin-revoke 이름` · `whoami`.
+
+**수집 프로그램·제보함 배포와 업데이트**: 측근만 들어오는 도구함 `https://tangbang-downloads.tangbang-api.workers.dev`(숫자 비밀번호 + 들어온 사람 이름)에서 받는다. 두 도구는 켤 때 새 버전을 확인해 화면 위에 알리고, 서명을 확인한 뒤 업데이트한다. 버전 올리는 법·열쇠·API는 `docs/release-distribution.md`.
 
 ## 7. 데이터가 만들어지는 길 (내 PC)
 
@@ -93,7 +101,7 @@ cargo run --release --bin report_desk                   # 제보함: 새 제보�
 
 | 무엇 | 명령 |
 |---|---|
-| Worker 전체(공개·되돌리기·검사·제보·방문자 수·행동 기록·매거진·사진 올리기, 116개) | `node worker/test/run-local.mjs` |
+| Worker 전체(공개·되돌리기·검사·제보·방문자 수·행동 기록·매거진·사진 올리기·사람마다 관리 열쇠, 137개) | `node worker/test/run-local.mjs` |
 | 추천순·담아둔 곳 백업 | `web`에서 `npm run check` |
 | 화면 타입 검사·빌드 | `web`에서 `npm run build` |
 

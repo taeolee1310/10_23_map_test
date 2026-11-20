@@ -86,7 +86,7 @@ cargo run --release --bin find_naver_ids   # (네이버 ID가 없는 곳이 있�
 cargo run --release --bin judge_facts      # 근거 문장 판정 + 제외 목록 추가(excluded.csv)
 cargo run --release --bin onsen_merge      # excluded.csv에 있는 곳을 뺌
 cargo run --release --bin export_web_data  # place_facts_auto.json 위에 place_facts.json(사람 값)을 덮어 facts를 만듦
-cargo run --release --bin report_desk      # 제보함(내 PC 전용 화면). 사이트 제보를 보고, 사람이 근거를 확인한 칸만 curated/onsen_prices.csv(입장료·소인 `어린이`·수건)·place_facts.json(세신·수건 안내·드라이기·주차 `convenience.parking`·가기 전 알아둘 것 `tips`)에 적는다. 다른 줄·다른 업체는 바꾸지 않는다(시험: cargo test --lib reportdesk). 더블클릭으로 띄우려면 scripts/report_desk.cmd(`--app`: 주소창 없는 앱 창으로 열고, 창을 닫으면 제보함도 끝난다. 이미 떠 있으면 그 화면만 연다. 창은 Edge·Chrome의 앱 창이고 프로필은 `%LOCALAPPDATA%\tangbang-report-desk`에 따로 둔다)
+# 제보함은 2026-11-20부터 별도 저장소 taeolee1310/tangbang-report-desk(도구함에서 받는 실행 파일). 이 프로젝트 폴더를 골라 쓰고, 사람이 근거를 확인한 칸만 curated/onsen_prices.csv(입장료·소인 `어린이`·수건)·place_facts.json(세신·수건 안내·드라이기·주차 `convenience.parking`·가기 전 알아둘 것 `tips`)에 적는다. 허위·의심 기준 숫자는 data/report_rules.json(실행할 때 읽음)
 ```
 
 - 판정 규칙: 세신은 가격표의 금액(남녀가 같으면 `price_full`, 다르면 `price_men`·`price_women`, 한쪽만 있으면 그쪽만), 수건은 성별이 보이는 안내 문장의 장수, 드라이기는 '무료'·'유료·금액' 문장. **근거가 없거나 엇갈리면 '불명'**. 근거가 낮은 것(오래된 글·날짜 없는 후기)은 2건 이상 일치해야 쓰되, 드라이기만 1건이어도 `low: true`로 반영하고 화면에 "(후기 1건 기준)"이라 밝힌다.

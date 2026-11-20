@@ -1,5 +1,7 @@
 # PRD · 탕방 제보함 (`report_desk`)
 
+> 2026-11-20부터 제보함 코드는 별도 저장소 `taeolee1310/tangbang-report-desk`에 있다(도구함에서 받는 실행 파일, 켤 때 업데이트 확인). 아래 `cargo run --bin report_desk`·`cargo test --lib reportdesk`는 그 저장소의 실행 파일·`cargo test`로 읽는다. 배포·업데이트는 `docs/release-distribution.md`.
+
 - 작성: 2026-11-10 KST · 상태: 사용자 승인(시안 기준) → 구현 1차
 - 한 줄: 사이트에서 들어온 제보를 **받아서 → 근거를 확인하고 → 반영**까지 한 화면에서 끝내는 운영자용 프로그램. 내 PC에서만 돈다.
 - 관련: `.claude/skills/price-report`(같은 절차를 Claude가 할 때), `worker/src/index.js` `postReport`(받을 때 검사), `scripts/d1_publish.mjs`(`reports`·`report-set`·`ingest`·`diff`·`publish`)
@@ -45,8 +47,8 @@
 ## 4. 흐름
 
 ```
-cargo run --release --bin report_desk          → 브라우저에 제보함이 열림 (http://127.0.0.1:8765)
-cargo run --release --bin report_desk -- --demo → 예시 제보로 보기 (아무것도 안 바뀜)
+tangbang-report-desk(.exe)              → 브라우저에 제보함이 열림 (http://127.0.0.1:8765, 처음이면 프로젝트 폴더를 고름)
+tangbang-report-desk --demo             → 예시 제보로 보기 (아무것도 안 바뀜)
 ```
 
 1. 정리 대상이 있으면 '한 번에 처리'로 먼저 치운다(목록을 보여 주고 확인받음).
