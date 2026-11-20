@@ -68,11 +68,23 @@ CREATE TABLE IF NOT EXISTS visits (
 -- 방문자 해시는 visits와 같은 방식(날짜가 섞여 다른 날과 이어 붙일 수 없음). 어떤 목욕탕을 눌렀는지·위치·입력한 글은 저장하지 않는다. 90일 뒤 지운다.
 CREATE TABLE IF NOT EXISTS events (
   day TEXT NOT NULL,            -- 한국 날짜
-  name TEXT NOT NULL,           -- near · sort_auto · sort_dist · sort_name · detail · fav · report_open · report_done
+  name TEXT NOT NULL,           -- near · sort_auto · sort_pop · sort_dist · sort_name · detail · fav · report_open · report_done
   v TEXT NOT NULL,              -- 방문자 해시
   n INTEGER NOT NULL DEFAULT 1, -- 그날 그 사람이 한 횟수(200에서 멈춤)
   PRIMARY KEY (day, name, v)
 ) WITHOUT ROWID;
+
+-- 인기순: 목욕탕별 상세 보기(view)·담기(fav)·추천해요(like)·추천 취소(unlike, 예전 날 누른 것을 뺄 때).
+-- 같은 사람·같은 곳·같은 행동은 하루 한 줄. 방문자 해시는 visits와 같은 방식(날짜가 섞여 다른 날과 이어 붙일 수 없음).
+-- 위치·입력한 글은 저장하지 않는다. 점수는 최근 30일만 쓰고, 90일이 지나면 지운다(/admin/stats).
+CREATE TABLE IF NOT EXISTS place_events (
+  day TEXT NOT NULL,            -- 한국 날짜
+  place_id TEXT NOT NULL,       -- 목욕탕 id(places.id)
+  kind TEXT NOT NULL,           -- view · fav · like · unlike
+  v TEXT NOT NULL,              -- 방문자 해시
+  PRIMARY KEY (day, place_id, kind, v)
+) WITHOUT ROWID;
+CREATE INDEX IF NOT EXISTS place_events_v ON place_events (day, v);
 
 -- 매거진 글. 운영자가 서비스의 숨은 작성 화면(/magazine/write, 편집 토큰 필요)에서 쓰고 '공개'를 눌러야 사용자에게 보인다.
 -- 본문은 글자만 저장한다(빈 줄 = 문단, '> ' = 인용, '![설명](https://주소)' = 사진). HTML은 받지 않는다.

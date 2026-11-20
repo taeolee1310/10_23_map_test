@@ -42,4 +42,21 @@ if (ex) {
   assert.ok(infoScore({ ...ex, photo: undefined, facts: undefined }, now) === 0)
   console.log('✓ 예시 요금은 점수에 넣지 않음')
 }
+
+// 인기순: 기록이 없으면 추천순과 같은 순서, 기록이 많은 곳은 위로, 내 위치를 알면 거리도 반영
+{
+  const { popularScore } = await import('../src/lib/onsen.ts')
+  const plain = places.map((p) => ({ ...p, dist: null }))
+  const a = sortPlaces(plain, 'auto', false).map((p) => p.id)
+  const b = sortPlaces(plain, 'pop', false, {}).map((p) => p.id)
+  assert.deepStrictEqual(b, a)
+  console.log('✓ 인기순: 기록이 없으면 추천순과 같은 순서')
+  const low = sortPlaces(plain, 'auto', false).at(-1)
+  const top = sortPlaces(plain, 'pop', false, { [low.id]: 20 })
+  assert.equal(top[0].id, low.id)
+  console.log(`✓ 인기순: 기록이 많으면 정보가 적어도 위로(${low.name})`)
+  const near2 = sortPlaces(withMe, 'pop', true, { [low.id]: 20 })
+  for (let i = 1; i < near2.length; i++) assert.ok(popularScore(near2[i - 1], { [low.id]: 20 }, now) >= popularScore(near2[i], { [low.id]: 20 }, now), '인기순 점수 순서 어긋남')
+  console.log('✓ 인기순(위치 알 때): 인기 점수 ÷ 거리 무게 순서')
+}
 console.log('모두 통과')

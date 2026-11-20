@@ -2,6 +2,8 @@
 // 공개용:  GET  /api/places   공개 스냅샷(onsen.json과 같은 모양 + publishedAt)
 //          POST /api/report   제보 받기(화면에 바로 반영하지 않음)
 //          POST /api/event    핵심 행동 횟수 세기(정해진 이름만, 방문자 해시로 사람 수 구분)
+//          POST /api/place-event {id, kind}  목욕탕별 상세 보기·담기·추천(인기순에 쓴다)
+//          GET  /api/popular  목욕탕별 인기 점수(최근 30일, 숫자만. 위치는 받지 않는다)
 //          GET  /api/photos/<키>  매거진 사진 읽기(R2, 토큰 없이 공개)
 // 작성용(Authorization: Bearer EDITOR_TOKEN): GET·POST /api/editor/stories(매거진 글) · POST /api/editor/photos(사진 올리기, R2)
 // 관리용(Authorization: Bearer 관리 열쇠, scripts/d1_publish.mjs만 부른다). 열쇠는 주인 열쇠(ADMIN_TOKEN) 또는 사람마다 만든 열쇠(admins 표):
@@ -178,7 +180,7 @@ async function visitor(req, env, cors) {
 }
 
 // 핵심 행동 목록: 이 이름만 받는다(화면 lib/track.ts와 같게)
-const EVENTS = ['near', 'sort_auto', 'sort_dist', 'sort_name', 'detail', 'fav', 'report_open', 'report_done', 'magazine_open', 'story_read']
+const EVENTS = ['near', 'sort_auto', 'sort_pop', 'sort_dist', 'sort_name', 'detail', 'fav', 'report_open', 'report_done', 'magazine_open', 'story_read']
 
 async function postEvent(req, env, cors) {
   const who = await visitor(req, env, cors)
@@ -192,6 +194,66 @@ async function postEvent(req, env, cors) {
   if (!b || !EVENTS.includes(b.name)) return json({ ok: false, error: 'name' }, 400, cors)
   await env.DB.prepare('INSERT INTO events (day, name, v, n) VALUES (?1, ?2, ?3, 1) ON CONFLICT (day, name, v) DO UPDATE SET n = min(n + 1, 200)').bind(who.day, b.name, who.v).run()
   return new Response(null, { status: 204, headers: cors })
+}
+
+// ───────── 인기순 ─────────
+// 목욕탕별로 상세 보기(view)·담기(fav)·추천해요(like, 취소는 unlike)를 센다. 같은 사람·같은 곳·같은 행동은 하루 한 번만(표의 열쇠).
+// 방문자 해시는 visits와 같다(날짜가 섞여 다른 날과 이어 붙일 수 없음). 내 위치는 받지 않는다: 거리는 화면이 계산한다.
+const PLACE_KINDS = ['view', 'fav', 'like', 'unlike']
+const PLACE_ID = /^[A-Za-z0-9_-]{1,40}$/
+const PLACE_DAY_MAX = 200 // 한 사람이 하루에 남길 수 있는 줄 수(넘으면 조용히 버린다)
+// 점수 = 행동 무게 × 지난 날짜 무게. 무게는 화면 lib/popular.ts의 설명과 같게
+const POP_W = { view: 1, fav: 3, like: 5, unlike: -5 }
+const POP_DAYS = 30
+
+async function postPlaceEvent(req, env, cors) {
+  const who = await visitor(req, env, cors)
+  if (!who) return new Response(null, { status: 204, headers: cors })
+  let b = null
+  try {
+    b = JSON.parse(await req.text())
+  } catch {
+    return json({ ok: false, error: 'body' }, 400, cors)
+  }
+  if (!b || !PLACE_KINDS.includes(b.kind) || !PLACE_ID.test(String(b.id || ''))) return json({ ok: false, error: 'body' }, 400, cors)
+  const db = env.DB
+  const used = await db.prepare('SELECT count(*) AS n FROM place_events WHERE day = ?1 AND v = ?2').bind(who.day, who.v).first()
+  if ((used?.n ?? 0) >= PLACE_DAY_MAX) return new Response(null, { status: 204, headers: cors })
+  const del = (kind) => db.prepare('DELETE FROM place_events WHERE day = ?1 AND place_id = ?2 AND kind = ?3 AND v = ?4').bind(who.day, b.id, kind, who.v)
+  // 있는 목욕탕(초안 표)만 받는다
+  const add = (kind) =>
+    db.prepare('INSERT OR IGNORE INTO place_events (day, place_id, kind, v) SELECT ?1, ?2, ?3, ?4 WHERE EXISTS (SELECT 1 FROM places WHERE id = ?2)').bind(who.day, b.id, kind, who.v)
+  if (b.kind === 'like') {
+    await db.batch([del('unlike'), add('like')]) // 같은 날 취소했다 다시 누르면 취소를 지운다
+  } else if (b.kind === 'unlike') {
+    const r = await del('like').run() // 오늘 누른 것을 취소하면 지우기만, 예전에 누른 것이면 빼는 기록을 남긴다
+    if (!r.meta.changes) await add('unlike').run()
+  } else await add(b.kind).run()
+  return new Response(null, { status: 204, headers: cors })
+}
+
+// 목욕탕별 인기 점수. 최근 7일 기록은 1, 8~14일 0.5, 15~21일 0.25, 22~30일 0.125를 곱한다. 0점 이하는 빼고 보낸다.
+// 몇 명이 봤는지는 보여 주지 않으려고 점수만(소수 한 자리) 보낸다. 10분 동안 Cloudflare 캐시에 둔다.
+async function getPopular(env, ctx, cors) {
+  const head = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=300', ...cors }
+  const today = kstDay()
+  const key = new Request(`https://popular.tangbang.invalid/${today}`)
+  const cache = caches.default
+  const hit = await cache.match(key)
+  if (hit) return new Response(await hit.text(), { headers: head })
+  const d = (n) => kstDay(Date.now() - n * 86400_000)
+  const w = Object.entries(POP_W).map(([k, v]) => `WHEN '${k}' THEN ${v}`).join(' ')
+  const r = await env.DB.prepare(
+    `SELECT place_id, SUM(CASE kind ${w} ELSE 0 END * CASE WHEN day > ?1 THEN 1.0 WHEN day > ?2 THEN 0.5 WHEN day > ?3 THEN 0.25 ELSE 0.125 END) AS s
+     FROM place_events WHERE day > ?4 GROUP BY place_id HAVING s > 0`,
+  )
+    .bind(d(7), d(14), d(21), d(POP_DAYS))
+    .all()
+  const scores = {}
+  for (const x of r.results) scores[x.place_id] = Math.round(x.s * 10) / 10
+  const body = JSON.stringify({ ok: true, day: today, scores })
+  ctx.waitUntil(cache.put(key, new Response(body, { headers: { 'Cache-Control': 'public, max-age=600' } })))
+  return new Response(body, { headers: head })
 }
 
 async function countVisit(req, env, cors) {
@@ -515,7 +577,7 @@ async function stats(url, env) {
   const days = Math.min(Math.max(Number(url.searchParams.get('days')) || 14, 1), KEEP_VISIT_DAYS)
   const from = kstDay(Date.now() - (days - 1) * 86400_000)
   const old = kstDay(Date.now() - KEEP_VISIT_DAYS * 86400_000)
-  await db.batch([db.prepare('DELETE FROM visits WHERE day < ?').bind(old), db.prepare('DELETE FROM events WHERE day < ?').bind(old)])
+  await db.batch([db.prepare('DELETE FROM visits WHERE day < ?').bind(old), db.prepare('DELETE FROM events WHERE day < ?').bind(old), db.prepare('DELETE FROM place_events WHERE day < ?').bind(old)])
   const [v, r, ev] = await Promise.all([
     db.prepare('SELECT day, count(*) AS visitors, sum(n) AS loads FROM visits WHERE day >= ? GROUP BY day ORDER BY day').bind(from).all(),
     // 제보 시각은 UTC로 저장돼 있어 9시간을 더해 한국 날짜로 묶는다
@@ -706,6 +768,8 @@ export default {
         if (path === '/api/places' && req.method === 'GET') return await getPlaces(req, env, ctx, cors)
         if (path === '/api/report' && req.method === 'POST') return await postReport(req, env, cors)
         if (path === '/api/event' && req.method === 'POST') return await postEvent(req, env, cors)
+        if (path === '/api/place-event' && req.method === 'POST') return await postPlaceEvent(req, env, cors)
+        if (path === '/api/popular' && req.method === 'GET') return await getPopular(env, ctx, cors)
         if (path === '/api/stories' && req.method === 'GET') return await listStories(env, cors)
         const sm = /^\/api\/stories\/([a-z0-9-]{1,60})$/.exec(path)
         if (sm && req.method === 'GET') return await getStory(env, cors, sm[1])

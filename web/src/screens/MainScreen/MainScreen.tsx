@@ -27,7 +27,9 @@ import PlaceList from './PlaceList'
 import PlacePreview from './PlacePreview'
 import './MainScreen.css'
 import { fetchPlaces } from '../../lib/api'
-import { track } from '../../lib/track'
+import { track, trackPlace } from '../../lib/track'
+import { fetchPopular } from '../../lib/popular'
+import type { PopScores } from '../../lib/onsen'
 import { fetchStories, go, type Story } from '../../lib/stories'
 import BottomNav from '../../components/BottomNav/BottomNav'
 
@@ -37,6 +39,7 @@ const TOUCH = typeof window !== 'undefined' && window.matchMedia?.('(pointer: co
 
 const SORTS = [
   { value: 'auto', label: '추천순' },
+  { value: 'pop', label: '인기순' },
   { value: 'dist', label: '가까운 순' },
   { value: 'name', label: '이름순' },
 ]
@@ -122,6 +125,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
   const { places } = data
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [sort, setSort] = useState('auto')
+  const [pop, setPop] = useState<PopScores>({}) // 인기 점수(인기순을 처음 고를 때 받는다)
   const [inView, setInView] = useState(false)
   const [bounds, setBounds] = useState<MapBounds | null>(null)
   const [me, setMe] = useState<LatLng | null>(null)
@@ -196,7 +200,10 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
       saveFavBackup([...next])
       return next
     })
-    if (!favsRef.current.has(id)) track('fav') // 담은 것만 센다(뺀 것은 세지 않음). 상태 갱신 함수 밖에서 불러 두 번 세지 않는다
+    if (!favsRef.current.has(id)) {
+      track('fav') // 담은 것만 센다(뺀 것은 세지 않음). 상태 갱신 함수 밖에서 불러 두 번 세지 않는다
+      trackPlace(id, 'fav')
+    }
   }, [])
 
   // 계산 (화면의 숫자와 지도·목록은 모두 아래 같은 표에서 나온다)
@@ -232,12 +239,25 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
         : nearby,
     [nearby, inView, bounds],
   )
-  const view = useMemo(() => sortPlaces(inside, sort, !!me), [inside, sort, me])
+  useEffect(() => {
+    if (sort !== 'pop') return
+    let live = true
+    fetchPopular().then((s) => live && setPop(s))
+    return () => {
+      live = false
+    }
+  }, [sort])
+  const view = useMemo(() => sortPlaces(inside, sort, !!me, pop), [inside, sort, me, pop])
   const mapPoints = useMemo(() => inside.filter(hasXY), [inside])
 
   const pricedCount = useMemo(() => places.filter((d) => d.price).length, [places])
   const unconfirmedCount = useMemo(() => places.filter((d) => !d.price).length, [places])
   const selected = useMemo(() => withDist.find((d) => d.id === selId) ?? null, [withDist, selId])
+  // 인기순: 상세를 연 목욕탕을 센다(상세를 연 채 다른 곳으로 바꿔도 센다). 안내(온보딩)가 열어 주는 것은 세지 않는다
+  useEffect(() => {
+    if (detailOpen && selId && !tourOpen) trackPlace(selId, 'view')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailOpen, selId])
 
   const requestFit = useCallback((list: Place[], extra: LatLng[] = []) => {
     const pts = [...list.filter(hasXY).map((d) => ({ lat: d.lat, lng: d.lng })), ...extra]
@@ -638,7 +658,7 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
               value={sort}
               onChange={(v) => {
                 setSort(v)
-                if (v === 'auto' || v === 'dist' || v === 'name') track(`sort_${v}`)
+                if (v === 'auto' || v === 'pop' || v === 'dist' || v === 'name') track(`sort_${v}`)
                 if (v === 'dist' && !me) locate()
                 if (v === 'name' && me) {
                   // 이름순은 내 위치 반경 안만 보여 주므로 목록을 처음부터, 지도는 그 곳들과 내 위치가 보이게 맞춘다
@@ -660,6 +680,10 @@ function MainBody({ data, onRefresh }: { data: Loaded; onRefresh: () => Promise<
           {/* 추천 기준을 숨기지 않는다(계산은 lib/onsen.ts infoScore·recommendScore) */}
           {sort === 'auto' && (
             <p className="sort-hint">{me ? '추천순: 요금·수건·드라이기 같은 정보가 확인된 곳을 먼저, 가까울수록 위에' : '추천순: 요금·수건·드라이기 같은 정보가 확인된 곳을 먼저'}</p>
+          )}
+          {/* 인기순 기준도 숨기지 않는다(계산은 lib/onsen.ts popularScore). 몇 명이 봤는지 같은 숫자는 보여 주지 않는다 */}
+          {sort === 'pop' && (
+            <p className="sort-hint">{me ? '인기순: 최근 한 달 많이 보고·담고·추천한 곳을 먼저, 가까울수록 위에' : '인기순: 최근 한 달 많이 보고·담고·추천한 곳을 먼저'}</p>
           )}
           <PlaceList
             list={view}

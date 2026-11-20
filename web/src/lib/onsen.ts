@@ -172,8 +172,32 @@ export function recommendScore(p: PlaceWithDist, now = Date.now()) {
   return p.dist == null ? info : info / (1 + p.dist / RECOMMEND_HALF_KM)
 }
 
-export function sortPlaces(list: PlaceWithDist[], sort: string, hasMe: boolean) {
+// ───────── 인기순 ─────────
+// 인기 = 사람들이 최근 30일 동안 상세를 보고(1점)·담고(3점)·'추천해요'를 누른(5점) 정도. 서버(Worker /api/popular)가 곳마다 점수만 준다.
+//   같은 사람·같은 곳·같은 행동은 하루 한 번만 세고, 지난 기록은 1주마다 절반으로 줄인다(worker/src/index.js POP_W).
+// 사용자가 아직 적을 때 몇 번의 클릭으로 순서가 크게 흔들리지 않도록, 정보 점수(0~10)를 POP_PRIOR점까지의 바탕 점수로 깐다:
+//   인기순 점수 = (인기 점수 + POP_PRIOR × 정보 점수 ÷ 10) ÷ (1 + 거리km ÷ 2). 기록이 없으면 추천순과 같은 순서가 된다.
+// 내 위치는 서버로 보내지 않는다: 점수 표를 받아 거리 계산은 이 기기에서만 한다.
+export const POP_PRIOR = 3
+export type PopScores = Record<string, number>
+
+export function popularScore(p: PlaceWithDist, pop: PopScores, now = Date.now()) {
+  const base = (pop[p.id] ?? 0) + (POP_PRIOR * infoScore(p, now)) / 10
+  return p.dist == null ? base : base / (1 + p.dist / RECOMMEND_HALF_KM)
+}
+
+export function sortPlaces(list: PlaceWithDist[], sort: string, hasMe: boolean, pop: PopScores = {}) {
   const a = list.slice()
+  if (sort === 'pop') {
+    const now = Date.now()
+    const score = new Map(a.map((p) => [p.id, popularScore(hasMe ? p : { ...p, dist: null }, pop, now)]))
+    return a.sort(
+      (x, y) =>
+        score.get(y.id)! - score.get(x.id)! ||
+        (hasMe ? (x.dist ?? Infinity) - (y.dist ?? Infinity) : 0) ||
+        x.name.localeCompare(y.name, 'ko'),
+    )
+  }
   if (sort === 'auto') {
     const now = Date.now()
     const score = new Map(a.map((p) => [p.id, recommendScore(hasMe ? p : { ...p, dist: null }, now)]))

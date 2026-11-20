@@ -5,6 +5,8 @@ import { KIND_CLASS, PRICE_NOTE, fmtDist, mapLinks, safeTel, safeUrl, won, type 
 import { FactsDetails, FeeDetails, Notices, TopWorries, hoursText, parkingText, towelText, unknownList } from './PlaceFacts'
 import { MiniMap } from '../../components/KakaoMap/KakaoMap'
 import { catLabel, go, storyPath, type Story } from '../../lib/stories'
+import { readLikes, writeLikes } from '../../lib/popular'
+import { trackPlace } from '../../lib/track'
 
 // 모바일(820px 이하, MainScreen.css와 같은 기준)에서만 상세에 작은 지도를 넣는다. 데스크톱은 옆에 큰 지도가 보인다
 const MOBILE = typeof window !== 'undefined' && window.matchMedia?.('(max-width: 820px)').matches
@@ -149,6 +151,29 @@ function ParkingBlock({ d, onAsk }: { d: PlaceWithDist; onAsk: () => void }) {
   )
 }
 
+// '추천해요': 목욕탕마다 한 번 누르고, 다시 누르면 취소한다. 누른 곳은 이 브라우저에만 기억하고(로그인 없음), 서버에는 목욕탕 id와 누름·취소만 보낸다(인기순 점수)
+function LikeButton({ id }: { id: string }) {
+  const [liked, setLiked] = useState(() => readLikes().has(id))
+  useEffect(() => setLiked(readLikes().has(id)), [id])
+  const toggle = () => {
+    const s = readLikes()
+    const next = !s.has(id)
+    if (next) s.add(id)
+    else s.delete(id)
+    writeLikes(s)
+    setLiked(next)
+    trackPlace(id, next ? 'like' : 'unlike')
+  }
+  return (
+    <button type="button" className={`btn ghost sm like-btn${liked ? ' on' : ''}`} aria-pressed={liked} onClick={toggle}>
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+        <path d="M7 10v11H3V10h4Zm2 11V10l4.6-7.2a1.6 1.6 0 0 1 2.9 1.1L15.6 9H20a2 2 0 0 1 2 2.3l-1.4 8A2 2 0 0 1 18.6 21H9Z" fill="currentColor" />
+      </svg>
+      {liked ? '추천했어요' : '추천해요'}
+    </button>
+  )
+}
+
 export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onReport, stories = [] }: Props) {
   // 손가락으로 오른쪽으로 밀면 '목록으로'(모바일의 뒤로 가기 제스처). 세로 스크롤과 구분하려고 가로로 충분히 길고 빠를 때만 본다.
   const backRef = useRef<HTMLButtonElement>(null)
@@ -288,6 +313,7 @@ export default function PlaceDetail({ place: d, open, me, onClose, onLocate, onR
             <a className="btn sm" target="_blank" rel="noopener noreferrer" href={l.car}>자동차 길찾기</a>
             <a className="btn ghost sm" target="_blank" rel="noopener noreferrer" href={l.pt}>대중교통 길찾기</a>
             {tel && <a className="btn ghost sm" href={`tel:${tel}`}>전화 {tel}</a>}
+            <LikeButton id={d.id} />
           </div>
 
           {/* 1. 이용 결정에 필요한 핵심: 가기 전 걱정, 요금 */}

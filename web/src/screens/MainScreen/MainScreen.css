@@ -422,6 +422,12 @@
 /* 상세 화면의 정보 위계: 핵심(이용 결정) → 가기 전에 확인 → 참고 */
 .onsen-main #detail h2 { font-size: 24px; font-weight: 800; }
 .onsen-main .d-actions { margin-top: 14px; }
+/* 추천해요: 누르면 청록(선택·포인트 색)으로 채운다. 누름 피드백만 짧게 */
+.onsen-main .like-btn { gap: 6px; transition: transform 140ms var(--ease-out), background-color 160ms ease, border-color 160ms ease, color 160ms ease; }
+.onsen-main .like-btn:active { transform: scale(0.97); }
+.onsen-main .like-btn.on, .onsen-main .like-btn.on:active { background: var(--button-secondary-bg); border-color: var(--button-secondary-bg); color: var(--color-text-on-action); }
+@media (hover: hover) and (pointer: fine) { .onsen-main .like-btn.on:hover { background: var(--color-action-secondary-hover); border-color: var(--color-action-secondary-hover); } }
+@media (prefers-reduced-motion: reduce) { .onsen-main .like-btn:active { transform: none; } }
 /* 모바일 상세의 작은 지도: 주소 아래, 길찾기 위 */
 .onsen-main .d-map { position: relative; margin-top: 14px; height: 180px; border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--card-border); background: var(--soft); }
 .onsen-main .d-map__canvas { position: absolute; inset: 0; }

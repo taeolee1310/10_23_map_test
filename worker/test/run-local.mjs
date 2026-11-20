@@ -338,8 +338,51 @@ await settle()
 ok('한 사람이 같은 행동을 하루 200번까지만 셈', sqlite.prepare("SELECT n FROM events WHERE name = 'fav'").get().n === 200)
 sqlite.exec("INSERT INTO events (day, name, v, n) VALUES ('2000-01-01', 'near', 'old', 1)")
 r = await call('GET', '/admin/stats?days=7', { admin: true })
-ok('통계에 행동별 사람 수·횟수(안 한 행동은 0)', r.j.events.find((x) => x.name === 'near').users === 2 && r.j.events.find((x) => x.name === 'report_done').total === 0 && r.j.events.length === 10)
+ok('통계에 행동별 사람 수·횟수(안 한 행동은 0)', r.j.events.find((x) => x.name === 'near').users === 2 && r.j.events.find((x) => x.name === 'report_done').total === 0 && r.j.events.length === 11)
 ok('90일 넘은 행동 기록은 지움', !sqlite.prepare("SELECT 1 FROM events WHERE day = '2000-01-01'").get())
+
+// 10-2. 인기순(목욕탕별 행동·인기 점수)
+{
+  sqlite.exec('DELETE FROM place_events')
+  const pe = (id, kind, headers = site) => call('POST', '/api/place-event', { headers: { 'Content-Type': 'text/plain', ...headers }, raw: JSON.stringify({ id, kind }) })
+  const [A, B, C] = data.places.map((x) => x.id)
+  const other = { ...site, 'CF-Connecting-IP': '7.7.7.7' }
+  r = await pe(A, 'view')
+  ok('목욕탕별 기록은 204(CORS 포함)', r.res.status === 204 && r.res.headers.get('Access-Control-Allow-Origin') === 'https://tangbang.vercel.app')
+  await pe(A, 'view')
+  await pe(A, 'view', other)
+  await pe(B, 'fav')
+  await pe(C, 'like')
+  const cnt = (id, kind) => sqlite.prepare('SELECT count(*) AS c FROM place_events WHERE place_id = ? AND kind = ?').get(id, kind).c
+  ok('같은 사람·같은 곳·같은 행동은 하루 한 번', cnt(A, 'view') === 2)
+  ok('없는 목욕탕·이상한 행동은 받지 않음', (await pe('no-such-place', 'view')).res.status === 204 && cnt('no-such-place', 'view') === 0 && (await pe(A, 'hack')).res.status === 400 && (await pe('<x>', 'view')).res.status === 400)
+  const before = sqlite.prepare('SELECT count(*) AS c FROM place_events').get().c
+  await pe(A, 'like', { ...site, Origin: 'http://localhost:5173' })
+  await pe(A, 'like', { 'User-Agent': 'curl' })
+  ok('개발 화면·화면 밖 호출은 세지 않음', sqlite.prepare('SELECT count(*) AS c FROM place_events').get().c === before)
+  await pe(C, 'unlike')
+  ok('오늘 누른 추천을 취소하면 지우기만', cnt(C, 'like') === 0 && cnt(C, 'unlike') === 0)
+  await pe(C, 'like')
+  const old = new Date(Date.now() + 9 * 3600_000 - 10 * 86400_000).toISOString().slice(0, 10)
+  sqlite.prepare("INSERT INTO place_events (day, place_id, kind, v) VALUES (?, ?, 'like', 'past')").run(old, B)
+  sqlite.prepare("INSERT INTO place_events (day, place_id, kind, v) VALUES (?, ?, 'like', 'past')").run('2000-01-01', A)
+  r = await call('GET', '/api/popular', { headers: site })
+  const sc = r.j.scores
+  ok('인기 점수: 보기 1·담기 3·추천 5, 8~14일 전은 절반, 30일 넘은 건 안 셈', sc[A] === 2 && sc[B] === 3 + 2.5 && sc[C] === 5, JSON.stringify([sc[A], sc[B], sc[C]]))
+  ok('점수에 사람 수·횟수는 없음(숫자 하나만)', Object.values(sc).every((v) => typeof v === 'number') && !('counts' in r.j))
+  await pe(B, 'unlike', other)
+  ok('예전 날 추천을 취소하면 빼는 기록이 남음', cnt(B, 'unlike') === 1)
+  store.clear()
+  r = await call('GET', '/api/popular', { headers: site })
+  ok('빼는 기록이 점수에 반영(0 이하면 빠짐)', r.j.scores[B] === 3 + 2.5 - 5)
+  for (let i = 0; i < 205; i++) await pe(data.places[i % data.places.length].id, 'view', { ...site, 'CF-Connecting-IP': '8.8.8.8' })
+  const v8 = sqlite.prepare("SELECT count(*) AS c FROM place_events WHERE day = ? AND kind = 'view' AND v = (SELECT v FROM place_events GROUP BY v ORDER BY count(*) DESC LIMIT 1)").get(new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)).c
+  ok('한 사람이 하루 200줄까지만 남김', v8 <= 200, `${v8}줄`)
+  await call('GET', '/admin/stats?days=7', { admin: true })
+  ok('90일 넘은 목욕탕별 기록은 지움', !sqlite.prepare("SELECT 1 FROM place_events WHERE day = '2000-01-01'").get())
+  sqlite.exec('DELETE FROM place_events')
+  store.clear()
+}
 
 // 11. 매거진
 env.EDITOR_TOKEN = 'local-editor-token-abcdefgh'
