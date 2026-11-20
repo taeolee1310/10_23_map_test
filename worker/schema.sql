@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS reports (
   ip_hash TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'new',   -- new / reviewed / applied / rejected
   reviewed_at TEXT,
+  reviewed_by TEXT,             -- 판정한 사람(주인 'owner' 또는 admins.name)
   note TEXT
 );
 CREATE INDEX IF NOT EXISTS reports_who ON reports (who, created_at);
@@ -102,11 +103,20 @@ CREATE TABLE IF NOT EXISTS auth_fails (
 ) WITHOUT ROWID;
 
 -- 공개·되돌리기 기록
+-- 사람마다 다른 관리 열쇠(2026-11-20). 열쇠 원래 값은 저장하지 않고 SHA-256만 둔다. 주인 열쇠(ADMIN_TOKEN, Worker 비밀)만 만들고 끌 수 있다
+CREATE TABLE IF NOT EXISTS admins (
+  name TEXT PRIMARY KEY,
+  token_hash TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL,
+  revoked_at TEXT,
+  last_used TEXT                -- 마지막으로 쓴 날(KST, 하루에 한 번만 적는다)
+);
 CREATE TABLE IF NOT EXISTS publish_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   at TEXT NOT NULL,
   action TEXT NOT NULL,         -- publish / rollback
   from_id INTEGER,
   to_id INTEGER,
-  summary TEXT
+  summary TEXT,
+  by TEXT                       -- 누가(주인 'owner' 또는 admins.name)
 );

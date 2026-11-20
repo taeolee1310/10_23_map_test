@@ -4,9 +4,10 @@
 //          POST /api/event    핵심 행동 횟수 세기(정해진 이름만, 방문자 해시로 사람 수 구분)
 //          GET  /api/photos/<키>  매거진 사진 읽기(R2, 토큰 없이 공개)
 // 작성용(Authorization: Bearer EDITOR_TOKEN): GET·POST /api/editor/stories(매거진 글) · POST /api/editor/photos(사진 올리기, R2)
-// 관리용(Authorization: Bearer ADMIN_TOKEN, 수집 PC의 scripts/d1_publish.mjs만 부른다):
+// 관리용(Authorization: Bearer 관리 열쇠, scripts/d1_publish.mjs만 부른다). 열쇠는 주인 열쇠(ADMIN_TOKEN) 또는 사람마다 만든 열쇠(admins 표):
 //          GET  /admin/status · POST /admin/ingest · GET /admin/diff · POST /admin/publish · POST /admin/rollback
-//          GET  /admin/reports?status=new · POST /admin/reports/<id> · GET /admin/stats?days=14(날짜별 방문자 수)
+//          GET  /admin/reports?status=new · POST /admin/reports/<id> · GET /admin/stats?days=14(날짜별 방문자 수) · GET /admin/whoami
+//          주인 열쇠만: GET /admin/admins · POST /admin/admins {name}(새 열쇠를 한 번만 돌려준다) · POST /admin/admins/revoke {name}
 // 원칙: 사용자 요청마다 큰 JSON을 만들지 않는다(무료 Worker는 요청당 CPU 10ms). 공개 때 SQL이 본문을 만들어 한 행에 둔다.
 
 const KEEP_SNAPSHOTS = 30
@@ -61,6 +62,49 @@ function corsHeaders(req, env) {
 async function sha(v) {
   const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v))
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 16)
+}
+
+// 관리 열쇠 확인: 주인 열쇠면 { role: 'owner', name: 'owner' }, 사람마다 만든 열쇠면 { role: 'member', name }, 아니면 null
+async function adminWho(req, env) {
+  if (authorized(req, env)) return { role: 'owner', name: 'owner' }
+  const got = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '')
+  if (got.length < 32 || got.length > 128) return null
+  const h = await sha256hex(`admin|${got}`)
+  const row = await env.DB.prepare('SELECT name, last_used FROM admins WHERE token_hash = ?1 AND revoked_at IS NULL').bind(h).first()
+  if (!row) return null
+  const day = kstDay()
+  if (row.last_used !== day) await env.DB.prepare('UPDATE admins SET last_used = ?1 WHERE name = ?2').bind(day, row.name).run()
+  return { role: 'member', name: row.name }
+}
+async function sha256hex(v) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(v))
+  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+// 사람마다 열쇠: 이름은 2~20자(글자·숫자·공백·._-). 열쇠는 32바이트 난수(base64url 43자), 원래 값은 저장하지 않는다
+const adminName = (v) => String(v ?? '').replace(/[^\p{L}\p{N} ._-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 20)
+async function listAdmins(env) {
+  const r = await env.DB.prepare('SELECT name, created_at, revoked_at, last_used FROM admins ORDER BY created_at').all()
+  return json({ ok: true, admins: r.results })
+}
+async function addAdmin(req, env) {
+  const b = await req.json().catch(() => ({}))
+  const name = adminName(b.name)
+  if (name.length < 2 || name === 'owner') return json({ ok: false, error: 'name' }, 400)
+  const bytes = crypto.getRandomValues(new Uint8Array(32))
+  const token = btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  const h = await sha256hex(`admin|${token}`)
+  // 같은 이름이 있으면 새 열쇠로 바꾼다(잃어버렸을 때 다시 만들기). 예전 열쇠는 바로 막힌다
+  await env.DB.prepare(
+    'INSERT INTO admins (name, token_hash, created_at) VALUES (?1, ?2, ?3) ON CONFLICT (name) DO UPDATE SET token_hash = excluded.token_hash, created_at = excluded.created_at, revoked_at = NULL',
+  )
+    .bind(name, h, now())
+    .run()
+  return json({ ok: true, name, token })
+}
+async function revokeAdmin(req, env) {
+  const b = await req.json().catch(() => ({}))
+  const r = await env.DB.prepare('UPDATE admins SET revoked_at = ?1 WHERE name = ?2 AND revoked_at IS NULL').bind(now(), adminName(b.name)).run()
+  return json({ ok: r.meta.changes === 1 })
 }
 
 function authorized(req, env, key = 'ADMIN_TOKEN') {
@@ -587,7 +631,7 @@ async function validate(env, force) {
   return { problems, count: count.n }
 }
 
-async function publish(req, env) {
+async function publish(req, env, who) {
   const b = await req.json().catch(() => ({}))
   const db = env.DB
   const from = await activeId(db)
@@ -610,15 +654,15 @@ async function publish(req, env) {
       .bind(at, note),
     db.prepare(`INSERT INTO meta (k, v) VALUES ('active_snapshot', CAST(last_insert_rowid() AS TEXT)) ON CONFLICT(k) DO UPDATE SET v = excluded.v`),
     db
-      .prepare(`INSERT INTO publish_log (at, action, from_id, to_id, summary) VALUES (?1, 'publish', ?2, (SELECT CAST(v AS INTEGER) FROM meta WHERE k = 'active_snapshot'), ?3)`)
-      .bind(at, from, `${count}곳${note ? ` · ${note}` : ''}`),
+      .prepare(`INSERT INTO publish_log (at, action, from_id, to_id, summary, by) VALUES (?1, 'publish', ?2, (SELECT CAST(v AS INTEGER) FROM meta WHERE k = 'active_snapshot'), ?3, ?4)`)
+      .bind(at, from, `${count}곳${note ? ` · ${note}` : ''}`, who.name),
     db.prepare(`DELETE FROM snapshots WHERE id NOT IN (SELECT id FROM snapshots ORDER BY id DESC LIMIT ${KEEP_SNAPSHOTS})`),
   ])
   const to = await activeId(db)
   return json({ ok: true, from, to, count })
 }
 
-async function rollback(req, env) {
+async function rollback(req, env, who) {
   const b = await req.json().catch(() => ({}))
   const db = env.DB
   const from = await activeId(db)
@@ -629,7 +673,7 @@ async function rollback(req, env) {
   if (!target) return json({ ok: false, error: 'no-snapshot' }, 404)
   await db.batch([
     db.prepare(`INSERT INTO meta (k, v) VALUES ('active_snapshot', ?1) ON CONFLICT(k) DO UPDATE SET v = excluded.v`).bind(String(target.id)),
-    db.prepare('INSERT INTO publish_log (at, action, from_id, to_id, summary) VALUES (?1, ?2, ?3, ?4, ?5)').bind(now(), 'rollback', from, target.id, ''),
+    db.prepare('INSERT INTO publish_log (at, action, from_id, to_id, summary, by) VALUES (?1, ?2, ?3, ?4, ?5, ?6)').bind(now(), 'rollback', from, target.id, '', who.name),
   ])
   return json({ ok: true, from, to: target.id })
 }
@@ -644,10 +688,10 @@ async function listReports(url, env) {
   return json({ ok: true, reports: r.results })
 }
 
-async function setReport(req, env, id) {
+async function setReport(req, env, id, who) {
   const b = await req.json().catch(() => ({}))
   if (!['new', 'reviewed', 'applied', 'rejected'].includes(b.status)) return json({ ok: false, error: 'status' }, 400)
-  const r = await env.DB.prepare('UPDATE reports SET status = ?1, note = ?2, reviewed_at = ?3 WHERE id = ?4').bind(b.status, text(b.note, 200) || null, now(), id).run()
+  const r = await env.DB.prepare('UPDATE reports SET status = ?1, note = ?2, reviewed_at = ?3, reviewed_by = ?5 WHERE id = ?4').bind(b.status, text(b.note, 200) || null, now(), id, who.name).run()
   return json({ ok: r.meta.changes === 1 })
 }
 
@@ -687,16 +731,26 @@ export default {
       }
       if (path.startsWith('/admin/')) {
         if (!env.ADMIN_TOKEN) return json({ ok: false, error: 'not-ready' }, 503)
-        if (!authorized(req, env)) return json({ ok: false, error: 'auth' }, 401)
+        const who = await adminWho(req, env)
+        if (!who) return json({ ok: false, error: 'auth' }, 401)
+        if (path === '/admin/whoami' && req.method === 'GET') return json({ ok: true, ...who })
+        // 열쇠 만들기·끄기는 주인 열쇠만
+        if (path.startsWith('/admin/admins')) {
+          if (who.role !== 'owner') return json({ ok: false, error: 'owner-only' }, 403)
+          if (path === '/admin/admins' && req.method === 'GET') return await listAdmins(env)
+          if (path === '/admin/admins' && req.method === 'POST') return await addAdmin(req, env)
+          if (path === '/admin/admins/revoke' && req.method === 'POST') return await revokeAdmin(req, env)
+          return json({ ok: false, error: 'not-found' }, 404)
+        }
         if (path === '/admin/status' && req.method === 'GET') return await status(env)
         if (path === '/admin/ingest' && req.method === 'POST') return await ingest(req, env)
         if (path === '/admin/diff' && req.method === 'GET') return await diff(env)
-        if (path === '/admin/publish' && req.method === 'POST') return await publish(req, env)
-        if (path === '/admin/rollback' && req.method === 'POST') return await rollback(req, env)
+        if (path === '/admin/publish' && req.method === 'POST') return await publish(req, env, who)
+        if (path === '/admin/rollback' && req.method === 'POST') return await rollback(req, env, who)
         if (path === '/admin/reports' && req.method === 'GET') return await listReports(url, env)
         if (path === '/admin/stats' && req.method === 'GET') return await stats(url, env)
         const m = /^\/admin\/reports\/(\d+)$/.exec(path)
-        if (m && req.method === 'POST') return await setReport(req, env, Number(m[1]))
+        if (m && req.method === 'POST') return await setReport(req, env, Number(m[1]), who)
         return json({ ok: false, error: 'not-found' }, 404)
       }
       return json({ ok: false, error: 'not-found' }, 404)

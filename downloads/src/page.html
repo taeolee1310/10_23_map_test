@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>탕방 도구함</title>
+<style>
+/*__COLORS__*/
+/*__MOTION__*/
+/* 탕방 도구함. 색·간격·모서리는 tangbang-colors.css 토큰만 쓴다(위에 그대로 들어간다).
+   움직임: designbookmark.com의 OTP Code·Sidebar Collapse를 옮겨 왔고, 스프링 값(강도·감쇠)은 원본 그대로 둔다. */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%}
+body{background:var(--color-bg-page);color:var(--color-text-primary);font-family:'Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.55}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--color-border-focus);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.logo svg{display:block;width:100%;height:100%}
+
+/* ───── 들어가기(비밀번호) ───── */
+.gate{min-height:100dvh;display:grid;place-items:center;padding:24px 16px}
+.gate-card{width:min(400px,100%);background:var(--color-bg-surface);border:1px solid var(--color-border-default);border-radius:var(--radius-lg);box-shadow:var(--shadow-card);padding:28px 24px 24px;text-align:center}
+.gate .logo{width:72px;height:52px;margin:0 auto 10px}
+.gate h1{font-size:20px;line-height:28px;font-weight:800;letter-spacing:-.02em}
+.gate .hint{margin:6px 0 20px;font-size:14px;color:var(--color-text-secondary);word-break:keep-all}
+.gate .hint b{color:var(--color-text-primary);font-weight:700}
+.otp{position:relative;width:100%}
+.boxes{position:relative;height:56px;margin:0 auto}
+.bx{position:absolute;top:0;height:56px;border-radius:var(--radius-md);background:var(--color-bg-surface);box-shadow:inset 0 0 0 1px var(--color-border-default);display:grid;place-items:center;font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--color-text-primary)}
+.bx i{font-style:normal;display:block}
+.bx .car{position:absolute;width:2px;height:24px;border-radius:1px;background:var(--color-text-primary);left:50%;top:16px;margin-left:-1px}
+.ok{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:8px;font-size:16px;font-weight:700;color:var(--color-text-on-action);opacity:0;pointer-events:none}
+.ok svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+#code{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;font-size:16px;z-index:2;cursor:text;caret-color:transparent;background:transparent}
+.msg{min-height:20px;margin-top:12px;font-size:13px;line-height:20px;font-weight:600;color:var(--color-text-secondary);word-break:keep-all}
+.msg.bad{color:var(--color-state-error)}
+.foot{margin-top:18px;font-size:12px;color:var(--color-text-muted);word-break:keep-all}
+/* 이름 정하기 */
+.who{display:none;text-align:left;margin-top:4px}
+.who label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+.who input{width:100%;height:44px;padding:0 12px;border:1px solid var(--color-border-default);border-radius:var(--radius-md);background:var(--color-bg-surface)}
+.who input:focus{outline:none;border-color:var(--color-border-focus);box-shadow:0 0 0 3px color-mix(in srgb,var(--color-border-focus) 25%,transparent)}
+.who p{margin:6px 0 14px;font-size:12px;color:var(--color-text-muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 16px;border:1px solid var(--button-outline-border);border-radius:var(--radius-md);background:var(--button-outline-bg);color:var(--button-outline-text);font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;transition:background-color 200ms ease,transform var(--dur-press) var(--ease-out)}
+.btn:active{transform:scale(.97)}
+.btn.cta{width:100%;border-color:var(--button-primary-bg);background:var(--button-primary-bg);color:var(--button-primary-text)}
+.btn.teal{border-color:var(--color-action-secondary);background:var(--color-action-secondary);color:var(--color-text-on-action)}
+@media (hover:hover) and (pointer:fine){.btn:hover{background:var(--button-outline-bg-hover)}.btn.cta:hover{background:var(--button-primary-bg-hover)}.btn.teal:hover{background:var(--color-action-secondary-hover)}}
+
+/* ───── 도구함(사이드바 + 본문) ───── */
+.app{display:none;min-height:100dvh}
+.side{position:fixed;left:12px;top:12px;bottom:12px;width:212px;padding:10px;border-radius:24px;background:var(--color-bg-surface);border:1px solid var(--color-border-default);overflow:hidden;display:flex;flex-direction:column;z-index:5}
+.top{position:relative;display:flex;align-items:center;height:44px;padding:0 6px;margin-bottom:6px;flex:none}
+.top .logo{width:30px;height:28px;flex:none}
+.brand{margin-left:10px;font-size:15px;font-weight:800;letter-spacing:-.02em}
+.col{position:absolute;right:0;top:4px;width:36px;height:36px;border:0;border-radius:var(--radius-md);background:var(--color-bg-surface-muted);color:var(--color-text-primary);cursor:pointer;display:grid;place-items:center}
+.col svg{width:18px;height:18px}
+.side svg{fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.list{position:relative;display:flex;flex-direction:column;gap:2px}
+.it{position:relative;z-index:1;display:flex;align-items:center;height:44px;padding:0 11px;border:0;border-radius:14px;background:none;color:var(--color-text-secondary);cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap;transition:color .25s;text-align:left}
+.it.on{color:var(--color-text-link)}
+.it svg{width:22px;height:22px;flex:none}
+.it .lb{margin-left:12px}
+.lb{display:inline-block;white-space:nowrap}
+.hl{position:absolute;left:0;right:0;top:0;height:44px;border-radius:14px;background:color-mix(in srgb,var(--color-action-secondary) 14%,var(--color-bg-surface))}
+/* 프로필: 사이드바 맨 아래. 접히면 동그란 이름 첫 글자만 */
+.me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 6px 4px;border-top:1px solid var(--color-border-subtle);min-height:56px}
+.av{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--color-action-secondary);color:var(--color-text-on-action);font-size:14px;font-weight:800}
+.me-t{min-width:0;flex:1}
+.me-t b{display:block;font-size:14px;line-height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me-t span{display:block;font-size:12px;color:var(--color-text-muted)}
+.me-a{display:flex;gap:2px}
+.me-a button{height:32px;padding:0 8px;border:0;border-radius:var(--radius-sm);background:none;color:var(--color-text-secondary);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+@media (hover:hover) and (pointer:fine){.me-a button:hover{background:var(--color-bg-surface-muted)}}
+
+.main{margin-left:236px;padding:28px 28px 64px;max-width:980px}
+.main h2{font-size:24px;line-height:32px;font-weight:800;letter-spacing:-.02em}
+.main .lead{margin:4px 0 20px;color:var(--color-text-secondary);word-break:keep-all}
+.sec[hidden]{display:none}
+.card{background:var(--color-bg-surface);border:1px solid var(--color-border-default);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px}
+.ver{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;margin-bottom:14px}
+.ver b{font-size:20px;font-weight:800}
+.ver span{font-size:13px;color:var(--color-text-muted)}
+.chip{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:var(--radius-pill);background:var(--badge-facility-bg);color:var(--badge-facility-text);font-size:12px;font-weight:700}
+.dl{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.dl .btn small{font-weight:500;opacity:.85}
+.notes{white-space:pre-wrap;font-size:14px;color:var(--color-text-secondary);background:var(--color-bg-surface-muted);border-radius:var(--radius-md);padding:12px 14px;word-break:keep-all;overflow-wrap:anywhere}
+.notes-h{font-size:13px;font-weight:700;margin:0 0 6px}
+details{margin-top:12px;font-size:13px;color:var(--color-text-secondary)}
+details summary{cursor:pointer;min-height:32px;display:flex;align-items:center}
+code{font-family:ui-monospace,'Cascadia Mono',Consolas,monospace;font-size:12px;word-break:break-all;background:var(--color-bg-surface-muted);border-radius:6px;padding:2px 6px}
+.empty{color:var(--color-text-muted);font-size:14px}
+.hist{list-style:none;display:grid;gap:12px}
+.hist li{border-top:1px solid var(--color-border-subtle);padding-top:12px}
+.hist li:first-child{border-top:0;padding-top:0}
+.hist .h{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;margin-bottom:6px}
+.hist .h b{font-size:15px}
+.hist .h span{font-size:12px;color:var(--color-text-muted)}
+.steps{display:grid;gap:8px;padding-left:20px;font-size:14px;color:var(--color-text-secondary);word-break:keep-all}
+.steps b{color:var(--color-text-primary)}
+.card h3{font-size:16px;font-weight:800;margin-bottom:10px}
+@media (max-width:720px){
+  .side{left:8px;top:8px;bottom:8px}
+  .main{margin-left:84px;padding:20px 12px 48px 0}
+  .main h2{font-size:20px;line-height:28px}
+  .card{padding:16px}
+}
+@media (prefers-reduced-motion:reduce){.btn,.it{transition:none}.btn:active{transform:none}}
+</style>
+</head>
+<body>
+<!-- 들어가기: 비밀번호(숫자 n자리) → 처음이면 이름 -->
+<main class="gate" id="gate">
+  <div class="gate-card">
+    <div class="logo"><!--__LOGO__--></div>
+    <h1>탕방 도구함</h1>
+    <p class="hint" id="hint">탕방을 함께 만드는 분들께만 나눠 드리는 프로그램이에요.<br>받은 <b id="hint-n">비밀번호</b>를 넣어 주세요.</p>
+    <div class="otp" id="otp">
+      <div class="boxes" id="boxes"><input id="code" inputmode="numeric" autocomplete="one-time-code" aria-label="비밀번호" aria-describedby="msg"></div>
+    </div>
+    <form class="who" id="who" novalidate>
+      <label for="name">이름이나 별명을 알려 주세요</label>
+      <input id="name" maxlength="20" autocomplete="nickname" placeholder="예) 이노곤">
+      <p>누가 어떤 버전을 받았는지 이 이름으로 남아요. 나중에 바꿀 수 있어요.</p>
+      <button class="btn cta" type="submit">들어가기</button>
+    </form>
+    <p class="msg" id="msg" role="status"></p>
+    <p class="foot">비밀번호를 모르면 탕방 운영자에게 물어봐 주세요.</p>
+  </div>
+</main>
+
+<!-- 도구함 -->
+<div class="app" id="app">
+  <aside class="side" id="side" aria-label="도구함 메뉴">
+    <div class="top"><span class="logo"><!--__LOGO__--></span><span class="lb brand">탕방 도구함</span>
+      <button class="col" id="col" aria-label="메뉴 접기" aria-expanded="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5 9 12l5.5 5.5"/></svg></button></div>
+    <nav class="list" id="list"><span class="hl" id="hl"></span>
+      <button class="it" data-s="collector"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10.5M7.5 10 12 14.5 16.5 10"/><path d="M5 17.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1.5"/></svg><span class="lb">수집 프로그램</span></button>
+      <button class="it" data-s="report-desk"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13.5 6.2 6a1.5 1.5 0 0 1 1.4-1h8.8a1.5 1.5 0 0 1 1.4 1l2.2 7.5V18a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18z"/><path d="M4 13.5h4.5l1 2h5l1-2H20"/></svg><span class="lb">제보함</span></button>
+      <button class="it" data-s="history"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg><span class="lb">업데이트 기록</span></button>
+      <button class="it" data-s="help"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.4M12 16.6v.2"/></svg><span class="lb">설치 도움말</span></button>
+    </nav>
+    <div class="me">
+      <span class="av" id="av" aria-hidden="true"></span>
+      <span class="me-t lb"><b id="me-name"></b><span>받은 기록에 남는 이름</span></span>
+    </div>
+    <div class="me-a lb"><button id="rename">이름 바꾸기</button><button id="logout">나가기</button></div>
+  </aside>
+  <main class="main" id="main">
+    <section class="sec" id="s-collector"></section>
+    <section class="sec" id="s-report-desk" hidden></section>
+    <section class="sec" id="s-history" hidden><h2>업데이트 기록</h2><p class="lead">버전마다 무엇이 바뀌었는지 모았어요.</p><div id="hist"></div></section>
+    <section class="sec" id="s-help" hidden>
+      <h2>설치 도움말</h2><p class="lead">처음 받을 때 한 번만 보면 돼요.</p>
+      <div class="card"><h3>윈도우</h3><ol class="steps">
+        <li><b>.exe</b>를 받아 실행해요.</li>
+        <li>'Windows의 PC 보호' 창이 뜨면 <b>추가 정보 → 실행</b>을 눌러요. 탕방 프로그램은 유료 코드 서명을 하지 않아 처음 한 번 이 창이 떠요.</li>
+        <li>설치가 끝나면 시작 메뉴에서 열어요.</li></ol></div>
+      <div class="card"><h3>맥</h3><ol class="steps">
+        <li><b>.dmg</b>를 열어 앱을 응용 프로그램 폴더로 끌어다 놓아요.</li>
+        <li>처음 열 때 '확인되지 않은 개발자' 창이 뜨면 닫고, <b>시스템 설정 → 개인정보 보호 및 보안 → 그래도 열기</b>를 눌러요.</li></ol></div>
+      <div class="card"><h3>받은 파일이 맞는지 확인하기(선택)</h3><ol class="steps">
+        <li>파일 아래 'SHA-256 지문'을 열어 둬요.</li>
+        <li>윈도우는 PowerShell에서 <code>Get-FileHash 파일이름</code>, 맥은 터미널에서 <code>shasum -a 256 파일이름</code>을 실행해요.</li>
+        <li>나온 값이 지문과 같으면 중간에 바뀌지 않은 파일이에요.</li></ol></div>
+      <div class="card"><h3>업데이트는 어떻게 알아요?</h3><ol class="steps">
+        <li>프로그램을 켤 때마다 새 버전이 있는지 확인해요. 있으면 화면 위에 <b>새 버전 안내</b>가 떠요.</li>
+        <li>안내에서 바뀐 점을 보고 <b>업데이트</b>를 누르면 받아서 설치해요. 받은 파일은 서명을 확인한 뒤에만 설치돼요.</li>
+        <li>지금 하던 작업(수집 중, 판정 중)이 있으면 끝낸 뒤에 눌러 주세요.</li></ol></div>
+      <div class="card"><h3>쓰기 전에 필요한 것</h3><ol class="steps">
+        <li>탕방 저장소(프로젝트 폴더)를 내려받아 두고, 처음 켤 때 그 폴더를 골라요.</li>
+        <li>프로젝트 폴더의 <code>.env</code>에 운영자에게 받은 내 관리 열쇠를 넣어요. 열쇠는 사람마다 달라요.</li>
+        <li>Node.js와 러스트가 필요해요. 처음이면 프로젝트 폴더의 <code>scripts/setup.ps1</code>(맥은 <code>setup.sh</code>)을 한 번 실행해요.</li></ol></div>
+    </section>
+  </main>
+</div>
+
+<script>
+// 작은 스프링 엔진(designbookmark.com shared/motion.js를 옮김): 스프링, 한 번에 도는 rAF, 시간 맞춤 타이머.
+// 모션 줄이기면 모든 스프링을 임계 감쇠로 바꿔 튕기지 않고 곧장 자리 잡는다
+const Motion = (() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+  const S = (x, k = 400, c = 30) => ({ x, v: 0, t: x, k, c: reduce ? 2 * Math.sqrt(k) : c })
+  const step = (s, dt) => { const a = -s.k * (s.x - s.t) - s.c * s.v; s.v += a * dt; s.x += s.v * dt }
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
+  const timers = []
+  const after = (sec, fn) => { const t = { t: sec, fn }; timers.push(t); return t }
+  const cancel = (t) => { const i = timers.indexOf(t); if (i > -1) timers.splice(i, 1) }
+  const comps = []
+  let last = performance.now()
+  function loop(now) {
+    const dt = Math.min((now - last) / 1000, 1 / 30); last = now
+    for (let i = timers.length - 1; i >= 0; i--) if ((timers[i].t -= dt) <= 0) timers.splice(i, 1)[0].fn()
+    for (let k = 0; k < 4; k++) comps.forEach((c) => c.on && c.frame(dt / 4))
+    comps.forEach((c) => c.on && c.render())
+    requestAnimationFrame(loop)
+  }
+  requestAnimationFrame(loop)
+  return { S, step, clamp, after, cancel, reduce, register: (c) => { c.on = true; comps.push(c); return c } }
+})()
+const $ = (id) => document.getElementById(id)
+const BOOT = __BOOT__
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n }
+async function api(path, body) {
+  const r = await fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {})
+  const j = await r.json().catch(() => ({}))
+  return { status: r.status, ...j }
+}
+
+// ───────── 비밀번호 칸(OTP Code) ─────────
+// 숨은 입력 칸이 글자를 받고, n개의 칸이 보여 준다. 숫자가 하나 들어올 때마다 위에서 톡 떨어지고, 지금 칸이 청록으로 밝아진다.
+// 다 넣으면 칸 사이가 닫히며 한 덩어리가 되고 서버에 확인한다. 맞으면 청록으로 차오르며 '확인됐어요', 틀리면 옆으로 흔들리고 비워진다
+function gate() {
+  const N = BOOT.n
+  const boxes = $('boxes'), inp = $('code'), msg = $('msg')
+  if (!N) { $('otp').hidden = true; msg.textContent = '아직 비밀번호가 정해지지 않았어요. 운영자에게 알려 주세요.'; return }
+  $('hint-n').textContent = `비밀번호 ${N}자리`
+  inp.maxLength = N
+  const { S, step, clamp, after } = Motion
+  const bx = [...Array(N)].map(() => {
+    const e = el('div', 'bx'); const d = el('i'); e.appendChild(d); const car = el('span', 'car'); e.appendChild(car)
+    boxes.insertBefore(e, inp)
+    return { el: e, d, car, y: S(0, 520, 16), o: S(0, 400, 28), a: S(0, 300, 26) }
+  })
+  const ok = el('div', 'ok'); ok.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span>확인됐어요</span>'; boxes.appendChild(ok)
+  const M = S(0, 260, 24), G = S(0, 220, 28), X = S(0, 520, 16) // 붙기 · 확인됨 · 틀렸을 때 흔들림
+  let val = '', clock = 0, busy = false, pass = false
+  function set(v) {
+    v = v.replace(/\D/g, '').slice(0, N)
+    for (let i = 0; i < N; i++) {
+      const c = v[i] ? '•' : '' // 화면에는 숫자 대신 점을 보여 준다(옆에서 보는 사람이 있어도 비밀번호가 보이지 않게)
+      if (c && !bx[i].d.textContent) { bx[i].d.textContent = c; bx[i].y.x = -14; bx[i].y.v = 0; bx[i].o.x = 0; bx[i].o.t = 1 }
+      if (!c) { bx[i].d.textContent = ''; bx[i].o.t = 0 }
+    }
+    val = v; inp.value = v
+    if (v.length === N && !busy && !pass) submit()
+  }
+  async function submit() {
+    busy = true; M.t = 1; msg.className = 'msg'; msg.textContent = '확인하는 중…'
+    const r = await api('/api/login', { code: val }).catch(() => ({ status: 0 }))
+    if (r.ok) {
+      pass = true; G.t = 1; msg.textContent = ''
+      after(.9, () => (r.name ? enter() : askName()))
+      return
+    }
+    busy = false; M.t = 0; X.v = 900 // 옆으로 흔들림
+    msg.className = 'msg bad'
+    msg.textContent = r.error === 'locked' ? `여러 번 틀려서 잠깐 잠겼어요. ${Math.max(1, Math.ceil((r.until - Date.now()) / 60000))}분 뒤에 다시 해 주세요.`
+      : r.error === 'code' ? `비밀번호가 달라요.${r.left ? ` ${r.left}번 더 틀리면 잠깐 잠겨요.` : ''}`
+      : r.error === 'not-ready' ? '아직 비밀번호가 정해지지 않았어요.' : '확인하지 못했어요. 잠시 뒤에 다시 해 주세요.'
+    after(.35, () => { set(''); inp.focus() })
+  }
+  inp.addEventListener('input', () => { if (!busy && !pass) set(inp.value) })
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter' && val.length === N && !busy && !pass) submit() })
+  setTimeout(() => inp.focus(), 60)
+  const comp = Motion.register({
+    frame(dt) {
+      clock += dt
+      bx.forEach((b, i) => { b.a.t = !pass && !busy && i === Math.min(val.length, N - 1) && document.activeElement === inp ? 1 : 0; step(b.y, dt); step(b.o, dt); step(b.a, dt) })
+      step(M, dt); step(G, dt); step(X, dt)
+    },
+    render() {
+      const W = boxes.parentElement.offsetWidth, gap0 = 8, bw = Math.min(48, (W - gap0 * (N - 1)) / N)
+      const m = clamp(M.x, 0, 1.1), gap = gap0 * (1 - clamp(m, 0, 1))
+      const total = bw * N + gap * (N - 1)
+      const left0 = (W - total) / 2 + X.x * 0.4 // 흔들림은 칸 묶음 전체를 옆으로(10px 안팎)
+      const R = 12
+      bx.forEach((b, i) => {
+        b.el.style.left = (left0 + i * (bw + gap)).toFixed(2) + 'px'
+        b.el.style.width = (bw + (i < N - 1 ? gap0 * clamp(m, 0, 1) + 1 : 0)).toFixed(2) + 'px'
+        const r = R * (1 - clamp(m, 0, 1))
+        b.el.style.borderRadius = i === 0 ? `${R}px ${r}px ${r}px ${R}px` : i === N - 1 ? `${r}px ${R}px ${R}px ${r}px` : `${r}px`
+        const a = clamp(b.a.x, 0, 1), g = clamp(G.x, 0, 1)
+        b.el.style.background = g > .01 ? `color-mix(in srgb, var(--color-action-secondary) ${(g * 100).toFixed(1)}%, var(--color-bg-surface))`
+          : a > .01 ? `color-mix(in srgb, var(--color-action-secondary) ${(a * 16).toFixed(1)}%, var(--color-bg-surface))` : ''
+        b.el.style.boxShadow = g > .5 ? 'none' : a > .5 ? 'inset 0 0 0 1.5px var(--color-action-secondary)' : ''
+        b.d.style.opacity = (clamp(b.o.x, 0, 1) * (1 - g)).toFixed(3)
+        b.d.style.transform = `translateY(${b.y.x.toFixed(2)}px)`
+        b.car.style.opacity = a > .5 && !val[i] && (clock * 1.8) % 2 < 1.2 ? 1 : 0
+      })
+      boxes.style.width = W + 'px'
+      ok.style.opacity = clamp(G.x * 1.6 - .5, 0, 1).toFixed(3)
+      ok.style.transform = `translateY(${((1 - clamp(G.x, 0, 1)) * 8).toFixed(2)}px)`
+    },
+  })
+  gate.stop = () => { comp.on = false }
+}
+function askName(prefill = '') {
+  $('otp').hidden = true
+  $('hint').textContent = '처음 오셨네요. 한 가지만 더 알려 주세요.'
+  const f = $('who'); f.style.display = 'block'
+  const name = $('name'); name.value = prefill; name.focus()
+  f.onsubmit = async (e) => {
+    e.preventDefault()
+    const r = await api('/api/me', { name: name.value }).catch(() => ({}))
+    if (r.ok) return enter()
+    $('msg').className = 'msg bad'
+    $('msg').textContent = r.error === 'name' ? '두 글자 이상 적어 주세요.' : '저장하지 못했어요. 잠시 뒤에 다시 해 주세요.'
+  }
+}
+
+// ───────── 도구함(Sidebar Collapse) ─────────
+// 너비 스프링 하나, 글자마다 투명도 스프링 하나(펼칠 때 위에서부터 조금씩 늦게, 접을 때는 한꺼번에), 고른 메뉴를 따라가는 밝은 칸 스프링 하나
+const PLATFORM = { 'windows-x86_64': '윈도우용', 'windows-aarch64': '윈도우(ARM)용', 'darwin-universal': '맥용', 'darwin-aarch64': '맥(애플 실리콘)용', 'darwin-x86_64': '맥(인텔)용', 'linux-x86_64': '리눅스용' }
+const size = (b) => (b >= 1048576 ? (b / 1048576).toFixed(1) + 'MB' : Math.max(1, Math.round(b / 1024)) + 'KB')
+const day = (iso) => (iso ? new Date(Date.parse(iso) + 9 * 3600_000).toISOString().slice(0, 10).replace(/-/g, '.') : '')
+function notes(text) {
+  const box = el('div')
+  box.appendChild(el('p', 'notes-h', '바뀐 점'))
+  box.appendChild(el('div', 'notes', text || '적어 둔 내용이 없어요.'))
+  return box
+}
+function appSection(a) {
+  const s = $('s-' + a.id); s.replaceChildren()
+  s.appendChild(el('h2', '', a.title)); s.appendChild(el('p', 'lead', a.desc))
+  const c = el('div', 'card')
+  if (!a.latest) { c.appendChild(el('p', 'empty', '아직 올라온 설치 파일이 없어요. 운영자가 첫 버전을 올리면 여기에 나와요.')); s.appendChild(c); return }
+  const v = el('div', 'ver'); v.appendChild(el('b', '', 'v' + a.latest.version)); v.appendChild(el('span', 'chip', '최신')); v.appendChild(el('span', '', day(a.latest.pub_date) + ' 올림')); c.appendChild(v)
+  const dl = el('div', 'dl')
+  for (const f of a.latest.files) {
+    const b = el('a', 'btn teal'); b.href = f.url; b.setAttribute('download', '')
+    b.appendChild(document.createTextNode((PLATFORM[f.platform] || f.platform) + ' 받기 ')); b.appendChild(el('small', '', size(f.size)))
+    dl.appendChild(b)
+  }
+  c.appendChild(dl); c.appendChild(notes(a.latest.notes))
+  const d = el('details'); d.appendChild(el('summary', '', 'SHA-256 지문(받은 파일 확인용)'))
+  for (const f of a.latest.files) { const p = el('p'); p.appendChild(document.createTextNode(f.name + ' ')); p.appendChild(el('code', '', f.sha256)); d.appendChild(p) }
+  c.appendChild(d); s.appendChild(c)
+}
+function historySection(apps) {
+  const box = $('hist'); box.replaceChildren()
+  for (const a of apps) {
+    const c = el('div', 'card'); c.appendChild(el('h3', '', a.title))
+    const all = [a.latest, ...a.history].filter(Boolean)
+    if (!all.length) { c.appendChild(el('p', 'empty', '아직 기록이 없어요.')); box.appendChild(c); continue }
+    const ul = el('ul', 'hist')
+    for (const r of all) {
+      const li = el('li'); const h = el('div', 'h'); h.appendChild(el('b', '', 'v' + r.version)); h.appendChild(el('span', '', day(r.pub_date))); li.appendChild(h)
+      li.appendChild(el('div', 'notes', r.notes || '적어 둔 내용이 없어요.')); ul.appendChild(li)
+    }
+    c.appendChild(ul); box.appendChild(c)
+  }
+}
+let sideStarted = false
+async function enter() {
+  gate.stop?.()
+  const r = await api('/api/catalog')
+  if (!r.ok) { location.reload(); return }
+  $('gate').style.display = 'none'; $('app').style.display = 'block'
+  $('me-name').textContent = r.me.name || '(이름 없음)'
+  $('av').textContent = (r.me.name || '?').slice(0, 1)
+  r.apps.forEach(appSection); historySection(r.apps)
+  if (!sideStarted) { sideStarted = true; sidebar() }
+}
+function sidebar() {
+  const { S, step, clamp, after } = Motion
+  const side = $('side'), col = $('col'), hl = $('hl'), main = $('main')
+  const its = [...side.querySelectorAll('.it')]
+  const labels = [...side.querySelectorAll('.lb')].map((e) => ({ el: e, s: S(1, 300, 26) }))
+  const narrow = matchMedia('(max-width: 720px)')
+  const OPEN = 212, SHUT = 64
+  const W = S(narrow.matches ? SHUT : OPEN, 260, 24), R = S(0, 300, 22), Y = S(0, 380, 28)
+  let open = !narrow.matches
+  function setOpen(o) {
+    open = o
+    col.setAttribute('aria-expanded', o); col.setAttribute('aria-label', o ? '메뉴 접기' : '메뉴 펼치기')
+    W.t = o ? OPEN : SHUT; R.t = o ? 0 : 1
+    labels.forEach((l, i) => (o ? after(.06 + i * .04, () => { if (open) l.s.t = 1 }) : (l.s.t = 0)))
+  }
+  function pick(id) {
+    its.forEach((b) => { const on = b.dataset.s === id; b.classList.toggle('on', on); b.setAttribute('aria-current', on ? 'page' : 'false') })
+    document.querySelectorAll('.sec').forEach((s) => (s.hidden = s.id !== 's-' + id))
+    Y.t = its.find((b) => b.dataset.s === id).offsetTop
+    try { localStorage.setItem('tbdl:tab', id) } catch {}
+    if (narrow.matches && open) setOpen(false)
+    window.scrollTo(0, 0)
+  }
+  col.addEventListener('click', () => setOpen(!open))
+  its.forEach((b) => b.addEventListener('click', () => pick(b.dataset.s)))
+  let first = 'collector'
+  try { first = localStorage.getItem('tbdl:tab') || first } catch {}
+  if (!its.some((b) => b.dataset.s === first)) first = 'collector'
+  pick(first); Y.x = Y.t
+  if (!open) { R.x = R.t = 1; labels.forEach((l) => (l.s.x = l.s.t = 0)); col.setAttribute('aria-expanded', 'false'); col.setAttribute('aria-label', '메뉴 펼치기') }
+  narrow.addEventListener('change', () => setOpen(!narrow.matches))
+  $('rename').addEventListener('click', () => { $('app').style.display = 'none'; $('gate').style.display = ''; $('msg').textContent = ''; askName($('me-name').textContent === '(이름 없음)' ? '' : $('me-name').textContent) })
+  $('logout').addEventListener('click', async () => { await api('/api/logout', {}).catch(() => {}); location.reload() })
+  Motion.register({
+    frame(dt) { [W, R, Y].forEach((s) => step(s, dt)); labels.forEach((l) => step(l.s, dt)) },
+    render() {
+      side.style.width = W.x.toFixed(2) + 'px'
+      if (!narrow.matches) main.style.marginLeft = (W.x + 24).toFixed(2) + 'px'
+      else main.style.marginLeft = ''
+      col.firstElementChild.style.transform = `rotate(${(180 * R.x).toFixed(2)}deg)`
+      col.style.right = (clamp(R.x, 0, 1) * 4).toFixed(2) + 'px'
+      side.querySelector('.top .logo').style.opacity = clamp(1 - R.x * 2, 0, 1).toFixed(3) // 접히면 펼치기 버튼이 로고 자리를 차지한다
+      labels.forEach((l) => {
+        const o = clamp(l.s.x, 0, 1)
+        l.el.style.opacity = o.toFixed(3)
+        l.el.style.transform = `translateX(${((1 - o) * -10).toFixed(2)}px)`
+        l.el.style.visibility = o < .02 ? 'hidden' : '' // 다 접혔을 때는 글자를 읽어 주지 않는다
+      })
+      hl.style.transform = `translateY(${Y.x.toFixed(2)}px)`
+    },
+  })
+}
+
+if (BOOT.in && BOOT.named) enter()
+else if (BOOT.in) askName()
+else gate()
+</script>
+</body>
+</html>

@@ -72,3 +72,7 @@ data/curated/place_photos.csv.bak
 worker/node_modules/
 worker/.wrangler/
 worker/.dev.vars
+
+
+downloads/.dev.vars
+downloads/.wrangler/

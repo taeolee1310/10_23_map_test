@@ -11,9 +11,13 @@
 //   reports [new|reviewed|applied|rejected]   제보 목록
 //   report-set <id> <상태> [메모]             제보 상태 바꾸기
 //   stats [일수]            날짜별 방문자 수(DAU)·목록 받은 횟수·제보 수(기본 14일)
-//   fix-token               .env의 관리 토큰을 Worker 비밀 값으로 다시 넣는다(토큰이 어긋났을 때)
+//   fix-token               .env의 관리 토큰을 Worker 비밀 값으로 다시 넣는다(토큰이 어긋났을 때). 주인 전용(Cloudflare 로그인이 있어야 함)
+//   whoami                  지금 .env의 열쇠가 누구 것인지(주인 / 사람 이름)
+//   admin-add <이름>        (주인 전용) 그 사람의 관리 열쇠를 만들어 **한 번만** 보여 준다. 같은 이름이면 새 열쇠로 바뀌고 예전 것은 막힌다
+//   admin-list              (주인 전용) 열쇠를 가진 사람·만든 날·마지막으로 쓴 날
+//   admin-revoke <이름>     (주인 전용) 그 사람의 열쇠를 바로 막는다
 // --json: 사람이 읽는 글 대신 JSON 한 줄을 낸다 → {ok, data} 또는 {ok:false, error:{code, message, fix, problems?}}
-// 토큰 값은 출력하지 않는다.
+// 토큰 값은 출력하지 않는다(예외: admin-add가 새로 만든 열쇠를 주인 터미널에 한 번 보여 준다).
 
 import { readFileSync, existsSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
@@ -54,6 +58,8 @@ const ERRORS = {
   file: ['화면 데이터 파일(web/public/data/onsen.json)을 읽지 못했어요', "수집 탭에서 '화면 데이터 만들기'를 먼저 실행해 주세요"],
   validation: ['공개 전 검사에서 걸렸어요(아래 이유를 고치고 다시 올려요)', ''],
   server: ['Worker가 오류를 냈어요', '잠시 뒤 다시 해 보고, 계속되면 Claude에게 알려 주세요'],
+  'owner-only': ['이 명령은 주인 열쇠로만 할 수 있어요', '주인 PC의 .env(TANGBANG_ADMIN_TOKEN = Worker의 ADMIN_TOKEN)에서 실행해 주세요'],
+  name: ['이름은 2~20자(글자·숫자·공백·._-)로 적어 주세요', ''],
 }
 const fail = (code, extra = {}) => {
   const [message, fix] = ERRORS[code] || ERRORS.server
@@ -76,6 +82,7 @@ async function call(method, p, body) {
   const j = await r.json().catch(() => ({ ok: false, error: `http-${r.status}` }))
   if (r.ok && j.ok) return j
   if (r.status === 401) throw fail('auth')
+  if (r.status === 403 && j.error === 'owner-only') throw fail('owner-only')
   if (r.status === 409 && j.error === 'stale') throw fail('stale')
   if (r.status === 413) throw fail('too-big')
   if (r.status === 422 && j.error === 'validation') throw fail('validation', { problems: j.problems })
@@ -188,6 +195,30 @@ async function run() {
       const [id, st, ...note] = args
       const j = await call('POST', `/admin/reports/${Number(id)}`, { status: st, note: note.join(' ') })
       return { data: j, text: [`제보 #${id} → ${st}`] }
+    }
+    case 'whoami': {
+      const j = await call('GET', '/admin/whoami')
+      return { data: j, text: [j.role === 'owner' ? '주인 열쇠예요' : `${j.name} 님의 열쇠예요`] }
+    }
+    case 'admin-add': {
+      const name = args.join(' ').trim()
+      if (!name) throw new Fail('usage', '사용: admin-add <이름>')
+      const j = await call('POST', '/admin/admins', { name })
+      // 새 열쇠는 여기서 한 번만 보인다(서버에는 해시만 남는다). 그 사람에게만 안전하게 전하고, 그 사람 .env의 TANGBANG_ADMIN_TOKEN에 넣게 한다
+      return {
+        data: { name: j.name, token: j.token },
+        text: [`${j.name} 님의 관리 열쇠를 만들었어요. 아래 줄은 지금 한 번만 보여요.`, '', `  TANGBANG_ADMIN_TOKEN=${j.token}`, '', '이 줄을 그 사람에게만 전하고, 그 사람 프로젝트 폴더의 .env에 넣게 해 주세요(메신저 단체방·이슈·커밋에 붙이지 않기).'],
+      }
+    }
+    case 'admin-list': {
+      const j = await call('GET', '/admin/admins')
+      return { data: j, text: j.admins.length ? j.admins.map((a) => `${a.name}  만든 날 ${a.created_at.slice(0, 10)}  마지막 사용 ${a.last_used || '-'}${a.revoked_at ? `  막힘(${a.revoked_at.slice(0, 10)})` : ''}`) : ['아직 만든 열쇠가 없어요'] }
+    }
+    case 'admin-revoke': {
+      const name = args.join(' ').trim()
+      if (!name) throw new Fail('usage', '사용: admin-revoke <이름>')
+      const j = await call('POST', '/admin/admins/revoke', { name })
+      return { data: j, text: [j.ok ? `${name} 님의 열쇠를 막았어요` : `${name} 님의 쓰는 중인 열쇠가 없어요`] }
     }
     case 'fix-token': {
       if (!TOKEN) throw fail('config')

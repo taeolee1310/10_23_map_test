@@ -515,4 +515,34 @@ r = await call('GET', '/admin/status', { admin: true })
 ok('상태에 오늘·어제 방문자 수', r.j.visitors.today === 2 && r.j.visitors.yesterday === 0, `오늘 ${r.j.visitors.today}명`)
 ok('상태 조회', r.j.active === Number(sqlite.prepare("SELECT v FROM meta WHERE k = 'active_snapshot'").get().v) && r.j.draft.count === data.places.length, `공개 #${r.j.active}, 스냅샷 ${r.j.snapshots.length}개`)
 
+// 14. 사람마다 관리 열쇠: 주인만 만들고 끈다, 만든 열쇠로 관리 API를 쓰고, 누가 했는지 남는다, 끄면 바로 막힌다
+{
+  const as = (tok) => ({ Authorization: `Bearer ${tok}` })
+  let a = await call('POST', '/admin/admins', { admin: true, body: { name: '측근 시험' } })
+  ok('주인이 열쇠를 만들면 한 번 돌려준다(서버에는 해시만)', a.j.ok && a.j.token.length >= 40 && !sqlite.prepare('SELECT token_hash FROM admins').get().token_hash.includes(a.j.token))
+  const tok = a.j.token
+  r = await call('GET', '/admin/whoami', { headers: as(tok) })
+  ok('만든 열쇠로 들어가면 그 사람 이름', r.j.role === 'member' && r.j.name === '측근 시험')
+  r = await call('POST', '/admin/admins', { headers: as(tok), body: { name: '몰래' } })
+  ok('사람 열쇠로는 열쇠를 만들 수 없다', r.res.status === 403)
+  r = await call('GET', '/admin/admins', { headers: as(tok) })
+  ok('사람 열쇠로는 열쇠 목록도 못 본다', r.res.status === 403)
+  const rep = sqlite.prepare('SELECT id FROM reports ORDER BY id DESC LIMIT 1').get()
+  r = await call('POST', `/admin/reports/${rep.id}`, { headers: as(tok), body: { status: 'reviewed', note: '시험' } })
+  ok('사람 열쇠로 제보를 판정하면 누가 했는지 남는다', r.j.ok && sqlite.prepare('SELECT reviewed_by FROM reports WHERE id = ?').get(rep.id).reviewed_by === '측근 시험')
+  ok('쓴 날이 남는다', !!sqlite.prepare("SELECT last_used FROM admins WHERE name = '측근 시험'").get().last_used)
+  r = await call('GET', '/admin/admins', { admin: true })
+  ok('주인은 목록을 본다(해시는 안 보임)', r.j.admins.length === 1 && !('token_hash' in r.j.admins[0]))
+  await call('POST', '/admin/admins/revoke', { admin: true, body: { name: '측근 시험' } })
+  r = await call('GET', '/admin/whoami', { headers: as(tok) })
+  ok('끄면 그 열쇠는 바로 막힌다', r.res.status === 401)
+  a = await call('POST', '/admin/admins', { admin: true, body: { name: '측근 시험' } })
+  const fresh = (await call('GET', '/admin/whoami', { headers: as(a.j.token) })).j.name === '측근 시험'
+  const oldStill = (await call('GET', '/admin/whoami', { headers: as(tok) })).res.status
+  ok('같은 이름으로 다시 만들면 새 열쇠만 통하고 예전 것은 막힌 채', a.j.token !== tok && fresh && oldStill === 401)
+  const bad1 = (await call('POST', '/admin/admins', { admin: true, body: { name: '<' } })).res.status
+  const bad2 = (await call('POST', '/admin/admins', { admin: true, body: { name: 'owner' } })).res.status
+  ok('짧거나 이상한 이름은 거절', bad1 === 400 && bad2 === 400)
+  ok('틀린 열쇠는 401', (await call('GET', '/admin/whoami', { headers: as('x'.repeat(43)) })).res.status === 401)
+}
 console.log(`\n모두 통과: ${pass}개`)
